@@ -1,0 +1,17 @@
+{
+    "psi-header.templates": [
+        {
+            "language": "*",
+            "template": [
+                "File: <<projectname>><<filerelativepath>>",
+                "Date: <<filecreated('DD.MM.YYYY')>>",
+                "Auhtor: Markus Grigull",
+                "",
+                "<<licensetext>>"
+            ]
+        }
+    ],
+    "psi-header.config": {
+        "license": "MIT"
+    }
+}
