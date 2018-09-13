@@ -5,3 +5,4 @@ authors = ["MarkAtk"]
 
 [dependencies]
 clap = "^2.32.0"
+serial = "0.4.0"
