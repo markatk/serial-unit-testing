@@ -26,10 +26,50 @@
  * SOFTWARE.
  */
 
+extern crate serialport;
+
+use std::io::{self, Write};
 use clap::{ArgMatches};
+use serialport::SerialPortSettings;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    let _port_name = matches.value_of("port").unwrap();
+    let port_name = matches.value_of("port").unwrap();
+    let baud_rate = matches.value_of("baud").unwrap();
+
+    let mut settings: SerialPortSettings = Default::default();
+
+    if let Ok(rate) = baud_rate.parse::<u32>() {
+        settings.baud_rate = rate.into();
+    } else {
+        return Err(format!("Error: Invalid baud rate '{}'", baud_rate));
+    }
+
+    match serialport::open_with_settings(&port_name, &settings) {
+        Ok(mut port) => {
+            match port.write("Hello world".as_bytes()) {
+                Ok(_) => {
+                    println!("Text send");
+
+                    let mut serial_buf: Vec<u8> = vec![0; 1000];
+
+                    match port.read(serial_buf.as_mut_slice()) {
+                        Ok(t) => {
+                            println!("Text received {}", t);
+                            
+                            io::stdout().write_all(&serial_buf[..t]).unwrap();
+
+                            println!("");
+                        },
+                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                        Err(e) => eprintln!("{:?}", e)
+                    }
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                Err(error) => println!("Error sending text {:?}", error)
+            }
+        },
+        Err(error) => println!("Error opening port {:?}", error)
+    };
 
     Ok(())
 }
