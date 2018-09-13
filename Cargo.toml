@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Markus Grigull <web@grigull.me>"]
 
 [dependencies]
-clap = "^2.32.0"
-serial = "0.4.0"
+clap = "2.32.0"
+serialport = "3.0.0"
