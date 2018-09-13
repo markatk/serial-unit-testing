@@ -26,66 +26,23 @@
  * SOFTWARE.
  */
 
+#[macro_use]
 extern crate clap;
 extern crate serialport;
 
 use clap::{App, ArgMatches, SubCommand, Arg};
-use serialport::SerialPortType;
+
+mod list;
+mod send;
+mod monitor;
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
-        ("send", Some(m)) => run_send(m),
-        ("list", Some(m)) => run_list(m),
-        ("monitor", Some(m)) => run_monitor(m),
+        ("send", Some(m)) => send::run(m),
+        ("list", Some(m)) => list::run(m),
+        ("monitor", Some(m)) => monitor::run(m),
         _ => Ok(())
     }
-}
-
-pub fn run_send(matches: &ArgMatches) -> Result<(), String> {
-    let _port_name = matches.value_of("port").unwrap();
-
-    Ok(())
-}
-
-fn run_list(matches: &ArgMatches) -> Result<(), String> {
-    let verbose = matches.is_present("verbose");
-
-    let ports = serialport::available_ports().unwrap();
-
-    for port in ports {
-        println!("{}", port.port_name);
-
-        if verbose == false {
-            continue;
-        }
-        
-        match port.port_type {
-            SerialPortType::UsbPort(info) => {
-                println!("  Type: USB");
-                println!("  VID: {:04x} PID: {:04x}", info.vid, info.pid);
-                println!("  Serial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
-                println!("  Manufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
-                println!("  Product: {}", info.product.as_ref().map_or("", String::as_str));
-            }
-            SerialPortType::BluetoothPort => {
-                println!("  Type: Bluetooth");
-            }
-            SerialPortType::PciPort => {
-                println!("  Type: PCI");
-            }
-            SerialPortType::Unknown => {
-                println!("  Type: Unknown");
-            }
-        }
-
-        println!("");
-    }
-
-    Ok(())
-}
-
-fn run_monitor(_matches: &ArgMatches) -> Result<(), String> {
-    Ok(())
 }
 
 fn main() {
@@ -138,7 +95,7 @@ fn main() {
             .help("Print detailed information about each serial port"));
 
     let matches = App::new("serial-unit-testing")
-        .version("v0.1")
+        .version(crate_version!())
         .version_short("v")
         .about("Serial unit testing framework")
         .subcommand(send_subcommand)
