@@ -30,7 +30,7 @@ extern crate clap;
 extern crate serialport;
 
 use clap::{App, ArgMatches, SubCommand, Arg};
-use serialport::{SerialPortInfo};
+use serialport::SerialPortType;
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
@@ -47,11 +47,38 @@ pub fn run_send(matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
-fn run_list(_matches: &ArgMatches) -> Result<(), String> {
-    let ports: Vec<SerialPortInfo> = serialport::available_ports().unwrap();
+fn run_list(matches: &ArgMatches) -> Result<(), String> {
+    let verbose = matches.is_present("verbose");
 
-    for port in ports.iter() {
+    let ports = serialport::available_ports().unwrap();
+
+    for port in ports {
         println!("{}", port.port_name);
+
+        if verbose == false {
+            continue;
+        }
+        
+        match port.port_type {
+            SerialPortType::UsbPort(info) => {
+                println!("  Type: USB");
+                println!("  VID: {:04x} PID: {:04x}", info.vid, info.pid);
+                println!("  Serial Number: {}", info.serial_number.as_ref().map_or("", String::as_str));
+                println!("  Manufacturer: {}", info.manufacturer.as_ref().map_or("", String::as_str));
+                println!("  Product: {}", info.product.as_ref().map_or("", String::as_str));
+            }
+            SerialPortType::BluetoothPort => {
+                println!("  Type: Bluetooth");
+            }
+            SerialPortType::PciPort => {
+                println!("  Type: PCI");
+            }
+            SerialPortType::Unknown => {
+                println!("  Type: Unknown");
+            }
+        }
+
+        println!("");
     }
 
     Ok(())
@@ -104,7 +131,11 @@ fn main() {
             .default_value("1"));
 
     let list_subcommand = SubCommand::with_name("list")
-        .about("List all available serial ports");
+        .about("List all available serial ports")
+        .arg(Arg::with_name("verbose")
+            .long("verbose")
+            .short("v")
+            .help("Print detailed information about each serial port"));
 
     let matches = App::new("serial-unit-testing")
         .version("v0.1")
