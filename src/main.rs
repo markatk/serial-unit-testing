@@ -27,13 +27,10 @@
  */
 
 extern crate clap;
-extern crate serial;
-
-use std::time::Duration;
-use std::io;
+extern crate serialport;
 
 use clap::{App, ArgMatches, SubCommand, Arg};
-use serial::prelude::*;
+use serialport::{SerialPortInfo};
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
@@ -44,45 +41,23 @@ fn run(matches: ArgMatches) -> Result<(), String> {
     }
 }
 
-fn interact<T: SerialPort>(port: &mut T) -> io::Result<()> {
-    try!(port.reconfigure(&|settings| {
-        try!(settings.set_baud_rate(serial::Baud9600));
-        settings.set_char_size(serial::Bits8);
-        settings.set_parity(serial::ParityNone);
-        settings.set_stop_bits(serial::Stop1);
-        settings.set_flow_control(serial::FlowNone);
-
-        Ok(())
-    }));
-
-    try!(port.set_timeout(Duration::from_millis(1000)));
-
-    let buf: Vec<u8> = (0..255).collect();
-    try!(port.write(&buf[..]));
-
-    Ok(())
-}
-
 pub fn run_send(matches: &ArgMatches) -> Result<(), String> {
-    let port_name = matches.value_of("port").unwrap();
-
-    let mut port = match serial::open(port_name) {
-        Ok(p) => p,
-        Err(error) => {
-            panic!("Unable to open port: {}", error);
-        }
-    };
-
-    interact(&mut port).unwrap();
+    let _port_name = matches.value_of("port").unwrap();
 
     Ok(())
 }
 
-fn run_list(matches: &ArgMatches) -> Result<(), String> {
+fn run_list(_matches: &ArgMatches) -> Result<(), String> {
+    let ports: Vec<SerialPortInfo> = serialport::available_ports().unwrap();
+
+    for port in ports.iter() {
+        println!("{}", port.port_name);
+    }
+
     Ok(())
 }
 
-fn run_monitor(matches: &ArgMatches) -> Result<(), String> {
+fn run_monitor(_matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
@@ -128,11 +103,15 @@ fn main() {
             .possible_values(&stopbits)
             .default_value("1"));
 
+    let list_subcommand = SubCommand::with_name("list")
+        .about("List all available serial ports");
+
     let matches = App::new("serial-unit-testing")
         .version("v0.1")
         .version_short("v")
         .about("Serial unit testing framework")
         .subcommand(send_subcommand)
+        .subcommand(list_subcommand)
         .get_matches();
 
     if let Err(e) = run(matches) {
