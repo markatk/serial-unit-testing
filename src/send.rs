@@ -30,7 +30,7 @@ extern crate serialport;
 
 use std::io::{self, Write};
 
-use clap::{ArgMatches};
+use clap::{ArgMatches, SubCommand, Arg, App};
 use serialport::SerialPortSettings;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
@@ -55,6 +55,67 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
+pub fn command<'a>() -> App<'a, 'a> {
+    let databits = [ "5", "6", "7", "8" ];
+    let parity = [ "none", "even", "odd" ];
+    let stopbits = [ "1", "2" ];
+    let flowcontrols = [ "none", "software", "hardware" ];
+
+    SubCommand::with_name("send")
+        .about("Send data to serial port")
+        .arg(Arg::with_name("port")
+            .long("port")
+            .short("p")
+            .help("Serial port OS specific name")
+            .required(true)
+            .value_name("PORT")
+            .takes_value(true))
+        .arg(Arg::with_name("baud")
+            .long("baud")
+            .short("b")
+            .help("Serial port baud rate")
+            .takes_value(true)
+            .default_value("9600"))
+        .arg(Arg::with_name("databits")
+            .long("databits")
+            .short("d")
+            .help("Serial port number of data bits")
+            .takes_value(true)
+            .possible_values(&databits)
+            .default_value("8"))
+        .arg(Arg::with_name("parity")
+            .long("parity")
+            .short("P")
+            .help("Serial port parity")
+            .takes_value(true)
+            .possible_values(&parity)
+            .default_value("none"))
+        .arg(Arg::with_name("stopbits")
+            .long("stopbits")
+            .short("s")
+            .help("Serial port stop bits")
+            .takes_value(true)
+            .possible_values(&stopbits)
+            .default_value("1"))
+        .arg(Arg::with_name("flowcontrol")
+            .long("flowcontrol")
+            .short("f")
+            .help("Serial port flow control mode")
+            .possible_values(&flowcontrols)
+            .default_value("none"))
+        .arg(Arg::with_name("echo")
+            .long("echo")
+            .short("e")
+            .help("Echo send text in standard output"))
+        .arg(Arg::with_name("response")
+            .long("show-response")
+            .short("r")
+            .help("Show response from device"))
+        .arg(Arg::with_name("text")
+            .help("Text send to the serial port")
+            .takes_value(true))
+}
+
 fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool) -> Result<(), String> {
     match port.write(text.as_bytes()) {
         Ok(_) => {
@@ -72,7 +133,7 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
 fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
-    match port.read(serial_buf.as_mut_slice()) {
+    match port.read_to_end(&mut serial_buf) {
         Ok(t) => {
             io::stdout().write_all(&serial_buf[..t]).unwrap();
 

@@ -28,7 +28,7 @@
 
 extern crate serialport;
 
-use clap::{ArgMatches};
+use clap::{ArgMatches, App, SubCommand, Arg};
 use serialport::SerialPortType;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
@@ -67,4 +67,13 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+pub fn command<'a>() -> App<'a, 'a> {
+    SubCommand::with_name("list")
+        .about("List all available serial ports")
+        .arg(Arg::with_name("verbose")
+            .long("verbose")
+            .short("v")
+            .help("Print detailed information about each serial port"))
 }
