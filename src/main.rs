@@ -41,7 +41,7 @@ fn run(matches: ArgMatches) -> Result<(), String> {
         ("send", Some(m)) => send::run(m),
         ("list", Some(m)) => list::run(m),
         ("monitor", Some(m)) => monitor::run(m),
-        _ => Ok(())
+        _ => Err("Missing subcommand".to_string())
     }
 }
 
