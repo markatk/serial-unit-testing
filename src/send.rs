@@ -29,6 +29,7 @@
 extern crate serialport;
 
 use std::io::{self, Write};
+use std::time::Duration;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
 use serialport::SerialPortSettings;
@@ -111,6 +112,12 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("show-response")
             .short("r")
             .help("Show response from device"))
+        .arg(Arg::with_name("timeout")
+            .long("timeout")
+            .short("t")
+            .help("Set serial port timeout duration")
+            .takes_value(true)
+            .default_value("1000"))
         .arg(Arg::with_name("text")
             .help("Text send to the serial port")
             .takes_value(true))
@@ -133,7 +140,7 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
 fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
-    match port.read_to_end(&mut serial_buf) {
+    match port.read(&mut serial_buf) {
         Ok(t) => {
             io::stdout().write_all(&serial_buf[..t]).unwrap();
 
@@ -150,6 +157,7 @@ fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, 
     let mut settings: SerialPortSettings = Default::default();
 
     let baud_rate = matches.value_of("baud").unwrap();
+    let timeout = matches.value_of("timeout").unwrap();
     let data_bits = matches.value_of("databits").unwrap();
     let parity = matches.value_of("parity").unwrap();
     let stop_bits = matches.value_of("stopbits").unwrap();
@@ -159,6 +167,12 @@ fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, 
         settings.baud_rate = rate.into();
     } else {
         return Err(format!("Invalid baud rate '{}'", baud_rate));
+    }
+
+    if let Ok(duration) = timeout.parse::<u64>() {
+        settings.timeout = Duration::from_millis(duration);
+    } else {
+        return Err(format!("Invalid timeout '{}'", timeout));
     }
 
     settings.data_bits = match data_bits {
