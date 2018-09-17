@@ -29,6 +29,7 @@
 extern crate serialport;
 
 use std::io::{self, Write};
+
 use clap::{ArgMatches};
 use serialport::SerialPortSettings;
 
@@ -37,32 +38,44 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     let settings = get_serial_port_settings(matches).unwrap();
 
+    let text = matches.value_of("text").unwrap();
+
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
-            match port.write("Hello world".as_bytes()) {
-                Ok(_) => {
-                    println!("Text send");
+            send_text(&mut port, text).unwrap();
 
-                    let mut serial_buf: Vec<u8> = vec![0; 1000];
-
-                    match port.read(serial_buf.as_mut_slice()) {
-                        Ok(t) => {
-                            println!("Text received {}", t);
-                            
-                            io::stdout().write_all(&serial_buf[..t]).unwrap();
-
-                            println!("");
-                        },
-                        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                        Err(e) => eprintln!("{:?}", e)
-                    }
-                },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                Err(error) => println!("Error sending text {:?}", error)
+            if matches.is_present("response") {
+                read_response(&mut port).unwrap();
             }
         },
         Err(error) => println!("Error opening port {:?}", error)
     };
+
+    Ok(())
+}
+
+fn send_text(port: &mut Box<serialport::SerialPort>, text: &str) -> Result<(), String> {
+    match port.write(text.as_bytes()) {
+        Ok(_) => (),
+        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+        Err(error) => println!("Error sending text {:?}", error)
+    }
+
+    Ok(())
+}
+
+fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
+    let mut serial_buf: Vec<u8> = vec![0; 1000];
+
+    match port.read(serial_buf.as_mut_slice()) {
+        Ok(t) => {
+            io::stdout().write_all(&serial_buf[..t]).unwrap();
+
+            println!("");
+        },
+        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+        Err(e) => eprintln!("{:?}", e)
+    }
 
     Ok(())
 }
