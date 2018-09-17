@@ -49,6 +49,7 @@ fn main() {
     let databits = [ "5", "6", "7", "8" ];
     let parity = [ "none", "even", "odd" ];
     let stopbits = [ "1", "2" ];
+    let flowcontrols = [ "none", "software", "hardware" ];
 
     let send_subcommand = SubCommand::with_name("send")
         .about("Send data to serial port")
@@ -86,6 +87,12 @@ fn main() {
             .takes_value(true)
             .possible_values(&stopbits)
             .default_value("1"))
+        .arg(Arg::with_name("flowcontrol")
+            .long("flowcontrol")
+            .short("f")
+            .help("Serial port flow control mode")
+            .possible_values(&flowcontrols)
+            .default_value("none"))
         .arg(Arg::with_name("echo")
             .long("echo")
             .short("e")

@@ -86,13 +86,13 @@ fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
 }
 
 fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, String> {
+    let mut settings: SerialPortSettings = Default::default();
+
     let baud_rate = matches.value_of("baud").unwrap();
     let data_bits = matches.value_of("databits").unwrap();
     let parity = matches.value_of("parity").unwrap();
     let stop_bits = matches.value_of("stopbits").unwrap();
-    // TODO: Add missing flow control
-
-    let mut settings: SerialPortSettings = Default::default();
+    let flow_control = matches.value_of("flowcontrol").unwrap();
 
     if let Ok(rate) = baud_rate.parse::<u32>() {
         settings.baud_rate = rate.into();
@@ -124,6 +124,15 @@ fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, 
         "2" => serialport::StopBits::Two,
         _ => {
             return Err(format!("Invalid stop bits '{}", stop_bits));
+        }
+    };
+
+    settings.flow_control = match flow_control {
+        "none" => serialport::FlowControl::None,
+        "software" => serialport::FlowControl::Software,
+        "hardware" => serialport::FlowControl::Hardware,
+        _ => {
+            return Err(format!("Invalid flow control '{}'", flow_control));
         }
     };
 
