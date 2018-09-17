@@ -52,6 +52,7 @@ fn main() {
         .about("Serial unit testing framework")
         .subcommand(send::command())
         .subcommand(list::command())
+        .subcommand(monitor::command())
         .get_matches();
 
     if let Err(e) = run(matches) {

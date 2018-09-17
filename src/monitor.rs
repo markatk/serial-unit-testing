@@ -26,8 +26,13 @@
  * SOFTWARE.
  */
 
-use clap::{ArgMatches};
+use clap::{ArgMatches, App, SubCommand};
 
 pub fn run(_matches: &ArgMatches) -> Result<(), String> {
     Ok(())
+}
+
+pub fn command<'a>() -> App<'a, 'a> {
+    SubCommand::with_name("monitor")
+        .about("Continously display serial port data")
 }
