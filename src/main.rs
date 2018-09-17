@@ -86,9 +86,13 @@ fn main() {
             .takes_value(true)
             .possible_values(&stopbits)
             .default_value("1"))
+        .arg(Arg::with_name("response")
+            .long("show-response")
+            .short("r")
+            .help("Show response from device"))
         .arg(Arg::with_name("text")
             .help("Text send to the serial port")
-            .multiple(true));
+            .takes_value(true));
 
     let list_subcommand = SubCommand::with_name("list")
         .about("List all available serial ports")
