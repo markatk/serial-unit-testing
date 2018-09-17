@@ -34,15 +34,8 @@ use serialport::SerialPortSettings;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let port_name = matches.value_of("port").unwrap();
-    let baud_rate = matches.value_of("baud").unwrap();
 
-    let mut settings: SerialPortSettings = Default::default();
-
-    if let Ok(rate) = baud_rate.parse::<u32>() {
-        settings.baud_rate = rate.into();
-    } else {
-        return Err(format!("Error: Invalid baud rate '{}'", baud_rate));
-    }
+    let settings = get_serial_port_settings(matches).unwrap();
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
@@ -72,4 +65,49 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     };
 
     Ok(())
+}
+
+fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, String> {
+    let baud_rate = matches.value_of("baud").unwrap();
+    let data_bits = matches.value_of("databits").unwrap();
+    let parity = matches.value_of("parity").unwrap();
+    let stop_bits = matches.value_of("stopbits").unwrap();
+    // TODO: Add missing flow control
+
+    let mut settings: SerialPortSettings = Default::default();
+
+    if let Ok(rate) = baud_rate.parse::<u32>() {
+        settings.baud_rate = rate.into();
+    } else {
+        return Err(format!("Invalid baud rate '{}'", baud_rate));
+    }
+
+    settings.data_bits = match data_bits {
+        "5" => serialport::DataBits::Five,
+        "6" => serialport::DataBits::Six,
+        "7" => serialport::DataBits::Seven,
+        "8" => serialport::DataBits::Eight,
+        _ => {
+            return Err(format!("Invalid data bits '{}'", data_bits));
+        }
+    };
+
+    settings.parity = match parity {
+        "none" => serialport::Parity::None,
+        "even" => serialport::Parity::Even,
+        "odd" => serialport::Parity::Odd,
+        _ => {
+            return Err(format!("Invalid parity '{}'", parity));
+        }
+    };
+
+    settings.stop_bits = match stop_bits {
+        "1" => serialport::StopBits::One,
+        "2" => serialport::StopBits::Two,
+        _ => {
+            return Err(format!("Invalid stop bits '{}", stop_bits));
+        }
+    };
+
+    Ok(settings)
 }

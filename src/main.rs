@@ -46,7 +46,7 @@ fn run(matches: ArgMatches) -> Result<(), String> {
 }
 
 fn main() {
-    let databits = [ "6", "7", "8", "9" ];
+    let databits = [ "5", "6", "7", "8" ];
     let parity = [ "none", "even", "odd" ];
     let stopbits = [ "1", "2" ];
 
@@ -85,7 +85,10 @@ fn main() {
             .help("Serial port stop bits")
             .takes_value(true)
             .possible_values(&stopbits)
-            .default_value("1"));
+            .default_value("1"))
+        .arg(Arg::with_name("text")
+            .help("Text send to the serial port")
+            .multiple(true));
 
     let list_subcommand = SubCommand::with_name("list")
         .about("List all available serial ports")
@@ -103,7 +106,7 @@ fn main() {
         .get_matches();
 
     if let Err(e) = run(matches) {
-        println!("Application error: {}", e);
+        println!("Error: {}", e);
 
         return;
     }
