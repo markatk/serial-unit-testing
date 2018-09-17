@@ -35,14 +35,15 @@ use serialport::SerialPortSettings;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let port_name = matches.value_of("port").unwrap();
+    let text = matches.value_of("text").unwrap();
 
     let settings = get_serial_port_settings(matches).unwrap();
 
-    let text = matches.value_of("text").unwrap();
-
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
-            send_text(&mut port, text).unwrap();
+            let echo_text = matches.is_present("echo");
+
+            send_text(&mut port, text, echo_text).unwrap();
 
             if matches.is_present("response") {
                 read_response(&mut port).unwrap();
@@ -54,9 +55,13 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     Ok(())
 }
 
-fn send_text(port: &mut Box<serialport::SerialPort>, text: &str) -> Result<(), String> {
+fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool) -> Result<(), String> {
     match port.write(text.as_bytes()) {
-        Ok(_) => (),
+        Ok(_) => {
+            if echo_text {
+                println!("{}", text);
+            }
+        },
         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
         Err(error) => println!("Error sending text {:?}", error)
     }
