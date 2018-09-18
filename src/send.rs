@@ -140,15 +140,21 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
 fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
-    match port.read(&mut serial_buf) {
-        Ok(t) => {
-            io::stdout().write_all(&serial_buf[..t]).unwrap();
+    loop {
+        match port.read(&mut serial_buf) {
+            Ok(t) => {
+                if t <= 0 {
+                    break;
+                }
 
-            println!("");
-        },
-        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-        Err(e) => eprintln!("{:?}", e)
+                io::stdout().write_all(&serial_buf[..t]).unwrap();
+            },
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
+            Err(e) => eprintln!("{:?}", e)
+        }
     }
+
+    println!("");
 
     Ok(())
 }
