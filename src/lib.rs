@@ -1,6 +1,6 @@
 /*
- * File: src/main.rs
- * Date: 12.09.2018
+ * File: src/lib.rs
+ * Date: 18.09.2018
  * Auhtor: Markus Grigull
  * 
  * MIT License
@@ -26,37 +26,12 @@
  * SOFTWARE.
  */
 
-#[macro_use]
-extern crate clap;
+mod serial;
 
-use clap::{App, ArgMatches};
-
-mod list;
-mod send;
-mod monitor;
-
-fn run(matches: ArgMatches) -> Result<(), String> {
-    match matches.subcommand() {
-        ("send", Some(m)) => send::run(m),
-        ("list", Some(m)) => list::run(m),
-        ("monitor", Some(m)) => monitor::run(m),
-        _ => Err("Missing subcommand".to_string())
-    }
-}
-
-fn main() {
-    let matches = App::new("serial-unit-testing")
-        .version(crate_version!())
-        .version_short("v")
-        .about("Serial unit testing framework")
-        .subcommand(send::command())
-        .subcommand(list::command())
-        .subcommand(monitor::command())
-        .get_matches();
-
-    if let Err(e) = run(matches) {
-        println!("Error: {}", e);
-
-        return;
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
     }
 }

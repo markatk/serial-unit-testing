@@ -1,6 +1,6 @@
 /*
- * File: src/main.rs
- * Date: 12.09.2018
+ * File: src/serial.rs
+ * Date: 18.09.2018
  * Auhtor: Markus Grigull
  * 
  * MIT License
@@ -26,37 +26,42 @@
  * SOFTWARE.
  */
 
-#[macro_use]
-extern crate clap;
+extern crate serialport;
 
-use clap::{App, ArgMatches};
+use std::io::{self, Write};
 
-mod list;
-mod send;
-mod monitor;
-
-fn run(matches: ArgMatches) -> Result<(), String> {
-    match matches.subcommand() {
-        ("send", Some(m)) => send::run(m),
-        ("list", Some(m)) => list::run(m),
-        ("monitor", Some(m)) => monitor::run(m),
-        _ => Err("Missing subcommand".to_string())
-    }
+struct SerialPort {
+    port: serialport::SerialPort
 }
 
-fn main() {
-    let matches = App::new("serial-unit-testing")
-        .version(crate_version!())
-        .version_short("v")
-        .about("Serial unit testing framework")
-        .subcommand(send::command())
-        .subcommand(list::command())
-        .subcommand(monitor::command())
-        .get_matches();
+impl SerialPort {
+    fn write(&mut self, text: &str) -> Result<(), io::Error> {
+        match self.port.write(text.as_bytes()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e)
+        }
+    }
 
-    if let Err(e) = run(matches) {
-        println!("Error: {}", e);
+    fn read_available(&mut self) -> Result<String, io::Error> {
+        let mut serial_buf: Vec<u8> = vec![0; 1000];
+        let mut result = String::new();
 
-        return;
+        loop {
+            match self.port.read(&mut serial_buf) {
+                Ok(t) => {
+                    if t <= 0 {
+                        break;
+                    }
+
+                    let text = String::from_utf8(serial_buf[..t].to_vec()).unwrap();
+
+                    result.push_str(&text);
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
+                Err(e) => println!("{}", e)
+            };
+        }
+
+        Ok(result)
     }
 }
