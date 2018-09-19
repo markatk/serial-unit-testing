@@ -32,7 +32,7 @@ use std::io::{self, Write};
 use std::time::Duration;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
-use serialport::SerialPortSettings;
+use self::serialport::SerialPortSettings;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let port_name = matches.value_of("port").unwrap();

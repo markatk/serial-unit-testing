@@ -29,7 +29,7 @@
 extern crate serialport;
 
 use clap::{ArgMatches, App, SubCommand, Arg};
-use serialport::SerialPortType;
+use self::serialport::SerialPortType;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let verbose = matches.is_present("verbose");

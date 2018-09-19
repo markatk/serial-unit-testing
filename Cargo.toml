@@ -3,6 +3,14 @@ name = "serial-unit-testing"
 version = "0.1.0"
 authors = ["MarkAtk"]
 
+[lib]
+name = "serialunittesting"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sut"
+path = "src/main.rs"
+
 [dependencies]
 clap = "2.32.0"
 serialport = "3.0.0"
