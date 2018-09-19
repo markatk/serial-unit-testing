@@ -36,12 +36,12 @@ use self::serialport::SerialPortSettings;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let port_name = matches.value_of("port").unwrap();
-    let text = matches.value_of("text").unwrap();
 
     let settings = get_serial_port_settings(matches).unwrap();
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
+            let text = matches.value_of("text").unwrap();
             let echo_text = matches.is_present("echo");
 
             send_text(&mut port, text, echo_text).unwrap();
@@ -50,7 +50,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                 read_response(&mut port).unwrap();
             }
         },
-        Err(error) => println!("Error opening port {:?}", error)
+        Err(e) => return Err(format!("Error opening port {:?}", e))
     };
 
     Ok(())
@@ -131,7 +131,7 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
             }
         },
         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-        Err(error) => println!("Error sending text {:?}", error)
+        Err(e) => return Err(format!("Error sending text {:?}", e))
     }
 
     Ok(())
@@ -150,7 +150,7 @@ fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
                 io::stdout().write_all(&serial_buf[..t]).unwrap();
             },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
-            Err(e) => eprintln!("{:?}", e)
+            Err(e) => return Err(format!("{:?}", e))
         }
     }
 
