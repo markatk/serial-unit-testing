@@ -48,7 +48,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             send_text(&mut port, text, echo_text, hex_mode).unwrap();
 
             if matches.is_present("response") {
-                read_response(&mut port).unwrap();
+                read_response(&mut port, hex_mode).unwrap();
             }
         },
         Err(e) => return Err(format!("Error opening port {:?}", e))
@@ -132,10 +132,7 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
     let mut bytes: Vec<u8>;
 
     if hex_mode {
-        bytes = match bytes_from_hex_string(text) {
-            Ok(b) => b,
-            Err(e) => return Err(e)
-        };
+        bytes = bytes_from_hex_string(text).unwrap();
     } else {
         bytes = Vec::new();
         bytes.extend_from_slice(text.as_bytes());
@@ -154,7 +151,7 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
     Ok(())
 }
 
-fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
+fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
 
     loop {
@@ -164,14 +161,20 @@ fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
                     break;
                 }
 
-                io::stdout().write_all(&serial_buf[..t]).unwrap();
+                if hex_mode {
+                    for b in &serial_buf[..t] {
+                        print!("0x{:02X} ", b);
+                    }
+                } else {
+                    io::stdout().write_all(&serial_buf[..t]).unwrap();
+                }
             },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
             Err(e) => return Err(format!("{:?}", e))
         }
     }
 
-    println!("");
+    println!();
 
     Ok(())
 }
