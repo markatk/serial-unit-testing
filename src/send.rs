@@ -168,6 +168,8 @@ fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Resu
                 } else {
                     io::stdout().write_all(&serial_buf[..t]).unwrap();
                 }
+
+                io::stdout().flush().unwrap();
             },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
             Err(e) => return Err(format!("{:?}", e))
