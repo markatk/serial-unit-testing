@@ -41,11 +41,19 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
-            let text = matches.value_of("text").unwrap();
+            let mut text = matches.value_of("text").unwrap().to_string();
             let echo_text = matches.is_present("echo");
             let hex_mode = matches.is_present("hex");
 
-            send_text(&mut port, text, echo_text, hex_mode).unwrap();
+            if matches.is_present("newline") {
+                text.push_str("\n");
+            }
+
+            if matches.is_present("carriagereturn") {
+                text.push_str("\r");
+            }
+
+            send_text(&mut port, text.as_str(), echo_text, hex_mode).unwrap();
 
             if matches.is_present("response") {
                 read_response(&mut port, hex_mode).unwrap();
@@ -123,6 +131,14 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("hex")
             .short("H")
             .help("Set hexadecimal mode"))
+        .arg(Arg::with_name("carriagereturn")
+            .long("carriage-return")
+            .short("R")
+            .help("Add carriage return at the end"))
+        .arg(Arg::with_name("newline")
+            .long("newline")
+            .short("N")
+            .help("Add newline at the end"))
         .arg(Arg::with_name("text")
             .help("Text send to the serial port")
             .takes_value(true))
