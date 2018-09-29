@@ -29,6 +29,7 @@
 extern crate serialport;
 
 use std::io::{self, Write};
+use std::time::Duration;
 
 use clap::{ArgMatches, App, SubCommand, Arg};
 use self::serialport::SerialPortSettings;
@@ -40,7 +41,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
-            read(&mut port).unwrap();
+            let hex_mode = matches.is_present("hex");
+
+            read(&mut port, hex_mode).unwrap();
         },
         Err(e) => return Err(format!("Error opening port {:?}", e))
     };
@@ -90,6 +93,10 @@ pub fn command<'a>() -> App<'a, 'a> {
             .takes_value(true)
             .possible_values(&stopbits)
             .default_value("1"))
+        .arg(Arg::with_name("hex")
+            .long("hex")
+            .short("H")
+            .help("Set hexadecimal mode"))
         .arg(Arg::with_name("flowcontrol")
             .long("flowcontrol")
             .short("f")
@@ -98,13 +105,29 @@ pub fn command<'a>() -> App<'a, 'a> {
             .default_value("none"))
 }
 
-fn read(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
+fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
+    let mut row_entries = 0;
 
     loop {
         match port.read(&mut serial_buf) {
             Ok(t) => {
-                io::stdout().write_all(&serial_buf[..t]).unwrap();
+                if hex_mode {
+                    for b in &serial_buf[..t] {
+                        print!("0x{:02X} ", b);
+
+                        row_entries += 1;
+                        if row_entries > 20 {
+                            row_entries = 0;
+
+                            println!();
+                        }
+                    }
+                } else {
+                    io::stdout().write_all(&serial_buf[..t]).unwrap();
+                }
+
+                io::stdout().flush().unwrap();
             },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
             Err(e) => return Err(format!("{:?}", e))
@@ -114,6 +137,7 @@ fn read(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
 
 fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, String> {
     let mut settings: SerialPortSettings = Default::default();
+    settings.timeout = Duration::from_millis(1000);
 
     let baud_rate = matches.value_of("baud").unwrap();
     let data_bits = matches.value_of("databits").unwrap();
