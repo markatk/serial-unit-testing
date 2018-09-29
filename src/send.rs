@@ -43,8 +43,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         Ok(mut port) => {
             let text = matches.value_of("text").unwrap();
             let echo_text = matches.is_present("echo");
+            let hex_mode = matches.is_present("hex");
 
-            send_text(&mut port, text, echo_text).unwrap();
+            send_text(&mut port, text, echo_text, hex_mode).unwrap();
 
             if matches.is_present("response") {
                 read_response(&mut port).unwrap();
@@ -118,13 +119,29 @@ pub fn command<'a>() -> App<'a, 'a> {
             .help("Set serial port timeout duration")
             .takes_value(true)
             .default_value("1000"))
+        .arg(Arg::with_name("hex")
+            .long("hex")
+            .short("H")
+            .help("Set hexadecimal mode"))
         .arg(Arg::with_name("text")
             .help("Text send to the serial port")
             .takes_value(true))
 }
 
-fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool) -> Result<(), String> {
-    match port.write(text.as_bytes()) {
+fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool, hex_mode: bool) -> Result<(), String> {
+    let mut bytes: Vec<u8>;
+
+    if hex_mode {
+        bytes = match bytes_from_hex_string(text) {
+            Ok(b) => b,
+            Err(e) => return Err(e)
+        };
+    } else {
+        bytes = Vec::new();
+        bytes.extend_from_slice(text.as_bytes());
+    }
+
+    match port.write(bytes.as_slice()) {
         Ok(_) => {
             if echo_text {
                 println!("{}", text);
@@ -157,6 +174,28 @@ fn read_response(port: &mut Box<serialport::SerialPort>) -> Result<(), String> {
     println!("");
 
     Ok(())
+}
+
+fn bytes_from_hex_string<'a>(original_text: &'a str) -> Result<Vec<u8>, String> {
+    let mut bytes: Vec<u8> = Vec::new();
+
+    // remove all unwanted characters
+    let mut text = original_text.replace("0x", "");
+    text = text.replace(" ", "");
+
+    // convert text to interpreted hex bytes
+    let mut chars = text.chars().peekable();
+
+    while chars.peek().is_some() {
+        let chunk: String = chars.by_ref().take(2).collect();
+
+        match u8::from_str_radix(&chunk, 16) {
+            Ok(value) => bytes.push(value),
+            Err(e) => return Err(format!("Unable to read input string {}", e))
+        };
+    }
+
+    Ok(bytes)
 }
 
 fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, String> {
