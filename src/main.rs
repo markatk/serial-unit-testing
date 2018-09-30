@@ -28,9 +28,11 @@
 
 #[macro_use]
 extern crate clap;
+extern crate serialport;
 
 use clap::{App, ArgMatches};
 
+mod commands;
 mod list;
 mod send;
 mod monitor;
@@ -48,6 +50,8 @@ fn main() {
     let matches = App::new("serial-unit-testing")
         .version(crate_version!())
         .version_short("v")
+        //.versionless_subcommands(true)
+        //.subcommand_required_else_help(true)
         .about("Serial unit testing framework")
         .subcommand(send::command())
         .subcommand(list::command())
