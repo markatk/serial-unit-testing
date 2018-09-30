@@ -1,6 +1,6 @@
 /*
  * File: src/serial.rs
- * Date: 18.09.2018
+ * Date: 30.09.2018
  * Auhtor: MarkAtk
  * 
  * MIT License
@@ -26,42 +26,68 @@
  * SOFTWARE.
  */
 
-extern crate serialport;
+use std::boxed::Box;
+use std::io::{self, Error};
 
-use std::io::{self, Write};
+use serialport::{self, SerialPort};
+use clap::ArgMatches;
 
-struct SerialPort {
-    port: serialport::SerialPort
+use commands;
+use utils;
+
+pub struct Serial {
+    port: Box<SerialPort>
 }
 
-impl SerialPort {
-    fn write(&mut self, text: &str) -> Result<(), io::Error> {
-        match self.port.write(text.as_bytes()) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e)
+impl Serial {
+    pub fn open(matches: &ArgMatches) -> Result<Serial, String> {
+        let (settings, port_name) = commands::get_serial_port_settings(matches).unwrap();
+
+        match serialport::open_with_settings(&port_name, &settings) {
+            Ok(port) => {
+                Ok(Serial { port })
+            },
+            Err(e) => Err(format!("Error opening port {:?}", e))
         }
     }
 
-    fn read_available(&mut self) -> Result<String, io::Error> {
-        let mut serial_buf: Vec<u8> = vec![0; 1000];
-        let mut result = String::new();
-
-        loop {
-            match self.port.read(&mut serial_buf) {
-                Ok(t) => {
-                    if t <= 0 {
-                        break;
-                    }
-
-                    let text = String::from_utf8(serial_buf[..t].to_vec()).unwrap();
-
-                    result.push_str(&text);
-                },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
-                Err(e) => println!("{}", e)
-            };
+    pub fn _write(&mut self, text: &str) -> Result<(), String> {
+        match self.port.write(text.as_bytes()) {
+            Ok(_) => Ok(()),
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => Ok(()),
+            Err(e) => Err(format!("Error sending text {:?}", e))
         }
+    }
 
-        Ok(result)
+    pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), String> {
+        let bytes = match text_format {
+            utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
+            utils::TextFormat::Hex => utils::bytes_from_hex_string(text).unwrap(),
+            _ => {
+                let mut bytes = Vec::new();
+                bytes.extend_from_slice(text.as_bytes());
+
+                bytes
+            }
+        };
+
+        match self.port.write(bytes.as_slice()) {
+            Ok(_) => Ok(()),
+            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => Ok(()),
+            Err(e) => Err(format!("Error sending text {:?}", e))
+        }
+    }
+
+    pub fn read<'a>(&mut self) -> Result<Vec<u8>, Error> {
+        let mut buffer: Vec<u8> = vec![0; 1000];
+
+        match self.port.read(&mut buffer) {
+            Ok(length) => {
+                buffer.truncate(length);
+
+                Ok(buffer)
+            },
+            Err(e) => Err(e)
+        }
     }
 }

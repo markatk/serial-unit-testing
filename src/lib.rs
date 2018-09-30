@@ -26,8 +26,6 @@
  * SOFTWARE.
  */
 
-mod serial;
-
 #[cfg(test)]
 mod tests {
     #[test]

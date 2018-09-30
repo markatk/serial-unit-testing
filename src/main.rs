@@ -34,6 +34,8 @@ use clap::{App, ArgMatches, AppSettings};
 
 mod utils;
 mod commands;
+mod serial;
+
 mod list;
 mod send;
 mod monitor;
