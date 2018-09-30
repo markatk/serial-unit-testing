@@ -32,6 +32,7 @@ use clap::{ArgMatches, SubCommand, Arg, App};
 use serialport;
 
 use commands;
+use utils;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let port_name = matches.value_of("port").unwrap();
@@ -54,13 +55,13 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             }
 
             if matches.is_present("escape") {
-                text = escape_text(text);
+                text = utils::escape_text(text);
             }
 
             send_text(&mut port, text.as_str(), echo_text, hex_mode, binary_mode).unwrap();
 
             if matches.is_present("response") {
-                read_response(&mut port, hex_mode).unwrap();
+                read_response(&mut port, hex_mode, binary_mode).unwrap();
             }
         },
         Err(e) => return Err(format!("Error opening port {:?}", e))
@@ -91,9 +92,9 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
     let mut bytes: Vec<u8>;
 
     if hex_mode {
-        bytes = bytes_from_hex_string(text).unwrap();
+        bytes = utils::bytes_from_hex_string(text).unwrap();
     } else if binary_mode {
-        bytes = bytes_from_binary_string(text).unwrap();
+        bytes = utils::bytes_from_binary_string(text).unwrap();
     } else {
         bytes = Vec::new();
         bytes.extend_from_slice(text.as_bytes());
@@ -112,8 +113,9 @@ fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool
     Ok(())
 }
 
-fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Result<(), String> {
+fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool, binary_mode: bool) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
+    let mut row_entries = 0;
 
     loop {
         match port.read(&mut serial_buf) {
@@ -123,9 +125,9 @@ fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Resu
                 }
 
                 if hex_mode {
-                    for b in &serial_buf[..t] {
-                        print!("0x{:02X} ", b);
-                    }
+                    utils::print_radix_string(&serial_buf[..t], 16, &mut row_entries, 20);
+                } else if binary_mode {
+                    utils::print_radix_string(&serial_buf[..t], 2, &mut row_entries, 10);
                 } else {
                     io::stdout().write_all(&serial_buf[..t]).unwrap();
                 }
@@ -140,43 +142,4 @@ fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Resu
     println!();
 
     Ok(())
-}
-
-fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, String> {
-    let mut text = original_text.replace("0x", "");
-    text = text.replace(" ", "");
-
-    bytes_from_radix_string(&text, 16)
-}
-
-fn bytes_from_binary_string(orignal_text: &str) -> Result<Vec<u8>, String> {
-    let mut text = orignal_text.replace("0b", "");
-    text = text.replace(" ", "");
-
-    bytes_from_radix_string(&text, 2)
-}
-
-fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String> {
-    let mut bytes: Vec<u8> = Vec::new();
-
-    let mut chars = text.chars().peekable();
-
-    while chars.peek().is_some() {
-        let chunk: String = chars.by_ref().take(2).collect();
-
-        match u8::from_str_radix(&chunk, radix) {
-            Ok(value) => bytes.push(value),
-            Err(e) => return Err(format!("Unable to read input string {}", e))
-        };
-    }
-
-    Ok(bytes)
-}
-
-fn escape_text(text: String) -> String {
-    let mut text = text.replace("\\r", "\r");
-    text = text.replace("\\n", "\n");
-    text = text.replace("\\t", "\t");
-
-    text
 }

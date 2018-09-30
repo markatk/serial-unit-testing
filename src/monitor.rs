@@ -32,6 +32,7 @@ use clap::{ArgMatches, App, SubCommand};
 use serialport;
 
 use commands;
+use utils;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let port_name = matches.value_of("port").unwrap();
@@ -65,9 +66,9 @@ fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool, binary_mode: boo
         match port.read(&mut serial_buf) {
             Ok(t) => {
                 if hex_mode {
-                    print_radix_string(&serial_buf[..t], 16, &mut row_entries, 20);
+                    utils::print_radix_string(&serial_buf[..t], 16, &mut row_entries, 20);
                 } else if binary_mode {
-                    print_radix_string(&serial_buf[..t], 2, &mut row_entries, 10);
+                    utils::print_radix_string(&serial_buf[..t], 2, &mut row_entries, 10);
                 } else {
                     io::stdout().write_all(&serial_buf[..t]).unwrap();
                 }
@@ -76,27 +77,6 @@ fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool, binary_mode: boo
             },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
             Err(e) => return Err(format!("{:?}", e))
-        }
-    }
-}
-
-fn print_radix_string(buffer: &[u8], radix: u32, row_entries: &mut u32, max_row_entries: u32) {
-    for b in buffer {
-        if radix == 2 {
-            print!("{:#b} ", b);
-        } else if radix == 8 {
-            print!("{:#o}", b);
-        } else if radix == 10 {
-            print!("{}", b);
-        } else if radix == 16 {
-            print!("0x{:02X} ", b);
-        }
-
-        *row_entries += 1;
-        if *row_entries > max_row_entries {
-            *row_entries = 0;
-
-            println!();
         }
     }
 }

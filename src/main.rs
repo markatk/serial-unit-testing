@@ -32,6 +32,7 @@ extern crate serialport;
 
 use clap::{App, ArgMatches};
 
+mod utils;
 mod commands;
 mod list;
 mod send;
