@@ -110,8 +110,8 @@ fn check_response(serial: &mut Serial, desired_response: &str, ignore_case: bool
         match serial.read() {
             Ok(bytes) => {
                 let mut new_text = match text_format {
-                    utils::TextFormat::Text => str::from_utf8(bytes.as_slice()).unwrap().to_string(),
-                    _ => utils::radix_string(bytes.as_slice(), &text_format)
+                    utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
+                    _ => utils::radix_string(bytes, &text_format)
                 };
 
                 if ignore_case {
