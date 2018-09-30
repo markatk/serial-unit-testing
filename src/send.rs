@@ -44,6 +44,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             let mut text = matches.value_of("text").unwrap().to_string();
             let echo_text = matches.is_present("echo");
             let hex_mode = matches.is_present("hex");
+            let binary_mode = matches.is_present("binary");
 
             if matches.is_present("newline") {
                 text.push_str("\n");
@@ -53,7 +54,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                 text.push_str("\r");
             }
 
-            send_text(&mut port, text.as_str(), echo_text, hex_mode).unwrap();
+            if matches.is_present("escape") {
+                text = escape_text(text);
+            }
+
+            send_text(&mut port, text.as_str(), echo_text, hex_mode, binary_mode).unwrap();
 
             if matches.is_present("response") {
                 read_response(&mut port, hex_mode).unwrap();
@@ -131,6 +136,11 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("hex")
             .short("H")
             .help("Set hexadecimal mode"))
+        .arg(Arg::with_name("binary")
+            .long("binary")
+            .short("B")
+            .help("Set binary mode")
+            .conflicts_with("hex"))
         .arg(Arg::with_name("carriagereturn")
             .long("carriage-return")
             .short("R")
@@ -139,16 +149,22 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("newline")
             .short("N")
             .help("Add newline at the end"))
+        .arg(Arg::with_name("escape")
+            .long("escape")
+            .short("E")
+            .help("Enable input string escaping"))
         .arg(Arg::with_name("text")
             .help("Text send to the serial port")
             .takes_value(true))
 }
 
-fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool, hex_mode: bool) -> Result<(), String> {
+fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool, hex_mode: bool, binary_mode: bool) -> Result<(), String> {
     let mut bytes: Vec<u8>;
 
     if hex_mode {
         bytes = bytes_from_hex_string(text).unwrap();
+    } else if binary_mode {
+        bytes = bytes_from_binary_string(text).unwrap();
     } else {
         bytes = Vec::new();
         bytes.extend_from_slice(text.as_bytes());
@@ -197,26 +213,43 @@ fn read_response(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Resu
     Ok(())
 }
 
-fn bytes_from_hex_string<'a>(original_text: &'a str) -> Result<Vec<u8>, String> {
-    let mut bytes: Vec<u8> = Vec::new();
-
-    // remove all unwanted characters
+fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, String> {
     let mut text = original_text.replace("0x", "");
     text = text.replace(" ", "");
 
-    // convert text to interpreted hex bytes
+    bytes_from_radix_string(&text, 16)
+}
+
+fn bytes_from_binary_string(orignal_text: &str) -> Result<Vec<u8>, String> {
+    let mut text = orignal_text.replace("0b", "");
+    text = text.replace(" ", "");
+
+    bytes_from_radix_string(&text, 2)
+}
+
+fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String> {
+    let mut bytes: Vec<u8> = Vec::new();
+
     let mut chars = text.chars().peekable();
 
     while chars.peek().is_some() {
         let chunk: String = chars.by_ref().take(2).collect();
 
-        match u8::from_str_radix(&chunk, 16) {
+        match u8::from_str_radix(&chunk, radix) {
             Ok(value) => bytes.push(value),
             Err(e) => return Err(format!("Unable to read input string {}", e))
         };
     }
 
     Ok(bytes)
+}
+
+fn escape_text(text: String) -> String {
+    let mut text = text.replace("\\r", "\r");
+    text = text.replace("\\n", "\n");
+    text = text.replace("\\t", "\t");
+
+    text
 }
 
 fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, String> {

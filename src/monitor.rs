@@ -42,8 +42,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
             let hex_mode = matches.is_present("hex");
+            let binary_mode = matches.is_present("binary");
 
-            read(&mut port, hex_mode).unwrap();
+            read(&mut port, hex_mode, binary_mode).unwrap();
         },
         Err(e) => return Err(format!("Error opening port {:?}", e))
     };
@@ -97,6 +98,11 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("hex")
             .short("H")
             .help("Set hexadecimal mode"))
+        .arg(Arg::with_name("binary")
+            .long("binary")
+            .short("B")
+            .help("Set binary mode")
+            .conflicts_with("hex"))
         .arg(Arg::with_name("flowcontrol")
             .long("flowcontrol")
             .short("f")
@@ -105,7 +111,7 @@ pub fn command<'a>() -> App<'a, 'a> {
             .default_value("none"))
 }
 
-fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Result<(), String> {
+fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool, binary_mode: bool) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
     let mut row_entries = 0;
 
@@ -113,16 +119,9 @@ fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Result<(), St
         match port.read(&mut serial_buf) {
             Ok(t) => {
                 if hex_mode {
-                    for b in &serial_buf[..t] {
-                        print!("0x{:02X} ", b);
-
-                        row_entries += 1;
-                        if row_entries > 20 {
-                            row_entries = 0;
-
-                            println!();
-                        }
-                    }
+                    print_radix_string(&serial_buf[..t], 16, &mut row_entries, 20);
+                } else if binary_mode {
+                    print_radix_string(&serial_buf[..t], 2, &mut row_entries, 10);
                 } else {
                     io::stdout().write_all(&serial_buf[..t]).unwrap();
                 }
@@ -131,6 +130,27 @@ fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool) -> Result<(), St
             },
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
             Err(e) => return Err(format!("{:?}", e))
+        }
+    }
+}
+
+fn print_radix_string(buffer: &[u8], radix: u32, row_entries: &mut u32, max_row_entries: u32) {
+    for b in buffer {
+        if radix == 2 {
+            print!("{:#b} ", b);
+        } else if radix == 8 {
+            print!("{:#o}", b);
+        } else if radix == 10 {
+            print!("{}", b);
+        } else if radix == 16 {
+            print!("0x{:02X} ", b);
+        }
+
+        *row_entries += 1;
+        if *row_entries > max_row_entries {
+            *row_entries = 0;
+
+            println!();
         }
     }
 }
