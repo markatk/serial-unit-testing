@@ -26,6 +26,14 @@
  * SOFTWARE.
  */
 
+pub enum TextFormat {
+    Text,
+    Binary = 2,
+    Octal = 8,
+    Decimal = 10,
+    Hex = 16
+}
+
 pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, String> {
     let mut text = original_text.replace("0x", "");
     text = text.replace(" ", "");
@@ -57,20 +65,41 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String
     Ok(bytes)
 }
 
-pub fn print_radix_string(buffer: &[u8], radix: u32, row_entries: &mut u32, max_row_entries: u32) {
+pub fn radix_string<'a>(buffer: &'a [u8], text_format: &TextFormat) -> String {
+    let mut text = String::new();
+
     for b in buffer {
-        if radix == 2 {
-            print!("{:#b} ", b);
-        } else if radix == 8 {
-            print!("{:#o}", b);
-        } else if radix == 10 {
-            print!("{}", b);
-        } else if radix == 16 {
-            print!("0x{:02X} ", b);
-        }
+        match text_format {
+            TextFormat::Binary => text.push_str(format!("{:#b} ", b).as_str()),
+            TextFormat::Octal => text.push_str(format!("{:#o} ", b).as_str()),
+            TextFormat::Decimal => text.push_str(format!("{} ", b).as_str()),
+            TextFormat::Hex => text.push_str(format!("0x{:02X} ", b).as_str()),
+            _ => ()
+        };
+    }
+
+    text
+}
+
+pub fn print_radix_string(buffer: &[u8], text_format: &TextFormat, row_entries: &mut u32) {
+    let max_row_entries = match text_format {
+        TextFormat::Binary => 10,
+        TextFormat::Octal => 16,
+        TextFormat::Decimal => 18,
+        TextFormat::Hex => 20,
+        _ => 0
+    };
+
+    for b in buffer {
+        match text_format {
+            TextFormat::Binary => print!("{:#b} ", b),
+            TextFormat::Octal => print!("{:#o}", b),
+            TextFormat::Hex => print!("0x{:02X} ", b),
+            _ => print!("{}", b)
+        };
 
         *row_entries += 1;
-        if *row_entries > max_row_entries {
+        if max_row_entries > 0 && *row_entries > max_row_entries {
             *row_entries = 0;
 
             println!();
