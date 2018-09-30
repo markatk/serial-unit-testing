@@ -106,8 +106,8 @@ fn read_response(serial: &mut Serial, text_format: &utils::TextFormat) -> Result
         match serial.read() {
             Ok(bytes) => {
                 match text_format {
-                    utils::TextFormat::Text => io::stdout().write_all(bytes.as_slice()).unwrap(),
-                    _ => utils::print_radix_string(bytes.as_slice(), &text_format, &mut row_entries)
+                    utils::TextFormat::Text => io::stdout().write_all(bytes).unwrap(),
+                    _ => utils::print_radix_string(bytes, &text_format, &mut row_entries)
                 };
 
                 io::stdout().flush().unwrap();

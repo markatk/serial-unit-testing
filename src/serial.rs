@@ -36,7 +36,8 @@ use commands;
 use utils;
 
 pub struct Serial {
-    port: Box<SerialPort>
+    port: Box<SerialPort>,
+    read_buffer: Vec<u8>
 }
 
 impl Serial {
@@ -45,7 +46,7 @@ impl Serial {
 
         match serialport::open_with_settings(&port_name, &settings) {
             Ok(port) => {
-                Ok(Serial { port })
+                Ok(Serial { port, read_buffer: vec![0; 1000] })
             },
             Err(e) => Err(format!("Error opening port {:?}", e))
         }
@@ -78,15 +79,9 @@ impl Serial {
         }
     }
 
-    pub fn read<'a>(&mut self) -> Result<Vec<u8>, Error> {
-        let mut buffer: Vec<u8> = vec![0; 1000];
-
-        match self.port.read(&mut buffer) {
-            Ok(length) => {
-                buffer.truncate(length);
-
-                Ok(buffer)
-            },
+    pub fn read<'a>(&'a mut self) -> Result<&'a [u8], Error> {
+        match self.port.read(&mut self.read_buffer) {
+            Ok(length) => Ok(&self.read_buffer[..length]),
             Err(e) => Err(e)
         }
     }
