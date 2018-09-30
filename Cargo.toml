@@ -1,6 +1,6 @@
 [package]
 name = "serial-unit-testing"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Markus Grigull <web@grigull.me>"]
 
 [lib]

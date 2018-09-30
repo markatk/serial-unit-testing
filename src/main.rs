@@ -30,33 +30,36 @@
 extern crate clap;
 extern crate serialport;
 
-use clap::{App, ArgMatches};
+use clap::{App, ArgMatches, AppSettings};
 
 mod utils;
 mod commands;
 mod list;
 mod send;
 mod monitor;
+mod check;
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
         ("send", Some(m)) => send::run(m),
         ("list", Some(m)) => list::run(m),
         ("monitor", Some(m)) => monitor::run(m),
-        _ => Err("Missing subcommand".to_string())
+        ("check", Some(m)) => check::run(m),
+        _ => Ok(())
     }
 }
 
 fn main() {
     let matches = App::new("serial-unit-testing")
+        .setting(AppSettings::VersionlessSubcommands)
+        .setting(AppSettings::SubcommandRequiredElseHelp)
         .version(crate_version!())
         .version_short("v")
-        //.versionless_subcommands(true)
-        //.subcommand_required_else_help(true)
         .about("Serial unit testing framework")
         .subcommand(send::command())
         .subcommand(list::command())
         .subcommand(monitor::command())
+        .subcommand(check::command())
         .get_matches();
 
     if let Err(e) = run(matches) {

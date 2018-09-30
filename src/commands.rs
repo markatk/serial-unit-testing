@@ -31,6 +31,8 @@ use std::time::Duration;
 use clap::{Arg, ArgMatches};
 use serialport::{self, SerialPortSettings};
 
+use utils;
+
 pub fn serial_arguments<'a>() -> Vec<Arg<'a, 'a>> {
     let databits = [ "5", "6", "7", "8" ];
     let parity = [ "none", "even", "odd" ];
@@ -107,13 +109,32 @@ pub fn text_input_arguments<'a>() -> Vec<Arg<'a, 'a>> {
         Arg::with_name("escape")
             .long("escape")
             .short("E")
-            .help("Enable input string escaping")
+            .help("Enable input string escaping"),
+        Arg::with_name("hexinput")
+            .long("hex-in")
+            .help("Set hexadecimal input mode"),
+        Arg::with_name("binaryinput")
+            .long("binary-in")
+            .help("Set binary input mode")
+            .conflicts_with("hexinput")
     ]
 }
 
-pub fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettings, String> {
+pub fn text_output_arguments<'a>() -> Vec<Arg<'a, 'a>> {
+    vec![Arg::with_name("hexoutput")
+            .long("hex-out")
+            .help("Set hexadecimal output mode"),
+        Arg::with_name("binaryoutput")
+            .long("binary-out")
+            .help("Set binary output mode")
+            .conflicts_with("hexoutput")
+    ]
+}
+
+pub fn get_serial_port_settings<'a>(matches: &'a ArgMatches) -> Result<(SerialPortSettings, &'a str), String> {
     let mut settings: SerialPortSettings = Default::default();
 
+    let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap();
     let timeout = matches.value_of("timeout").unwrap();
     let data_bits = matches.value_of("databits").unwrap();
@@ -169,5 +190,47 @@ pub fn get_serial_port_settings(matches: &ArgMatches) -> Result<SerialPortSettin
         }
     };
 
-    Ok(settings)
+    Ok((settings, port_name))
+}
+
+pub fn get_text_format(matches: &ArgMatches) -> utils::TextFormat {
+    if matches.is_present("binary") {
+        return utils::TextFormat::Binary;
+    } else if matches.is_present("octal") {
+        return utils::TextFormat::Octal;
+    } else if matches.is_present("decimal") {
+        return utils::TextFormat::Decimal;
+    } else if matches.is_present("hex") {
+        return utils::TextFormat::Hex;
+    }
+
+    utils::TextFormat::Text
+}
+
+pub fn get_text_input_format(matches: &ArgMatches) -> utils::TextFormat {
+    if matches.is_present("binaryinput") {
+        return utils::TextFormat::Binary;
+    } else if matches.is_present("octalinput") {
+        return utils::TextFormat::Octal;
+    } else if matches.is_present("decimalinput") {
+        return utils::TextFormat::Decimal;
+    } else if matches.is_present("hexinput") {
+        return utils::TextFormat::Hex;
+    }
+
+    get_text_format(matches)
+}
+
+pub fn get_text_output_format(matches: &ArgMatches) -> utils::TextFormat {
+    if matches.is_present("binaryoutput") {
+        return utils::TextFormat::Binary;
+    } else if matches.is_present("octaloutput") {
+        return utils::TextFormat::Octal;
+    } else if matches.is_present("decimaloutput") {
+        return utils::TextFormat::Decimal;
+    } else if matches.is_present("hexoutput") {
+        return utils::TextFormat::Hex;
+    }
+
+    get_text_format(matches)
 }

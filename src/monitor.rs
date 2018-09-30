@@ -35,21 +35,16 @@ use commands;
 use utils;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    let port_name = matches.value_of("port").unwrap();
-
-    let settings = commands::get_serial_port_settings(matches).unwrap();
+    let (settings, port_name) = commands::get_serial_port_settings(matches).unwrap();
 
     match serialport::open_with_settings(&port_name, &settings) {
         Ok(mut port) => {
-            let hex_mode = matches.is_present("hex");
-            let binary_mode = matches.is_present("binary");
+            let text_format = commands::get_text_output_format(matches);
 
-            read(&mut port, hex_mode, binary_mode).unwrap();
+            read(&mut port, text_format)
         },
         Err(e) => return Err(format!("Error opening port {:?}", e))
-    };
-
-    Ok(())
+    }
 }
 
 pub fn command<'a>() -> App<'a, 'a> {
@@ -58,20 +53,17 @@ pub fn command<'a>() -> App<'a, 'a> {
         .args(commands::serial_arguments().as_slice())
 }
 
-fn read(port: &mut Box<serialport::SerialPort>, hex_mode: bool, binary_mode: bool) -> Result<(), String> {
+fn read(port: &mut Box<serialport::SerialPort>, text_format: utils::TextFormat) -> Result<(), String> {
     let mut serial_buf: Vec<u8> = vec![0; 1000];
     let mut row_entries = 0;
 
     loop {
         match port.read(&mut serial_buf) {
             Ok(t) => {
-                if hex_mode {
-                    utils::print_radix_string(&serial_buf[..t], 16, &mut row_entries, 20);
-                } else if binary_mode {
-                    utils::print_radix_string(&serial_buf[..t], 2, &mut row_entries, 10);
-                } else {
-                    io::stdout().write_all(&serial_buf[..t]).unwrap();
-                }
+                match text_format {
+                    utils::TextFormat::Text => io::stdout().write_all(&serial_buf[..t]).unwrap(),
+                    _ => utils::print_radix_string(&serial_buf[..t], &text_format, &mut row_entries)
+                };
 
                 io::stdout().flush().unwrap();
             },
