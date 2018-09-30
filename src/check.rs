@@ -30,16 +30,14 @@ use std::io;
 use std::str;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
-use serialport;
 
 use commands;
 use utils;
+use serial::Serial;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    let (settings, port_name) = commands::get_serial_port_settings(matches).unwrap();
-
-    match serialport::open_with_settings(&port_name, &settings) {
-        Ok(mut port) => {
+    match Serial::open(&matches) {
+        Ok(mut serial) => {
             let mut text = matches.value_of("text").unwrap().to_string();
             let response = matches.value_of("response").unwrap();
 
@@ -61,11 +59,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                 text = utils::escape_text(text);
             }
 
-            send_text(&mut port, text.as_str(), echo_text, input_text_format).unwrap();
+            send_text(&mut serial, text.as_str(), echo_text, &input_text_format).unwrap();
 
-            check_response(&mut port, &response, ignore_case, output_text_format)
+            check_response(&mut serial, &response, ignore_case, &output_text_format)
         },
-        Err(e) => return Err(format!("Error opening port {:?}", e))
+        Err(e) => Err(e)
     }
 }
 
@@ -92,41 +90,28 @@ pub fn command<'a>() -> App<'a, 'a> {
             .required(true))
 }
 
-fn send_text(port: &mut Box<serialport::SerialPort>, text: &str, echo_text: bool, text_format: utils::TextFormat) -> Result<(), String> {
-    let bytes = match text_format {
-        utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
-        utils::TextFormat::Hex => utils::bytes_from_hex_string(text).unwrap(),
-        _ => {
-            let mut bytes = Vec::new();
-            bytes.extend_from_slice(text.as_bytes());
-
-            bytes
-        }
-    };
-
-    match port.write(bytes.as_slice()) {
+fn send_text(serial: &mut Serial, text: &str, echo_text: bool, text_format: &utils::TextFormat) -> Result<(), String> {
+    match serial.write_format(text, &text_format) {
         Ok(_) => {
             if echo_text {
                 println!("{}", text);
             }
-        },
-        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-        Err(e) => return Err(format!("Error sending text {:?}", e))
-    }
 
-    Ok(())
+            Ok(())
+        },
+        Err(e) => Err(e)
+    }
 }
 
-fn check_response(port: &mut Box<serialport::SerialPort>, desired_response: &str, ignore_case: bool, text_format: utils::TextFormat) -> Result<(), String> {
-    let mut serial_buf: Vec<u8> = vec![0; 1000];
+fn check_response(serial: &mut Serial, desired_response: &str, ignore_case: bool, text_format: &utils::TextFormat) -> Result<(), String> {
     let mut response = String::new();
 
     loop {
-        match port.read(&mut serial_buf) {
-            Ok(t) => {
+        match serial.read() {
+            Ok(bytes) => {
                 let mut new_text = match text_format {
-                    utils::TextFormat::Text => str::from_utf8(&serial_buf[..t]).unwrap().to_string(),
-                    _ => utils::radix_string(&serial_buf[..t], &text_format)
+                    utils::TextFormat::Text => str::from_utf8(bytes.as_slice()).unwrap().to_string(),
+                    _ => utils::radix_string(bytes.as_slice(), &text_format)
                 };
 
                 if ignore_case {

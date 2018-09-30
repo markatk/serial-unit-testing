@@ -29,19 +29,17 @@
 use std::io::{self, Write};
 
 use clap::{ArgMatches, App, SubCommand};
-use serialport;
 
 use commands;
 use utils;
+use serial::Serial;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    let (settings, port_name) = commands::get_serial_port_settings(matches).unwrap();
-
-    match serialport::open_with_settings(&port_name, &settings) {
-        Ok(mut port) => {
+    match Serial::open(&matches) {
+        Ok(mut serial) => {
             let text_format = commands::get_text_output_format(matches);
 
-            read(&mut port, text_format)
+            read(&mut serial, &text_format)
         },
         Err(e) => return Err(format!("Error opening port {:?}", e))
     }
@@ -53,16 +51,15 @@ pub fn command<'a>() -> App<'a, 'a> {
         .args(commands::serial_arguments().as_slice())
 }
 
-fn read(port: &mut Box<serialport::SerialPort>, text_format: utils::TextFormat) -> Result<(), String> {
-    let mut serial_buf: Vec<u8> = vec![0; 1000];
+fn read(serial: &mut Serial, text_format: &utils::TextFormat) -> Result<(), String> {
     let mut row_entries = 0;
 
     loop {
-        match port.read(&mut serial_buf) {
-            Ok(t) => {
+        match serial.read() {
+            Ok(bytes) => {
                 match text_format {
-                    utils::TextFormat::Text => io::stdout().write_all(&serial_buf[..t]).unwrap(),
-                    _ => utils::print_radix_string(&serial_buf[..t], &text_format, &mut row_entries)
+                    utils::TextFormat::Text => io::stdout().write_all(bytes.as_slice()).unwrap(),
+                    _ => utils::print_radix_string(bytes.as_slice(), &text_format, &mut row_entries)
                 };
 
                 io::stdout().flush().unwrap();
