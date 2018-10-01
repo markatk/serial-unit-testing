@@ -72,6 +72,7 @@ pub fn command<'a>() -> App<'a, 'a> {
         .about("Send data to serial port and check for correct response")
         .args(commands::serial_arguments().as_slice())
         .args(commands::text_input_arguments().as_slice())
+        .args(commands::text_output_arguments().as_slice())
         .arg(Arg::with_name("echo")
             .long("echo")
             .short("e")
