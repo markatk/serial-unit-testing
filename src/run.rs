@@ -32,10 +32,10 @@ use std::str;
 use std::iter;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
-use colored::*;
 
-use serialunittesting::serial::{Serial, CheckSettings};
+use serialunittesting::serial::Serial;
 use serialunittesting::utils;
+use serialunittesting::tests;
 
 use commands;
 
@@ -69,9 +69,9 @@ pub fn command<'a>() -> App<'a, 'a> {
 fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
     let reader = BufReader::new(file);
 
-    let mut total_tests = 0;
-    let mut successful_tests = 0;
-    let mut failed_tests = 0;
+    let mut test_suits: Vec<tests::TestSuite> = Vec::new();
+
+    test_suits.push(tests::TestSuite::new("".to_string()));
 
     for (num, line) in reader.lines().enumerate() {
         let line = line.unwrap();
@@ -111,29 +111,34 @@ fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
                 };
             }
 
-            println!("\n{}", group_name);
+            test_suits.push(tests::TestSuite::new(group_name));
 
             continue;
         }
 
-        match execute_line(line.as_str(), serial) {
-            Ok((result, message, desired_response, response)) => {
-                print!("\t{}...", message);
+        match parse_line(line.as_str()) {
+            Ok(mut test_case) => {
+                let last_suite = test_suits.last_mut().unwrap();
 
-                if result {
-                    println!("{}", "OK".green());
-
-                    successful_tests += 1;
-                } else {
-                    println!("{}, Expected '{}' but received '{}'", "Failed".red(), desired_response, response);
-
-                    failed_tests += 1;
-                }
+                last_suite.push(test_case);
             },
             Err(e) => println!("Error in line {}: {}", num, e)
         }
+    }
+    
+    let mut total_tests = 0;
+    let mut successful_tests = 0;
+    let mut failed_tests = 0;
 
-        total_tests += 1;
+    for mut test_suite in test_suits {
+        test_suite.run_and_print(serial);
+
+        let successful = test_suite.successful();
+        let failed = test_suite.failed();
+
+        total_tests += successful + failed;
+        successful_tests += successful;
+        failed_tests += failed;
     }
 
     println!("\nRan {} tests, {} successful, {} failed", total_tests, successful_tests, failed_tests);
@@ -141,7 +146,7 @@ fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
     Ok(())
 }
 
-fn execute_line(line: &str, serial: &mut Serial) -> Result<(bool, String, String, String), String> {
+fn parse_line(line: &str) -> Result<tests::TestCase, String> {
     let mut iterator: iter::Peekable<str::Chars> = line.chars().peekable();
 
     let input_format = get_text_format(&mut iterator)?;
@@ -167,16 +172,13 @@ fn execute_line(line: &str, serial: &mut Serial) -> Result<(bool, String, String
     let output_format = get_text_format(&mut iterator)?;
     let (output, raw_output) = get_formatted_text(&mut iterator, &output_format)?;
 
-    let settings = CheckSettings {
+    let settings = tests::TestCaseSettings {
         ignore_case: false,
         input_format,
         output_format
     };
 
-    match serial.check_with_settings(&input, &output, &settings) {
-        Ok((result, response)) => Ok((result, raw_input, raw_output, response)),
-        Err(e) => Err(format!("Error while executing check {}", e))
-    }
+    Ok(tests::TestCase::new_with_settings(input, raw_input, output, raw_output, settings))
 }
 
 fn get_text_format(iterator: &mut iter::Peekable<str::Chars>) -> Result<utils::TextFormat, String> {
