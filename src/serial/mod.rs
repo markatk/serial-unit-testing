@@ -28,95 +28,12 @@
 
 use std::boxed::Box;
 use std::io::{self, Error};
-use std::time::Duration;
 
 use serialport;
 
 use utils;
 
-pub enum SerialSettingsDataBits {
-    Five,
-    Six,
-    Seven,
-    Eight
-}
-
-pub enum SerialSettingsParity {
-    None,
-    Even,
-    Odd
-}
-
-pub enum SerialSettingsStopBits {
-    One,
-    Two
-}
-
-pub enum SerialSettingsFlowControl {
-    None,
-    Software,
-    Hardware
-}
-
-pub struct SerialSettings {
-    pub baud_rate: u32,
-    pub timeout: u64,
-
-    pub data_bits: SerialSettingsDataBits,
-    pub parity: SerialSettingsParity,
-    pub stop_bits: SerialSettingsStopBits,
-    pub flow_control: SerialSettingsFlowControl
-}
-
-impl SerialSettings {
-    fn to_serial_port_settings(&self) -> serialport::SerialPortSettings {
-        let data_bits = match self.data_bits {
-            SerialSettingsDataBits::Five => serialport::DataBits::Five,
-            SerialSettingsDataBits::Six => serialport::DataBits::Six,
-            SerialSettingsDataBits::Seven => serialport::DataBits::Seven,
-            SerialSettingsDataBits::Eight => serialport::DataBits::Eight
-        };
-
-        let parity = match self.parity {
-            SerialSettingsParity::None => serialport::Parity::None,
-            SerialSettingsParity::Even => serialport::Parity::Even,
-            SerialSettingsParity::Odd => serialport::Parity::Odd
-        };
-
-        let stop_bits = match self.stop_bits {
-            SerialSettingsStopBits::One => serialport::StopBits::One,
-            SerialSettingsStopBits::Two => serialport::StopBits::Two
-        };
-
-        let flow_control = match self.flow_control {
-            SerialSettingsFlowControl::None => serialport::FlowControl::None,
-            SerialSettingsFlowControl::Software => serialport::FlowControl::Software,
-            SerialSettingsFlowControl::Hardware => serialport::FlowControl::Hardware
-        };
-
-        serialport::SerialPortSettings {
-            baud_rate: self.baud_rate,
-            timeout: Duration::from_millis(self.timeout),
-            data_bits,
-            parity,
-            stop_bits,
-            flow_control
-        }
-    }
-}
-
-impl Default for SerialSettings {
-    fn default() -> SerialSettings {
-        SerialSettings {
-            baud_rate: 9600,
-            timeout: 1000,
-            data_bits: SerialSettingsDataBits::Eight,
-            parity: SerialSettingsParity::None,
-            stop_bits: SerialSettingsStopBits::One,
-            flow_control: SerialSettingsFlowControl::None
-        }
-    }
-}
+pub mod settings;
 
 pub struct Serial {
     port: Box<serialport::SerialPort>,
@@ -125,12 +42,12 @@ pub struct Serial {
 
 impl Serial {
     pub fn open(port_name: &str) -> Result<Serial, String> {
-        let settings: SerialSettings = Default::default();
+        let settings: settings::Settings = Default::default();
 
         Serial::open_with_settings(port_name, &settings)
     }
 
-    pub fn open_with_settings(port_name: &str, settings: &SerialSettings) -> Result<Serial, String> {
+    pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial, String> {
         match serialport::open_with_settings(&port_name, &settings.to_serial_port_settings()) {
             Ok(port) => {
                 Ok(Serial { port, read_buffer: vec![0; 1000] })
