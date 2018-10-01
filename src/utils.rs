@@ -71,10 +71,10 @@ pub fn radix_string<'a>(buffer: &'a [u8], text_format: &TextFormat) -> String {
 
     for b in buffer {
         match text_format {
-            TextFormat::Binary => text.push_str(format!("{:#b}", b).as_str()),
-            TextFormat::Octal => text.push_str(format!("{:#o}", b).as_str()),
+            TextFormat::Binary => text.push_str(format!("{:b}", b).as_str()),
+            TextFormat::Octal => text.push_str(format!("{:o}", b).as_str()),
             TextFormat::Decimal => text.push_str(format!("{}", b).as_str()),
-            TextFormat::Hex => text.push_str(format!("0x{:02X}", b).as_str()),
+            TextFormat::Hex => text.push_str(format!("{:02X}", b).as_str()),
             _ => ()
         };
     }
