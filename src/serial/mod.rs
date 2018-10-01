@@ -27,7 +27,8 @@
  */
 
 use std::boxed::Box;
-use std::io::{self, Error};
+use std::io;
+use std::str;
 
 use serialport;
 
@@ -38,6 +39,22 @@ pub mod settings;
 pub struct Serial {
     port: Box<serialport::SerialPort>,
     read_buffer: Vec<u8>
+}
+
+pub struct CheckSettings {
+    pub ignore_case: bool,
+    pub input_format: utils::TextFormat,
+    pub output_format: utils::TextFormat
+}
+
+impl Default for CheckSettings {
+    fn default() -> CheckSettings {
+        CheckSettings {
+            ignore_case: false,
+            input_format: utils::TextFormat::Text,
+            output_format: utils::TextFormat::Text
+        }
+    }
 }
 
 impl Serial {
@@ -56,15 +73,13 @@ impl Serial {
         }
     }
 
-    pub fn write(&mut self, text: &str) -> Result<(), String> {
-        match self.port.write(text.as_bytes()) {
-            Ok(_) => Ok(()),
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => Ok(()),
-            Err(e) => Err(format!("Error sending text {:?}", e))
-        }
+    pub fn write(&mut self, text: &str) -> Result<(), io::Error> {
+        self.port.write(text.as_bytes())?;
+
+        Ok(())
     }
 
-    pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), String> {
+    pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), io::Error> {
         let bytes = match text_format {
             utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
             utils::TextFormat::Hex => utils::bytes_from_hex_string(text).unwrap(),
@@ -76,17 +91,54 @@ impl Serial {
             }
         };
 
-        match self.port.write(bytes.as_slice()) {
-            Ok(_) => Ok(()),
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => Ok(()),
-            Err(e) => Err(format!("Error sending text {:?}", e))
-        }
+        self.port.write(bytes.as_slice())?;
+
+        Ok(())
     }
 
-    pub fn read<'a>(&'a mut self) -> Result<&'a [u8], Error> {
-        match self.port.read(&mut self.read_buffer) {
-            Ok(length) => Ok(&self.read_buffer[..length]),
-            Err(e) => Err(e)
+    pub fn read<'a>(&'a mut self) -> Result<&'a [u8], io::Error> {
+        let length = self.port.read(&mut self.read_buffer)?;
+
+        Ok(&self.read_buffer[..length])
+    }
+
+    pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String), io::Error> {
+        let settings: CheckSettings = Default::default();
+
+        self.check_with_settings(text, desired_response, &settings)
+    }
+
+    pub fn check_with_settings(&mut self, text: &str, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
+        self.write_format(text, &settings.input_format)?;
+
+        let mut response = String::new();
+
+        loop {
+            match self.read() {
+                Ok(bytes) => {
+                    let mut new_text = match settings.output_format {
+                        utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
+                        _ => utils::radix_string(bytes, &settings.output_format)
+                    };
+
+                    if settings.ignore_case {
+                        new_text = new_text.to_lowercase();
+                    }
+
+                    response.push_str(new_text.as_str());
+
+                    if desired_response == response {
+                        break;
+                    }
+
+                    if desired_response.starts_with(response.as_str()) == false {
+                        break;
+                    }
+                },
+                Err(e) => return Err(e)
+            }
         }
+
+        Ok((desired_response == response, response))
     }
 }

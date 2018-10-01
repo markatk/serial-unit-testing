@@ -38,36 +38,41 @@ use commands;
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    match Serial::open_with_settings(port_name, &settings) {
-        Ok(mut serial) => {
-            let mut text = matches.value_of("text").unwrap().to_string();
-            let echo_text = matches.is_present("echo");
+    let mut serial = Serial::open_with_settings(port_name, &settings)?;
 
-            let input_text_format = commands::get_text_input_format(matches);
-            let output_text_format = commands::get_text_output_format(matches);
+    let mut text = matches.value_of("text").unwrap().to_string();
+    let echo_text = matches.is_present("echo");
 
-            if matches.is_present("newline") {
-                text.push_str("\n");
-            }
+    let input_text_format = commands::get_text_input_format(matches);
+    let output_text_format = commands::get_text_output_format(matches);
 
-            if matches.is_present("carriagereturn") {
-                text.push_str("\r");
-            }
-
-            if matches.is_present("escape") {
-                text = utils::escape_text(text);
-            }
-
-            send_text(&mut serial, text.as_str(), echo_text, &input_text_format).unwrap();
-
-            if matches.is_present("response") {
-                read_response(&mut serial, &output_text_format).unwrap();
-            }
-
-            Ok(())
-        },
-        Err(e) => Err(e)
+    if matches.is_present("newline") {
+        text.push_str("\n");
     }
+
+    if matches.is_present("carriagereturn") {
+        text.push_str("\r");
+    }
+
+    if matches.is_present("escape") {
+        text = utils::escape_text(text);
+    }
+
+    match serial.write_format(&text, &input_text_format) {
+        Ok(_) => (),
+        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => return Err("Serial connection timed out".to_string()),
+        Err(e) => return Err(format!("Error sending text {:?}", e))
+    };
+
+    if echo_text {
+        println!("{}", text);
+    }
+
+    if matches.is_present("response") {
+        read_response(&mut serial, &output_text_format).unwrap();
+    }
+
+    Ok(())
 }
 
 pub fn command<'a>() -> App<'a, 'a> {
@@ -86,20 +91,8 @@ pub fn command<'a>() -> App<'a, 'a> {
             .help("Show response from device"))
         .arg(Arg::with_name("text")
             .help("Text send to the serial port")
+            .required(true)
             .takes_value(true))
-}
-
-fn send_text(serial: &mut Serial, text: &str, echo_text: bool, text_format: &utils::TextFormat) -> Result<(), String> {
-    match serial.write_format(text, &text_format) {
-        Ok(_) => {
-            if echo_text {
-                println!("{}", text);
-            }
-
-            Ok(())
-        },
-        Err(e) => Err(e)
-    }
 }
 
 fn read_response(serial: &mut Serial, text_format: &utils::TextFormat) -> Result<(), String> {
