@@ -135,6 +135,13 @@ impl Serial {
                         break;
                     }
                 },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                    if response.len() == 0 {
+                        return Err(io::Error::new(io::ErrorKind::TimedOut, "Connection timed out"));
+                    }
+
+                    break;
+                },
                 Err(e) => return Err(e)
             }
         }

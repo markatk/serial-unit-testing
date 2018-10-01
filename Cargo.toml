@@ -14,3 +14,4 @@ path = "src/main.rs"
 [dependencies]
 clap = "2.32.0"
 serialport = "3.0.0"
+colored = "1.6.1"
