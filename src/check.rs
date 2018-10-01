@@ -27,47 +27,63 @@
  */
 
 use std::io;
-use std::str;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
 
 use serialunittesting::utils;
-use serialunittesting::serial::Serial;
+use serialunittesting::serial::{Serial, CheckSettings};
 
 use commands;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    match Serial::open_with_settings(port_name, &settings) {
-        Ok(mut serial) => {
-            let mut text = matches.value_of("text").unwrap().to_string();
-            let response = matches.value_of("response").unwrap();
+    let mut serial = Serial::open_with_settings(port_name, &settings)?;
 
-            let echo_text = matches.is_present("echo");
-            let ignore_case = matches.is_present("ignorecase");
+    let mut text = matches.value_of("text").unwrap().to_string();
+    let response = matches.value_of("response").unwrap();
 
-            let input_text_format = commands::get_text_input_format(matches);
-            let output_text_format = commands::get_text_output_format(matches);
+    let echo_text = matches.is_present("echo");
+    let ignore_case = matches.is_present("ignorecase");
 
-            if matches.is_present("newline") {
-                text.push_str("\n");
-            }
+    let input_format = commands::get_text_input_format(matches);
+    let output_format = commands::get_text_output_format(matches);
 
-            if matches.is_present("carriagereturn") {
-                text.push_str("\r");
-            }
-
-            if matches.is_present("escape") {
-                text = utils::escape_text(text);
-            }
-
-            send_text(&mut serial, text.as_str(), echo_text, &input_text_format).unwrap();
-
-            check_response(&mut serial, &response, ignore_case, &output_text_format)
-        },
-        Err(e) => Err(e)
+    if matches.is_present("newline") {
+        text.push_str("\n");
     }
+
+    if matches.is_present("carriagereturn") {
+        text.push_str("\r");
+    }
+
+    if matches.is_present("escape") {
+        text = utils::escape_text(text);
+    }
+
+    let check_settings = CheckSettings {
+        ignore_case,
+        input_format,
+        output_format
+    };
+
+    let (result, actual_response) = match serial.check_with_settings(&text, &response, &check_settings) {
+        Ok((result, actual_response)) => (result, actual_response),
+        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => return Err("Serial connection timed out".to_string()),
+        Err(e) => return Err(format!("Error running check {:?}", e))
+    };
+
+    if echo_text {
+        println!("{}", text);
+    }
+
+    if result {
+        println!("OK");
+    } else {
+        println!("Mismatch: '{}' does not match '{}'", response, actual_response);
+    }
+
+    Ok(())
 }
 
 pub fn command<'a>() -> App<'a, 'a> {
@@ -92,60 +108,4 @@ pub fn command<'a>() -> App<'a, 'a> {
             .help("Response to be checked against")
             .takes_value(true)
             .required(true))
-}
-
-fn send_text(serial: &mut Serial, text: &str, echo_text: bool, text_format: &utils::TextFormat) -> Result<(), String> {
-    match serial.write_format(text, &text_format) {
-        Ok(_) => {
-            if echo_text {
-                println!("{}", text);
-            }
-
-            Ok(())
-        },
-        Err(e) => Err(e)
-    }
-}
-
-fn check_response(serial: &mut Serial, desired_response: &str, ignore_case: bool, text_format: &utils::TextFormat) -> Result<(), String> {
-    let mut response = String::new();
-
-    loop {
-        match serial.read() {
-            Ok(bytes) => {
-                let mut new_text = match text_format {
-                    utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                    _ => utils::radix_string(bytes, &text_format)
-                };
-
-                if ignore_case {
-                    new_text = new_text.to_lowercase();
-                }
-
-                response.push_str(new_text.as_str());
-
-                if desired_response == response {
-                    break;
-                }
-
-                if desired_response.starts_with(response.as_str()) == false {
-                    break;
-                }
-            },
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => return Err("Timeout".to_string()),
-            Err(e) => return Err(format!("{:?}", e))
-        }
-    }
-
-    if desired_response == response {
-        println!("OK");
-    } else {
-        print_mismatch(desired_response, &response);
-    }
-
-    Ok(())
-}
-
-fn print_mismatch(desired_response: &str, response: &str) {
-    println!("Mismatch: '{}' does not match '{}'", desired_response, response);
 }

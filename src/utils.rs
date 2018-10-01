@@ -26,6 +26,7 @@
  * SOFTWARE.
  */
 
+#[derive(PartialEq, Debug)]
 pub enum TextFormat {
     Text,
     Binary = 2,

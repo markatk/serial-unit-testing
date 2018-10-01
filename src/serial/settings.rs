@@ -30,6 +30,7 @@ use std::time::Duration;
 
 use serialport;
 
+#[derive(PartialEq, Debug)]
 pub enum DataBits {
     Five,
     Six,
@@ -37,17 +38,20 @@ pub enum DataBits {
     Eight
 }
 
+#[derive(PartialEq, Debug)]
 pub enum Parity {
     None,
     Even,
     Odd
 }
 
+#[derive(PartialEq, Debug)]
 pub enum StopBits {
     One,
     Two
 }
 
+#[derive(PartialEq, Debug)]
 pub enum FlowControl {
     None,
     Software,
