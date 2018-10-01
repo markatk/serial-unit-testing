@@ -1,5 +1,5 @@
 /*
- * File: src/serial.rs
+ * File: src/serial/mod.rs
  * Date: 30.09.2018
  * Auhtor: MarkAtk
  * 
