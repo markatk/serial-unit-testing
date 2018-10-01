@@ -28,7 +28,7 @@
 
 use clap::{Arg, ArgMatches};
 
-use serial::{SerialSettings, SerialSettingsDataBits, SerialSettingsFlowControl, SerialSettingsParity, SerialSettingsStopBits};
+use serial::settings::{Settings, DataBits, FlowControl, Parity, StopBits};
 
 use utils;
 
@@ -130,8 +130,8 @@ pub fn text_output_arguments<'a>() -> Vec<Arg<'a, 'a>> {
     ]
 }
 
-pub fn get_serial_settings<'a>(matches: &'a ArgMatches) -> Result<(SerialSettings, &'a str), String> {
-    let mut settings: SerialSettings = Default::default();
+pub fn get_serial_settings<'a>(matches: &'a ArgMatches) -> Result<(Settings, &'a str), String> {
+    let mut settings: Settings = Default::default();
 
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap();
@@ -154,36 +154,36 @@ pub fn get_serial_settings<'a>(matches: &'a ArgMatches) -> Result<(SerialSetting
     }
 
     settings.data_bits = match data_bits {
-        "5" => SerialSettingsDataBits::Five,
-        "6" => SerialSettingsDataBits::Six,
-        "7" => SerialSettingsDataBits::Seven,
-        "8" => SerialSettingsDataBits::Eight,
+        "5" => DataBits::Five,
+        "6" => DataBits::Six,
+        "7" => DataBits::Seven,
+        "8" => DataBits::Eight,
         _ => {
             return Err(format!("Invalid data bits '{}'", data_bits));
         }
     };
 
     settings.parity = match parity {
-        "none" => SerialSettingsParity::None,
-        "even" => SerialSettingsParity::Even,
-        "odd" => SerialSettingsParity::Odd,
+        "none" => Parity::None,
+        "even" => Parity::Even,
+        "odd" => Parity::Odd,
         _ => {
             return Err(format!("Invalid parity '{}'", parity));
         }
     };
 
     settings.stop_bits = match stop_bits {
-        "1" => SerialSettingsStopBits::One,
-        "2" => SerialSettingsStopBits::Two,
+        "1" => StopBits::One,
+        "2" => StopBits::Two,
         _ => {
             return Err(format!("Invalid stop bits '{}", stop_bits));
         }
     };
 
     settings.flow_control = match flow_control {
-        "none" => SerialSettingsFlowControl::None,
-        "software" => SerialSettingsFlowControl::Software,
-        "hardware" => SerialSettingsFlowControl::Hardware,
+        "none" => FlowControl::None,
+        "software" => FlowControl::Software,
+        "hardware" => FlowControl::Hardware,
         _ => {
             return Err(format!("Invalid flow control '{}'", flow_control));
         }
