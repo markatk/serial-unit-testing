@@ -40,6 +40,7 @@ mod list;
 mod send;
 mod monitor;
 mod check;
+mod run;
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
@@ -47,6 +48,7 @@ fn run(matches: ArgMatches) -> Result<(), String> {
         ("list", Some(m)) => list::run(m),
         ("monitor", Some(m)) => monitor::run(m),
         ("check", Some(m)) => check::run(m),
+        ("run", Some(m)) => run::run(m),
         _ => Ok(())
     }
 }
@@ -62,6 +64,7 @@ fn main() {
         .subcommand(list::command())
         .subcommand(monitor::command())
         .subcommand(check::command())
+        .subcommand(run::command())
         .get_matches();
 
     if let Err(e) = run(matches) {
