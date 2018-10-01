@@ -80,6 +80,25 @@ fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
             continue;
         }
 
+        let mut iterator = line.chars();
+        let mut skip_line = false;
+
+        loop {
+            match iterator.next().unwrap() {
+                ' ' | '\t' => (),
+                '#' => {
+                    skip_line = true;
+
+                    break;
+                },
+                _ => break
+            };
+        }
+
+        if skip_line {
+            continue;
+        }
+
         match execute_line(line.as_str(), serial) {
             Ok((result, message, desired_response, response)) => {
                 print!("{}...", message);
