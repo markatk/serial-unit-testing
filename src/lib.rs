@@ -27,12 +27,14 @@
  */
 
 extern crate serialport;
+extern crate colored;
 
 pub mod utils;
+pub mod tests;
 pub mod serial;
 
 #[cfg(test)]
-mod tests {
+mod library_tests {
     #[test]
     fn it_works() {
         assert_eq!(2 + 2, 4);
