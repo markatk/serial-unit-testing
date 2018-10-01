@@ -26,10 +26,9 @@
  * SOFTWARE.
  */
 
-use std::time::Duration;
-
 use clap::{Arg, ArgMatches};
-use serialport::{self, SerialPortSettings};
+
+use serial::{SerialSettings, SerialSettingsDataBits, SerialSettingsFlowControl, SerialSettingsParity, SerialSettingsStopBits};
 
 use utils;
 
@@ -131,8 +130,8 @@ pub fn text_output_arguments<'a>() -> Vec<Arg<'a, 'a>> {
     ]
 }
 
-pub fn get_serial_port_settings<'a>(matches: &'a ArgMatches) -> Result<(SerialPortSettings, &'a str), String> {
-    let mut settings: SerialPortSettings = Default::default();
+pub fn get_serial_settings<'a>(matches: &'a ArgMatches) -> Result<(SerialSettings, &'a str), String> {
+    let mut settings: SerialSettings = Default::default();
 
     let port_name = matches.value_of("port").unwrap();
     let baud_rate = matches.value_of("baud").unwrap();
@@ -149,42 +148,42 @@ pub fn get_serial_port_settings<'a>(matches: &'a ArgMatches) -> Result<(SerialPo
     }
 
     if let Ok(duration) = timeout.parse::<u64>() {
-        settings.timeout = Duration::from_millis(duration);
+        settings.timeout = duration;
     } else {
         return Err(format!("Invalid timeout '{}'", timeout));
     }
 
     settings.data_bits = match data_bits {
-        "5" => serialport::DataBits::Five,
-        "6" => serialport::DataBits::Six,
-        "7" => serialport::DataBits::Seven,
-        "8" => serialport::DataBits::Eight,
+        "5" => SerialSettingsDataBits::Five,
+        "6" => SerialSettingsDataBits::Six,
+        "7" => SerialSettingsDataBits::Seven,
+        "8" => SerialSettingsDataBits::Eight,
         _ => {
             return Err(format!("Invalid data bits '{}'", data_bits));
         }
     };
 
     settings.parity = match parity {
-        "none" => serialport::Parity::None,
-        "even" => serialport::Parity::Even,
-        "odd" => serialport::Parity::Odd,
+        "none" => SerialSettingsParity::None,
+        "even" => SerialSettingsParity::Even,
+        "odd" => SerialSettingsParity::Odd,
         _ => {
             return Err(format!("Invalid parity '{}'", parity));
         }
     };
 
     settings.stop_bits = match stop_bits {
-        "1" => serialport::StopBits::One,
-        "2" => serialport::StopBits::Two,
+        "1" => SerialSettingsStopBits::One,
+        "2" => SerialSettingsStopBits::Two,
         _ => {
             return Err(format!("Invalid stop bits '{}", stop_bits));
         }
     };
 
     settings.flow_control = match flow_control {
-        "none" => serialport::FlowControl::None,
-        "software" => serialport::FlowControl::Software,
-        "hardware" => serialport::FlowControl::Hardware,
+        "none" => SerialSettingsFlowControl::None,
+        "software" => SerialSettingsFlowControl::Software,
+        "hardware" => SerialSettingsFlowControl::Hardware,
         _ => {
             return Err(format!("Invalid flow control '{}'", flow_control));
         }
