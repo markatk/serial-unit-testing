@@ -26,10 +26,10 @@
  * SOFTWARE.
  */
 
-// extern crate serialport;
+extern crate serialport;
 
-// mod utils;
-// mod serial;
+pub mod utils;
+pub mod serial;
 
 #[cfg(test)]
 mod tests {
