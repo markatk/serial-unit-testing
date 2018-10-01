@@ -30,11 +30,11 @@
 extern crate clap;
 extern crate serialport;
 
+extern crate serialunittesting;
+
 use clap::{App, ArgMatches, AppSettings};
 
-mod utils;
 mod commands;
-mod serial;
 
 mod list;
 mod send;

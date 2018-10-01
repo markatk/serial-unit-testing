@@ -56,7 +56,7 @@ impl Serial {
         }
     }
 
-    pub fn _write(&mut self, text: &str) -> Result<(), String> {
+    pub fn write(&mut self, text: &str) -> Result<(), String> {
         match self.port.write(text.as_bytes()) {
             Ok(_) => Ok(()),
             Err(ref e) if e.kind() == io::ErrorKind::TimedOut => Ok(()),

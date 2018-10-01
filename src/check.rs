@@ -31,9 +31,10 @@ use std::str;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
 
+use serialunittesting::utils;
+use serialunittesting::serial::Serial;
+
 use commands;
-use utils;
-use serial::Serial;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
