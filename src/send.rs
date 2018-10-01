@@ -35,7 +35,9 @@ use utils;
 use serial::Serial;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    match Serial::open(&matches) {
+    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
+
+    match Serial::open_with_settings(port_name, &settings) {
         Ok(mut serial) => {
             let mut text = matches.value_of("text").unwrap().to_string();
             let echo_text = matches.is_present("echo");
