@@ -32,6 +32,7 @@ use std::str;
 use std::iter;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
+use colored::*;
 
 use serialunittesting::serial::{Serial, CheckSettings};
 use serialunittesting::utils;
@@ -84,11 +85,11 @@ fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
                 print!("{}...", message);
 
                 if result {
-                    println!("OK");
+                    println!("{}", "OK".green());
 
                     successful_tests += 1;
                 } else {
-                    println!("Failed, Expected '{}' but received '{}'", desired_response, response);
+                    println!("{}, Expected '{}' but received '{}'", "Failed".red(), desired_response, response);
 
                     failed_tests += 1;
                 }
@@ -108,7 +109,7 @@ fn execute_line(line: &str, serial: &mut Serial) -> Result<(bool, String, String
     let mut iterator: iter::Peekable<str::Chars> = line.chars().peekable();
 
     let input_format = get_text_format(&mut iterator)?;
-    let input = get_formatted_text(&mut iterator, &input_format)?;
+    let (input, raw_input) = get_formatted_text(&mut iterator, &input_format)?;
 
     // skip separator
     let mut found_separator = false;
@@ -128,7 +129,7 @@ fn execute_line(line: &str, serial: &mut Serial) -> Result<(bool, String, String
     }
 
     let output_format = get_text_format(&mut iterator)?;
-    let output = get_formatted_text(&mut iterator, &output_format)?;
+    let (output, raw_output) = get_formatted_text(&mut iterator, &output_format)?;
 
     let settings = CheckSettings {
         ignore_case: false,
@@ -137,7 +138,7 @@ fn execute_line(line: &str, serial: &mut Serial) -> Result<(bool, String, String
     };
 
     match serial.check_with_settings(&input, &output, &settings) {
-        Ok((result, response)) => Ok((result, input, output, response)),
+        Ok((result, response)) => Ok((result, raw_input, raw_output, response)),
         Err(e) => Err(format!("Error while executing check {}", e))
     }
 }
@@ -155,7 +156,7 @@ fn get_text_format(iterator: &mut iter::Peekable<str::Chars>) -> Result<utils::T
     }
 }
 
-fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &utils::TextFormat) -> Result<String, String> {
+fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &utils::TextFormat) -> Result<(String, String), String> {
     if *text_format != utils::TextFormat::Text {
         iterator.next();
     }
@@ -165,10 +166,15 @@ fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &u
     }
 
     let mut text = String::new();
+    let mut raw_text = String::new();
     let mut escape_next_char = false;
 
     loop {
         let mut next_char = iterator.next().unwrap();
+
+        if (escape_next_char == false && next_char == '"') == false{
+            raw_text.push(next_char);
+        }
 
         if escape_next_char {
             next_char = match next_char {
@@ -194,5 +200,5 @@ fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &u
         text.push(next_char);
     }
 
-    Ok(text)
+    Ok((text, raw_text))
 }
