@@ -82,10 +82,12 @@ fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
 
         let mut iterator = line.chars();
         let mut skip_line = false;
+        let mut found_group = false;
 
         loop {
             match iterator.next().unwrap() {
                 ' ' | '\t' => (),
+                '[' => found_group = true,
                 '#' => {
                     skip_line = true;
 
@@ -99,9 +101,24 @@ fn parse_file(file: &mut File, serial: &mut Serial) -> Result<(), String> {
             continue;
         }
 
+        if found_group {
+            let mut group_name = String::new();
+
+            loop {
+                match iterator.next().unwrap() {
+                    ']' => break,
+                    ch => group_name.push(ch)
+                };
+            }
+
+            println!("\n{}", group_name);
+
+            continue;
+        }
+
         match execute_line(line.as_str(), serial) {
             Ok((result, message, desired_response, response)) => {
-                print!("{}...", message);
+                print!("\t{}...", message);
 
                 if result {
                     println!("{}", "OK".green());
