@@ -30,23 +30,27 @@ use std::fmt;
 use std::error::Error as StdError;
 use std::iter;
 use std::str;
+use std::fs;
+use std::io::{BufReader, BufRead};
 
-use tests::{TestCase};
+use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
 
 #[derive(Debug)]
 pub enum Error {
     UnknownTextFormat(char),
     InvalidFormat,
-    UnallowedCharacter(char)
+    UnallowedCharacter(char),
+    InvalidLine(usize)
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::UnknownTextFormat(_) => formatter.write_str("UnknownTextFormat"),
+            Error::UnknownTextFormat(ch) => formatter.write_fmt(format_args!("UnknownTextFormat {}", ch)),
             Error::InvalidFormat => formatter.write_str("InvalidFormat"),
-            Error::UnallowedCharacter(_) => formatter.write_str("UnallowedCharacter")
+            Error::UnallowedCharacter(ch) => formatter.write_fmt(format_args!("UnallowedCharacter {}", ch)),
+            Error::InvalidLine(line) => formatter.write_fmt(format_args!("InvalidLine {}", line))
         }
     }
 }
@@ -56,9 +60,82 @@ impl StdError for Error {
         match *self {
             Error::UnknownTextFormat(_) => "Unknown text format",
             Error::InvalidFormat => "Invalid line format",
-            Error::UnallowedCharacter(_) => "Unallowed character"
+            Error::UnallowedCharacter(_) => "Unallowed character",
+            Error::InvalidLine(_) => "Invalid line format"
         }
     }
+}
+
+pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
+    let reader = BufReader::new(file);
+
+    let mut test_suites: Vec<TestSuite> = Vec::new();
+
+    for (num, line) in reader.lines().enumerate() {
+        let line = line.unwrap();
+
+        if line.is_empty() {
+            continue;
+        }
+
+        let mut iterator = line.chars();
+        let mut skip_line = false;
+        let mut found_group = false;
+
+        loop {
+            match iterator.next() {
+                Some(' ') | Some('\t') => (),
+                Some('[') => found_group = true,
+                Some('#') => {
+                    skip_line = true;
+
+                    break;
+                },
+                _ => break
+            };
+        }
+
+        if skip_line {
+            continue;
+        }
+
+        if found_group {
+            let mut group_name = String::new();
+
+            loop {
+                match iterator.next() {
+                    Some(']') => break,
+                    Some(ch) => group_name.push(ch),
+                    None => return Err(Error::InvalidLine(num))
+                };
+            }
+
+            test_suites.push(TestSuite::new(group_name));
+
+            continue;
+        }
+
+        let test_case = match parse_line(&line) {
+            Ok(test_case) => test_case,
+            //Err(_) => return Err(Error::InvalidLine(num))
+            Err(e) => {
+                println!("{}", e);
+
+                return Err(Error::InvalidLine(num + 1));
+            }
+        };
+
+        if test_suites.len() > 0 {
+            test_suites.last_mut().unwrap().push(test_case);
+        } else {
+            let mut test_suite = TestSuite::new(String::new());
+            test_suite.push(test_case);
+
+            test_suites.push(test_suite);
+        }
+    }
+
+    Ok(test_suites)
 }
 
 pub fn parse_line(line: &str) -> Result<TestCase, Error> {
@@ -66,9 +143,35 @@ pub fn parse_line(line: &str) -> Result<TestCase, Error> {
 
     let input_format = get_text_format(&mut iterator)?;
     let _input_name = get_test_name(&mut iterator)?;
-    let (_input, _raw_input) = get_formatted_text(&mut iterator, &input_format)?;
+    let (input, raw_input) = get_formatted_text(&mut iterator, &input_format)?;
 
-    Err(Error::InvalidFormat)
+    // skip separator
+    let mut found_separator = false;
+
+    loop {
+        match iterator.peek() {
+            Some(' ') | Some('\t') => (),
+            Some(':') if found_separator == false => {
+                found_separator = true;
+            },
+            Some(ch) => return Err(Error::UnallowedCharacter(*ch)),
+            _ if found_separator => break,
+            None => return Err(Error::InvalidFormat)
+        };
+
+        iterator.next();
+    }
+
+    let output_format = get_text_format(&mut iterator)?;
+    let (output, raw_output) = get_formatted_text(&mut iterator, &output_format)?;
+
+    let settings = TestCaseSettings {
+        ignore_case: false,
+        input_format,
+        output_format
+    };
+
+    Ok(TestCase::new_with_settings(input, raw_input, output, raw_output, settings))
 }
 
 fn get_text_format(iterator: &mut iter::Peekable<str::Chars>) -> Result<TextFormat, Error> {

@@ -42,6 +42,7 @@ mod send;
 mod monitor;
 mod check;
 mod run;
+mod verify;
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
@@ -50,6 +51,7 @@ fn run(matches: ArgMatches) -> Result<(), String> {
         ("monitor", Some(m)) => monitor::run(m),
         ("check", Some(m)) => check::run(m),
         ("run", Some(m)) => run::run(m),
+        ("verify", Some(m)) => verify::run(m),
         _ => Ok(())
     }
 }
@@ -66,6 +68,7 @@ fn main() {
         .subcommand(monitor::command())
         .subcommand(check::command())
         .subcommand(run::command())
+        .subcommand(verify::command())
         .get_matches();
 
     if let Err(e) = run(matches) {
