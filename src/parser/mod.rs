@@ -26,8 +26,7 @@
  * SOFTWARE.
  */
 
-use std::fmt;
-use std::error::Error as StdError;
+
 use std::iter;
 use std::str;
 use std::fs;
@@ -36,37 +35,9 @@ use std::io::{BufReader, BufRead};
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
 
-#[derive(Debug)]
-pub enum Error {
-    UnknownTextFormat(char),
-    InvalidFormat,
-    UnallowedCharacter(char),
-    InvalidLine(usize)
-}
+mod error;
 
-impl fmt::Display for Error {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::UnknownTextFormat(ch) => formatter.write_fmt(format_args!("UnknownTextFormat {}", ch)),
-            Error::InvalidFormat => formatter.write_str("InvalidFormat"),
-            Error::UnallowedCharacter(ch) => formatter.write_fmt(format_args!("UnallowedCharacter {}", ch)),
-            Error::InvalidLine(line) => formatter.write_fmt(format_args!("InvalidLine {}", line))
-        }
-    }
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::UnknownTextFormat(_) => "Unknown text format",
-            Error::InvalidFormat => "Invalid line format",
-            Error::UnallowedCharacter(_) => "Unallowed character",
-            Error::InvalidLine(_) => "Invalid line format"
-        }
-    }
-}
-
-pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
+pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseError> {
     let reader = BufReader::new(file);
 
     let mut test_suites: Vec<TestSuite> = Vec::new();
@@ -106,7 +77,7 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
                 match iterator.next() {
                     Some(']') => break,
                     Some(ch) => group_name.push(ch),
-                    None => return Err(Error::InvalidLine(num))
+                    None => return Err(error::ParseError::InvalidLine(num + 1, None))
                 };
             }
 
@@ -117,12 +88,7 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
 
         let test_case = match parse_line(&line) {
             Ok(test_case) => test_case,
-            //Err(_) => return Err(Error::InvalidLine(num))
-            Err(e) => {
-                println!("{}", e);
-
-                return Err(Error::InvalidLine(num + 1));
-            }
+            Err(e) => return Err(error::ParseError::InvalidLine(num + 1, Some(e)))
         };
 
         if test_suites.len() > 0 {
@@ -138,8 +104,8 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     Ok(test_suites)
 }
 
-pub fn parse_line(line: &str) -> Result<TestCase, Error> {
-    let mut iterator = line.chars().peekable();
+pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
+    let mut iterator = line.chars().enumerate().peekable();
 
     let input_format = get_text_format(&mut iterator)?;
     let _input_name = get_test_name(&mut iterator)?;
@@ -150,13 +116,13 @@ pub fn parse_line(line: &str) -> Result<TestCase, Error> {
 
     loop {
         match iterator.peek() {
-            Some(' ') | Some('\t') => (),
-            Some(':') if found_separator == false => {
+            Some((_, ' ')) | Some((_, '\t')) => (),
+            Some((_, ':')) if found_separator == false => {
                 found_separator = true;
             },
-            Some(ch) => return Err(Error::UnallowedCharacter(*ch)),
+            Some((pos, ch)) => return Err(error::LineError::UnallowedCharacter(*ch, *pos)),
             _ if found_separator => break,
-            None => return Err(Error::InvalidFormat)
+            None => return Err(error::LineError::UnexpectedEnd)
         };
 
         iterator.next();
@@ -174,16 +140,14 @@ pub fn parse_line(line: &str) -> Result<TestCase, Error> {
     Ok(TestCase::new_with_settings(input, raw_input, output, raw_output, settings))
 }
 
-fn get_text_format(iterator: &mut iter::Peekable<str::Chars>) -> Result<TextFormat, Error> {
-    let ch = iterator.peek().cloned();
-
-    let format = match ch {
-        Some('b') => TextFormat::Binary,
-        Some('o') => TextFormat::Octal,
-        Some('d') => TextFormat::Decimal,
-        Some('h') => TextFormat::Hex,
-        Some('"') | Some('(') => TextFormat::Text,
-        _ => return Err(Error::UnknownTextFormat(ch.unwrap()))
+fn get_text_format(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<TextFormat, error::LineError> {
+    let format = match iterator.peek() {
+        Some((_, 'b')) => TextFormat::Binary,
+        Some((_, 'o')) => TextFormat::Octal,
+        Some((_, 'd')) => TextFormat::Decimal,
+        Some((_, 'h')) => TextFormat::Hex,
+        Some((_, '"')) | Some((_, '(')) => TextFormat::Text,
+        ch @ _ => return Err(error::LineError::UnknownTextFormat(ch.unwrap().1))
     };
 
     if format != TextFormat::Text {
@@ -193,9 +157,13 @@ fn get_text_format(iterator: &mut iter::Peekable<str::Chars>) -> Result<TextForm
     Ok(format)
 }
 
-fn get_test_name(iterator: &mut iter::Peekable<str::Chars>) -> Result<String, Error> {
-    if *iterator.peek().unwrap() != '(' {
-        return Ok(String::new());
+fn get_test_name(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<String, error::LineError> {
+    if let Some((_, ch)) = iterator.peek() {
+        if *ch != '(' {
+            return Ok(String::new());
+        }
+    } else {
+        return Err(error::LineError::UnexpectedEnd);
     }
 
     iterator.next();
@@ -203,21 +171,27 @@ fn get_test_name(iterator: &mut iter::Peekable<str::Chars>) -> Result<String, Er
     let mut name = String::new();
 
     loop {
-        let next_char = iterator.next().unwrap();
+        if let Some((_, next_char)) = iterator.next() {
+            if next_char == ')' {
+                break;
+            }
 
-        if next_char == ')' {
-            break;
+            name.push(next_char);
+        } else {
+            return Err(error::LineError::UnexpectedEnd);
         }
-
-        name.push(next_char);
     }
 
     Ok(name)
 }
 
-fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &TextFormat) -> Result<(String, String), Error> {
-    if iterator.next().unwrap() != '"' {
-        return Err(Error::InvalidFormat);
+fn get_formatted_text(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>, text_format: &TextFormat) -> Result<(String, String), error::LineError> {
+    if let Some((_, ch)) = iterator.next() {
+        if ch != '"' {
+            return Err(error::LineError::InvalidFormat);
+        }
+    } else {
+        return Err(error::LineError::UnexpectedEnd);
     }
 
     let mut text = String::new();
@@ -225,9 +199,9 @@ fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &T
     let mut escape_next_char = false;
 
     loop {
-        let mut next_char = iterator.next().unwrap();
+        let (_pos, mut next_char) = iterator.next().unwrap();
 
-        if (escape_next_char == false && next_char == '"') == false{
+        if (escape_next_char == false && next_char == '"') == false {
             raw_text.push(next_char);
         }
 
@@ -257,4 +231,3 @@ fn get_formatted_text(iterator: &mut iter::Peekable<str::Chars>, text_format: &T
 
     Ok((text, raw_text))
 }
-
