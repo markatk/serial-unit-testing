@@ -32,6 +32,7 @@ extern crate colored;
 pub mod utils;
 pub mod tests;
 pub mod serial;
+pub mod parser;
 
 #[cfg(test)]
 mod library_tests {
