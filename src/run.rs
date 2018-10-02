@@ -33,9 +33,9 @@ use std::iter;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
 
-use serialunittesting::serial::Serial;
-use serialunittesting::utils;
-use serialunittesting::tests;
+use serial_unit_testing::serial::Serial;
+use serial_unit_testing::utils;
+use serial_unit_testing::tests;
 
 use commands;
 

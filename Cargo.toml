@@ -1,10 +1,10 @@
 [package]
-name = "serial-unit-testing"
+name = "serial_unit_testing"
 version = "0.1.1"
 authors = ["MarkAtk"]
 
 [lib]
-name = "serialunittesting"
+name = "serial_unit_testing"
 path = "src/lib.rs"
 
 [[bin]]

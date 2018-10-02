@@ -30,8 +30,8 @@ use std::io;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
 
-use serialunittesting::utils;
-use serialunittesting::serial::{Serial, CheckSettings};
+use serial_unit_testing::utils;
+use serial_unit_testing::serial::{Serial, CheckSettings};
 
 use commands;
 

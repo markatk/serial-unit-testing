@@ -28,8 +28,8 @@
 
 use clap::{Arg, ArgMatches};
 
-use serialunittesting::serial::settings::{Settings, DataBits, FlowControl, Parity, StopBits};
-use serialunittesting::utils;
+use serial_unit_testing::serial::settings::{Settings, DataBits, FlowControl, Parity, StopBits};
+use serial_unit_testing::utils;
 
 pub fn serial_arguments<'a>() -> Vec<Arg<'a, 'a>> {
     let databits = [ "5", "6", "7", "8" ];

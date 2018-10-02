@@ -31,7 +31,7 @@ extern crate clap;
 extern crate serialport;
 extern crate colored;
 
-extern crate serialunittesting;
+extern crate serial_unit_testing;
 
 use clap::{App, ArgMatches, AppSettings};
 
