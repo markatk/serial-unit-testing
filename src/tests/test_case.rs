@@ -55,45 +55,44 @@ pub struct TestCase {
 
     name: String,
     input: String,
-    raw_input: String,
     output: String,
-    raw_output: String,
-    response: String,
-    successful: bool,
-    executed: bool
+    response: Option<String>,
+    successful: Option<bool>,
 }
 
 impl TestCase {
-    pub fn new(name: String, input: String, raw_input: String, output: String, raw_output: String) -> TestCase {
+    pub fn new(name: String, input: String, output: String) -> TestCase {
         TestCase {
             name,
             input,
-            raw_input,
             output,
-            raw_output,
             settings: Default::default(),
-            response: "".to_string(),
-            successful: false,
-            executed: false
+            response: None,
+            successful: None
         }
     }
 
-    pub fn new_with_settings(name: String, input: String, raw_input: String, output: String, raw_output: String, settings: TestCaseSettings) -> TestCase {
+    pub fn new_with_settings(name: String, input: String, output: String, settings: TestCaseSettings) -> TestCase {
         TestCase {
             name,
             input,
-            raw_input,
             output,
-            raw_output,
             settings,
-            response: "".to_string(),
-            successful: false,
-            executed: false
+            response: None,
+            successful: None
         }
     } 
 
     pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
-        match serial.write_format(&self.input, &self.settings.input_format) {
+        let input: String;
+
+        if self.settings.input_format == utils::TextFormat::Text {
+            input = self.descape_string(&self.input);
+        } else {
+            input = self.input.clone();
+        }
+
+        match serial.write_format(&input, &self.settings.input_format) {
             Ok(_) => (),
             Err(e) => return Err(format!("Unable to write to serial port {}", e))
         };
@@ -133,36 +132,80 @@ impl TestCase {
             }
         }
 
-        self.response = response;
-        self.executed = true;
-        self.successful = self.response == self.output;
+        let mut output: String;
+
+        if self.settings.output_format == utils::TextFormat::Text {
+            output = self.descape_string(&self.output);
+        } else {
+            output = self.output.clone();
+        }
+
+        if self.settings.ignore_case {
+            output = output.to_lowercase();
+        }
+
+        self.successful = Some(response == output);
+        self.response = Some(response);
 
         Ok(())
     }
 
     pub fn is_successful(&self) -> bool {
-        self.successful
+        if let Some(successful) = self.successful {
+            successful
+        } else {
+            false
+        }
     }
 
     fn title(&self) -> String {
         if self.name != "" {
-            format!("{} \"{}\"", self.name, self.raw_input)
+            format!("{} \"{}\"", self.name, self.input)
         } else {
-            self.raw_input.clone()
+            self.input.clone()
         }
+    }
+
+    fn descape_string(&self, text: &str) -> String {
+        let mut response = String::new();
+        let mut descape_next_char = false;
+        let mut iterator = text.chars();
+
+        loop {
+            match iterator.next() {
+                Some('t') if descape_next_char => response.push('\t'),
+                Some('r') if descape_next_char => response.push('\r'),
+                Some('n') if descape_next_char => response.push('\n'),
+                Some('\\') if descape_next_char == false => {
+                    descape_next_char = true;
+
+                    continue;
+                },
+                Some(ch) => response.push(ch),
+                None => break
+            };
+
+            descape_next_char = false;
+        }
+
+        response
     }
 }
 
 impl ToString for TestCase {
     fn to_string(&self) -> String {
-        if self.executed == false {
-            return format!("{}", self.title());
-        }
-
-        if self.successful {
-            format!("{}...{}", self.title(), "OK".green())
+        if let Some(successful) = self.successful {
+            if successful {
+                format!("{}...{}", self.title(), "OK".green())
+            } else {
+                if let Some(ref response) = self.response {
+                    format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.output, response)
+                } else {
+                    format!("{}...{}, expected '{}' but received nothing", self.title(), "Failed".red(), self.output)
+                }
+            }
         } else {
-            format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.raw_output, self.response)
+            format!("{}", self.title())
         }
     }
 }

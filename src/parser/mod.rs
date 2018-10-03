@@ -108,8 +108,8 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
     let mut iterator = line.chars().enumerate().peekable();
 
     let input_format = get_text_format(&mut iterator)?;
-    let input_name = get_test_name(&mut iterator)?;
-    let (input, raw_input) = get_formatted_text(&mut iterator, &input_format)?;
+    let test_name = get_test_name(&mut iterator)?;
+    let input = get_formatted_text(&mut iterator, &input_format)?;
 
     // skip separator
     let mut found_separator = false;
@@ -129,7 +129,7 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
     }
 
     let output_format = get_text_format(&mut iterator)?;
-    let (output, raw_output) = get_formatted_text(&mut iterator, &output_format)?;
+    let output = get_formatted_text(&mut iterator, &output_format)?;
 
     let settings = TestCaseSettings {
         ignore_case: false,
@@ -137,7 +137,7 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
         output_format
     };
 
-    Ok(TestCase::new_with_settings(input_name, input, raw_input, output, raw_output, settings))
+    Ok(TestCase::new_with_settings(test_name, input, output, settings))
 }
 
 fn get_text_format(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<TextFormat, error::LineError> {
@@ -185,7 +185,7 @@ fn get_test_name(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> 
     Ok(name)
 }
 
-fn get_formatted_text(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>, text_format: &TextFormat) -> Result<(String, String), error::LineError> {
+fn get_formatted_text(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>, text_format: &TextFormat) -> Result<String, error::LineError> {
     if let Some((_, ch)) = iterator.next() {
         if ch != '"' {
             return Err(error::LineError::InvalidFormat);
@@ -195,39 +195,25 @@ fn get_formatted_text(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>
     }
 
     let mut text = String::new();
-    let mut raw_text = String::new();
     let mut escape_next_char = false;
 
     loop {
-        let (_pos, mut next_char) = iterator.next().unwrap();
+        let (_, next_char) = iterator.next().unwrap();
 
-        if (escape_next_char == false && next_char == '"') == false {
-            raw_text.push(next_char);
-        }
+        match next_char {
+            '"' if escape_next_char == false => break,
+            '\\' if *text_format == TextFormat::Text => {
+                escape_next_char = true;
 
-        if escape_next_char {
-            next_char = match next_char {
-                't' => '\t',
-                'n' => '\n',
-                'r' => '\r',
-                _ => next_char
-            }
-        } else {
-            match next_char {
-                '"' => break,
-                '\\' if *text_format == TextFormat::Text => {
-                    escape_next_char = true;
+                text.push(next_char);
 
-                    continue;
-                },
-                _ => ()
-            };
-        }
+                continue;
+            },
+            _ => text.push(next_char)
+        };
 
         escape_next_char = false;
-
-        text.push(next_char);
     }
 
-    Ok((text, raw_text))
+    Ok(text)
 }
