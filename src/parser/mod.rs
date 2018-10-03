@@ -56,7 +56,11 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseErr
         loop {
             match iterator.next() {
                 Some((_, ' ')) | Some((_, '\t')) => (),
-                Some((_, '[')) => found_group = true,
+                Some((_, '[')) => {
+                    found_group = true;
+                    
+                    break;
+                },
                 Some((_, '#')) => {
                     skip_line = true;
 
