@@ -31,7 +31,7 @@ use std::error::Error as StdError;
 
 #[derive(PartialEq, Debug)]
 pub enum LineError {
-    UnknownTextFormat(char),
+    UnknownTextFormat(char, usize),
     InvalidFormat,
     UnallowedCharacter(char, usize),
     UnexpectedEnd
@@ -40,10 +40,10 @@ pub enum LineError {
 impl fmt::Display for LineError {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            LineError::UnknownTextFormat(ch) => formatter.write_fmt(format_args!("UnknownTextFormat {}", ch)),
-            LineError::InvalidFormat => formatter.write_str("InvalidFormat"),
+            LineError::UnknownTextFormat(ch, pos) => formatter.write_fmt(format_args!("{} Unknown text format '{}'", pos, ch)),
+            LineError::InvalidFormat => formatter.write_str(" Invalid format"),
             LineError::UnallowedCharacter(ch, pos) => formatter.write_fmt(format_args!("{} Unallowed character '{}'", pos, ch)),
-            LineError::UnexpectedEnd => formatter.write_str("UnexpectedEnd")
+            LineError::UnexpectedEnd => formatter.write_str(" Unexpected end")
         }
     }
 }
@@ -51,7 +51,7 @@ impl fmt::Display for LineError {
 impl StdError for LineError {
     fn description(&self) -> &str {
         match *self {
-            LineError::UnknownTextFormat(_) => "Unknown text format",
+            LineError::UnknownTextFormat(_, _) => "Unknown text format",
             LineError::InvalidFormat => "Invalid line format",
             LineError::UnallowedCharacter(_, _) => "Unallowed character",
             LineError::UnexpectedEnd => "Unexpected end of line"

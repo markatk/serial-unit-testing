@@ -58,7 +58,8 @@ pub struct TestCase {
     output: String,
     raw_output: String,
     response: String,
-    successful: bool
+    successful: bool,
+    executed: bool
 }
 
 impl TestCase {
@@ -70,7 +71,8 @@ impl TestCase {
             raw_output,
             settings: Default::default(),
             response: "".to_string(),
-            successful: false
+            successful: false,
+            executed: false
         }
     }
 
@@ -82,7 +84,8 @@ impl TestCase {
             raw_output,
             settings,
             response: "".to_string(),
-            successful: false
+            successful: false,
+            executed: false
         }
     } 
 
@@ -128,6 +131,7 @@ impl TestCase {
         }
 
         self.response = response;
+        self.executed = true;
         self.successful = self.response == self.output;
 
         Ok(())
@@ -136,6 +140,10 @@ impl TestCase {
 
 impl ToString for TestCase {
     fn to_string(&self) -> String {
+        if self.executed == false {
+            return format!("{}", self.raw_input);
+        }
+
         if self.successful {
             format!("{}...{}", self.raw_input, "OK".green())
         } else {
@@ -145,7 +153,7 @@ impl ToString for TestCase {
 }
 
 pub struct TestSuite {
-    name: String,
+    pub name: String,
     tests: Vec<TestCase>
 }
 

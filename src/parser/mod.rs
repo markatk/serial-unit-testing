@@ -49,15 +49,15 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseErr
             continue;
         }
 
-        let mut iterator = line.chars();
+        let mut iterator = line.chars().enumerate();
         let mut skip_line = false;
         let mut found_group = false;
 
         loop {
             match iterator.next() {
-                Some(' ') | Some('\t') => (),
-                Some('[') => found_group = true,
-                Some('#') => {
+                Some((_, ' ')) | Some((_, '\t')) => (),
+                Some((_, '[')) => found_group = true,
+                Some((_, '#')) => {
                     skip_line = true;
 
                     break;
@@ -75,9 +75,9 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseErr
 
             loop {
                 match iterator.next() {
-                    Some(']') => break,
-                    Some(ch) => group_name.push(ch),
-                    None => return Err(error::ParseError::InvalidLine(num + 1, None))
+                    Some((_, ']')) => break,
+                    Some((_, ch)) => group_name.push(ch),
+                    None => return Err(error::ParseError::InvalidLine(num + 1, Some(error::LineError::UnexpectedEnd)))
                 };
             }
 
@@ -120,8 +120,8 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
             Some((_, ':')) if found_separator == false => {
                 found_separator = true;
             },
-            Some((pos, ch)) => return Err(error::LineError::UnallowedCharacter(*ch, *pos)),
             _ if found_separator => break,
+            Some((pos, ch)) => return Err(error::LineError::UnallowedCharacter(*ch, *pos)),
             None => return Err(error::LineError::UnexpectedEnd)
         };
 
@@ -147,7 +147,7 @@ fn get_text_format(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -
         Some((_, 'd')) => TextFormat::Decimal,
         Some((_, 'h')) => TextFormat::Hex,
         Some((_, '"')) | Some((_, '(')) => TextFormat::Text,
-        ch @ _ => return Err(error::LineError::UnknownTextFormat(ch.unwrap().1))
+        ch @ _ => return Err(error::LineError::UnknownTextFormat(ch.unwrap().1, ch.unwrap().0))
     };
 
     if format != TextFormat::Text {

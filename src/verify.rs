@@ -42,12 +42,24 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         Err(e) => return Err(format!("{}", e))
     };
 
-    let _test_suites = match parser::parse_file(&mut file) {
+    let test_suites = match parser::parse_file(&mut file) {
         Ok(test_suites) => test_suites,
         Err(e) => return Err(format!("Unable to parse file: {}", e))
     };
 
-    println!("OK");
+    match matches.occurrences_of("verbose") {
+        1 => {
+            for test_suite in test_suites {
+                println!("Test suite '{}' with {} tests", test_suite.name, test_suite.len());
+            }
+        },
+        0 => println!("OK"),
+        _ => {
+            for test_suite in test_suites {
+                println!("{}", test_suite.to_string());
+            }
+        }
+    };
 
     Ok(())
 }
@@ -62,5 +74,6 @@ pub fn command<'a>() -> App<'a, 'a> {
         .arg(Arg::with_name("verbose")
             .long("verbose")
             .short("v")
-            .help("Show verbose output"))
+            .help("Show verbose output")
+            .multiple(true))
 }
