@@ -53,6 +53,7 @@ impl Default for TestCaseSettings {
 pub struct TestCase {
     pub settings: TestCaseSettings,
 
+    name: String,
     input: String,
     raw_input: String,
     output: String,
@@ -63,8 +64,9 @@ pub struct TestCase {
 }
 
 impl TestCase {
-    pub fn new(input: String, raw_input: String, output: String, raw_output: String) -> TestCase {
+    pub fn new(name: String, input: String, raw_input: String, output: String, raw_output: String) -> TestCase {
         TestCase {
+            name,
             input,
             raw_input,
             output,
@@ -76,8 +78,9 @@ impl TestCase {
         }
     }
 
-    pub fn new_with_settings(input: String, raw_input: String, output: String, raw_output: String, settings: TestCaseSettings) -> TestCase {
+    pub fn new_with_settings(name: String, input: String, raw_input: String, output: String, raw_output: String, settings: TestCaseSettings) -> TestCase {
         TestCase {
+            name,
             input,
             raw_input,
             output,
@@ -136,18 +139,26 @@ impl TestCase {
 
         Ok(())
     }
+
+    fn title(&self) -> String {
+        if self.name != "" {
+            format!("{} \"{}\"", self.name, self.raw_input)
+        } else {
+            self.raw_input.clone()
+        }
+    }
 }
 
 impl ToString for TestCase {
     fn to_string(&self) -> String {
         if self.executed == false {
-            return format!("{}", self.raw_input);
+            return format!("{}", self.title());
         }
 
         if self.successful {
-            format!("{}...{}", self.raw_input, "OK".green())
+            format!("{}...{}", self.title(), "OK".green())
         } else {
-            format!("{}...{}, expected '{}' but received '{}'", self.raw_input, "Failed".red(), self.raw_output, self.response)
+            format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.raw_output, self.response)
         }
     }
 }

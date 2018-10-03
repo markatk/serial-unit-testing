@@ -108,7 +108,7 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
     let mut iterator = line.chars().enumerate().peekable();
 
     let input_format = get_text_format(&mut iterator)?;
-    let _input_name = get_test_name(&mut iterator)?;
+    let input_name = get_test_name(&mut iterator)?;
     let (input, raw_input) = get_formatted_text(&mut iterator, &input_format)?;
 
     // skip separator
@@ -137,7 +137,7 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
         output_format
     };
 
-    Ok(TestCase::new_with_settings(input, raw_input, output, raw_output, settings))
+    Ok(TestCase::new_with_settings(input_name, input, raw_input, output, raw_output, settings))
 }
 
 fn get_text_format(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<TextFormat, error::LineError> {
