@@ -150,12 +150,8 @@ impl TestCase {
         Ok(())
     }
 
-    pub fn is_successful(&self) -> bool {
-        if let Some(successful) = self.successful {
-            successful
-        } else {
-            false
-        }
+    pub fn is_successful(&self) -> Option<bool> {
+        self.successful
     }
 
     fn title(&self) -> String {

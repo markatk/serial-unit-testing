@@ -47,15 +47,19 @@ impl TestSuite {
         self.tests.push(test);
     }
 
-    pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
+    pub fn run(&mut self, serial: &mut Serial, stop_on_failure: bool) -> Result<bool, String> {
         for mut test in self.tests.iter_mut() {
             test.run(serial)?;
+
+            if stop_on_failure && test.is_successful() == Some(false) {
+                return Ok(false);
+            }
         }
 
-        Ok(())
+        Ok(true)
     }
 
-    pub fn run_and_print(&mut self, serial: &mut Serial) {
+    pub fn run_and_print(&mut self, serial: &mut Serial, stop_on_failure: bool) -> bool {
         let show_title = self.name != "";
 
         if show_title {
@@ -67,13 +71,25 @@ impl TestSuite {
                 print!("\t");
             }
 
-            match test.run(serial) {
-                Ok(_) => println!("{}", test.to_string()),
-                Err(e) => println!("Error running test {}", e)
+            let result = match test.run(serial) {
+                Ok(_) => {
+                    println!("{}", test.to_string());
+
+                    test.is_successful()
+                },
+                Err(e) => {
+                    println!("Error running test {}", e);
+
+                    Some(false)
+                }
             };
+
+            if result != Some(true) && stop_on_failure {
+                return false;
+            }
         }
 
-        println!();
+        true
     }
 
     pub fn len(&self) -> usize {
@@ -96,7 +112,7 @@ impl TestSuite {
         let mut count = 0;
 
         for test in &self.tests {
-            if test.is_successful() == success {
+            if test.is_successful() == Some(success) {
                 count += 1;
             }
         }

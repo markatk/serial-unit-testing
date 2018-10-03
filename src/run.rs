@@ -60,8 +60,10 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let mut successful_tests = 0;
     let mut failed_tests = 0;
 
+    let stop_on_failure = matches.is_present("stop");
+
     for mut test_suite in test_suites {
-        test_suite.run_and_print(&mut serial);
+        let result = test_suite.run_and_print(&mut serial, stop_on_failure);
 
         let successful = test_suite.successful();
         let failed = test_suite.failed();
@@ -69,6 +71,14 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         total_tests += successful + failed;
         successful_tests += successful;
         failed_tests += failed;
+
+        println!();
+
+        if result == false && stop_on_failure {
+            println!("Stopping because 'stop-on-failure' is set");
+
+            break;
+        }
     }
 
     println!("\nRan {} tests, {} successful, {} failed", total_tests, successful_tests, failed_tests);
@@ -80,6 +90,10 @@ pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("run")
         .about("Run script on serial port")
         .args(commands::serial_arguments().as_slice())
+        .arg(Arg::with_name("stop")
+            .long("stop-on-failure")
+            .short("S")
+            .help("Stop on first test failing"))
         .arg(Arg::with_name("file")
             .help("Script to run on the serial port")
             .required(true)
