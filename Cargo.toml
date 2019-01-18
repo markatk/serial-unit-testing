@@ -1,6 +1,6 @@
 [package]
 name = "serial_unit_testing"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["MarkAtk"]
 
 [lib]
@@ -13,5 +13,5 @@ path = "src/main.rs"
 
 [dependencies]
 clap = "2.32.0"
-serialport = "3.0.0"
-colored = "1.6.1"
+serialport = "3.2.0"
+colored = "1.7.0"
