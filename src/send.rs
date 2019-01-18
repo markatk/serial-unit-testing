@@ -47,11 +47,23 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let output_text_format = commands::get_text_output_format(matches);
 
     if matches.is_present("newline") {
-        text.push_str("\n");
+        match input_text_format {
+            utils::TextFormat::Binary => text.push_str("00001010"),
+            utils::TextFormat::Octal => text.push_str("012"),
+            utils::TextFormat::Decimal => text.push_str("010"),
+            utils::TextFormat::Hex => text.push_str("0A"),
+            _ => text.push_str("\n")
+        }
     }
 
     if matches.is_present("carriagereturn") {
-        text.push_str("\r");
+        match input_text_format {
+            utils::TextFormat::Binary => text.push_str("00001101"),
+            utils::TextFormat::Octal => text.push_str("015"),
+            utils::TextFormat::Decimal => text.push_str("013"),
+            utils::TextFormat::Hex => text.push_str("0D"),
+            _ => text.push_str("\r")
+        }
     }
 
     if matches.is_present("escape") {

@@ -42,8 +42,8 @@ pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, String> {
     bytes_from_radix_string(&text, 16)
 }
 
-pub fn bytes_from_binary_string(orignal_text: &str) -> Result<Vec<u8>, String> {
-    let mut text = orignal_text.replace("0b", "");
+pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>, String> {
+    let mut text = original_text.replace("0b", "");
     text = text.replace(" ", "");
 
     bytes_from_radix_string(&text, 2)
@@ -59,7 +59,7 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String
 
         match u8::from_str_radix(&chunk, radix) {
             Ok(value) => bytes.push(value),
-            Err(e) => return Err(format!("Unable to read input string {}", e))
+            Err(e) => return Err(format!("Unable to read input string: {}", e))
         };
     }
 
