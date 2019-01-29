@@ -32,13 +32,15 @@ pub use tests::test_case::{TestCase, TestCaseSettings};
 
 pub struct TestSuite {
     pub name: String,
-    tests: Vec<TestCase>
+    pub stop_on_failure: bool,
+    tests: Vec<TestCase>,
 }
 
 impl TestSuite {
     pub fn new(name: String) -> TestSuite {
         TestSuite {
             name,
+            stop_on_failure: true,
             tests: Vec::new()
         }
     }
@@ -47,11 +49,11 @@ impl TestSuite {
         self.tests.push(test);
     }
 
-    pub fn run(&mut self, serial: &mut Serial, stop_on_failure: bool) -> Result<bool, String> {
+    pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
         for mut test in self.tests.iter_mut() {
             test.run(serial)?;
 
-            if stop_on_failure && test.is_successful() == Some(false) {
+            if self.stop_on_failure && test.is_successful() == Some(false) {
                 return Ok(false);
             }
         }
@@ -59,7 +61,7 @@ impl TestSuite {
         Ok(true)
     }
 
-    pub fn run_and_print(&mut self, serial: &mut Serial, stop_on_failure: bool) -> bool {
+    pub fn run_and_print(&mut self, serial: &mut Serial) -> bool {
         let show_title = self.name != "";
 
         if show_title {
@@ -84,7 +86,7 @@ impl TestSuite {
                 }
             };
 
-            if result != Some(true) && stop_on_failure {
+            if result != Some(true) && self.stop_on_failure {
                 return false;
             }
         }
