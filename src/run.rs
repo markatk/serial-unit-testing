@@ -30,6 +30,7 @@ use std::io;
 use std::fs::File;
 
 use clap::{ArgMatches, SubCommand, Arg, App};
+use colored::*;
 
 use serial_unit_testing::serial::Serial;
 use serial_unit_testing::parser;
@@ -83,7 +84,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         }
     }
 
-    println!("\nRan {} tests, {} successful, {} failed", total_tests, successful_tests, failed_tests);
+    println!("\nRan {} tests, {} successful, {} failed", total_tests.to_string().yellow(), successful_tests.to_string().green(), failed_tests.to_string().red());
 
     Ok(())
 }
