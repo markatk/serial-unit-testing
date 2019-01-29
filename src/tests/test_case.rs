@@ -30,6 +30,7 @@ use std::io;
 use std::str;
 
 use colored::*;
+use regex::Regex;
 
 use serial::Serial;
 use utils;
@@ -144,7 +145,14 @@ impl TestCase {
             output = output.to_lowercase();
         }
 
-        self.successful = Some(response == output);
+        let regex = Regex::new(&output).unwrap();
+
+        if let Some(mat) = regex.find(&response) {
+                    self.successful = Some(mat.start() == 0 && mat.end() == response.len());
+        } else {
+            self.successful = Some(false);
+        }
+
         self.response = Some(response);
 
         Ok(())

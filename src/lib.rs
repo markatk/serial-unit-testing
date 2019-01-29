@@ -28,6 +28,7 @@
 
 extern crate serialport;
 extern crate colored;
+extern crate regex;
 
 pub mod utils;
 pub mod tests;
