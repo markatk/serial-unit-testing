@@ -5,9 +5,21 @@
 
 # Description
 
-Serial unit testing program and library written in rust
+Serial unit testing is a cross-platform cli application and rust library. Using serial unit testing communication and testing with any serial port device can be done and most important automated.
 
-## Script syntax
+# Application
+
+The application is structured in the following sub commands:
+
+- `list`: List all available serial ports
+- `send`: Send data to a serial port
+- `check`: Send data to a serial port and check for correct response
+- `monitor`: Continously display serial port data
+- `run`: Run a script on a serial port
+- `verify`: Verify a script can be parsed without failure
+- `help`: Print information about the application or a subcommand
+
+# Script syntax
 
 Scripts can be executed with the `run` command or parsed with `parser::parse_file`. They must follow the following syntax:
 
