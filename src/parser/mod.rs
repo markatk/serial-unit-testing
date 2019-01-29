@@ -111,8 +111,8 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseErr
 pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
     let mut iterator = line.chars().enumerate().peekable();
 
-    let input_format = get_text_format(&mut iterator)?;
     let test_name = get_test_name(&mut iterator)?;
+    let input_format = get_text_format(&mut iterator)?;
     let input = get_formatted_text(&mut iterator, &input_format)?;
 
     // skip separator
