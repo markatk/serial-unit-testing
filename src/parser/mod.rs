@@ -145,14 +145,41 @@ pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
 }
 
 fn get_text_format(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<TextFormat, error::LineError> {
-    let format = match iterator.peek() {
-        Some((_, 'b')) => TextFormat::Binary,
-        Some((_, 'o')) => TextFormat::Octal,
-        Some((_, 'd')) => TextFormat::Decimal,
-        Some((_, 'h')) => TextFormat::Hex,
-        Some((_, '"')) | Some((_, '(')) => TextFormat::Text,
-        ch @ _ => return Err(error::LineError::UnknownTextFormat(ch.unwrap().1, ch.unwrap().0))
-    };
+    let format: TextFormat;
+
+    loop {
+        match iterator.peek() {
+            Some((_, 'b')) => {
+                format = TextFormat::Binary;
+
+                break;
+            },
+            Some((_, 'o')) => {
+                format = TextFormat::Octal;
+
+                break;
+            },
+            Some((_, 'd')) => {
+                format = TextFormat::Decimal;
+
+                break;
+            },
+            Some((_, 'h')) => {
+                format = TextFormat::Hex;
+
+                break;
+            },
+            Some((_, '"')) => {
+                format = TextFormat::Text;
+
+                break;
+            },
+            Some((_, ' ')) | Some((_, '\t')) => (),
+            ch @ _ => return Err(error::LineError::UnknownTextFormat(ch.unwrap().1, ch.unwrap().0))
+        };
+
+        iterator.next();
+    }
 
     if format != TextFormat::Text {
         iterator.next();
