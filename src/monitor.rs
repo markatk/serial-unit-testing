@@ -51,7 +51,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
         .about("Continously display serial port data")
-        .args(commands::serial_arguments().as_slice())
+        .args(commands::serial_arguments(false).as_slice())
 }
 
 fn read(serial: &mut Serial, text_format: &utils::TextFormat) -> Result<(), String> {

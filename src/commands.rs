@@ -31,18 +31,16 @@ use clap::{Arg, ArgMatches};
 use serial_unit_testing::serial::settings::{Settings, DataBits, FlowControl, Parity, StopBits};
 use serial_unit_testing::utils;
 
-pub fn serial_arguments<'a>() -> Vec<Arg<'a, 'a>> {
+pub fn serial_arguments<'a>(multi_port: bool) -> Vec<Arg<'a, 'a>> {
     let databits = [ "5", "6", "7", "8" ];
     let parity = [ "none", "even", "odd" ];
     let stopbits = [ "1", "2" ];
     let flowcontrols = [ "none", "software", "hardware" ];
 
     vec![Arg::with_name("port")
-            .long("port")
-            .short("p")
             .help("Serial port OS specific name")
             .required(true)
-            .value_name("PORT")
+            .multiple(multi_port)
             .takes_value(true),
         Arg::with_name("baud")
             .long("baud")

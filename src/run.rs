@@ -92,13 +92,13 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("run")
         .about("Run script on serial port")
-        .args(commands::serial_arguments().as_slice())
-        .arg(Arg::with_name("stop")
-            .long("stop-on-failure")
-            .short("S")
-            .help("Stop on first test failing"))
         .arg(Arg::with_name("file")
             .help("Script to run on the serial port")
             .required(true)
             .takes_value(true))
+        .args(commands::serial_arguments(true).as_slice())
+        .arg(Arg::with_name("stop")
+            .long("stop-on-failure")
+            .short("S")
+            .help("Stop on first test failing"))
 }
