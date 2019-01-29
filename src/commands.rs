@@ -31,13 +31,13 @@ use clap::{Arg, ArgMatches};
 use serial_unit_testing::serial::settings::{Settings, DataBits, FlowControl, Parity, StopBits};
 use serial_unit_testing::utils;
 
-pub fn serial_arguments<'a>(multi_port: bool) -> Vec<Arg<'a, 'a>> {
+pub fn serial_arguments<'a>(multi_port: bool, modifier_arguments: bool) -> Vec<Arg<'a, 'a>> {
     let databits = [ "5", "6", "7", "8" ];
     let parity = [ "none", "even", "odd" ];
     let stopbits = [ "1", "2" ];
     let flowcontrols = [ "none", "software", "hardware" ];
 
-    vec![Arg::with_name("port")
+    let mut args = vec![Arg::with_name("port")
             .help("Serial port OS specific name")
             .required(true)
             .multiple(multi_port)
@@ -80,17 +80,23 @@ pub fn serial_arguments<'a>(multi_port: bool) -> Vec<Arg<'a, 'a>> {
             .short("t")
             .help("Set serial port timeout duration")
             .takes_value(true)
-            .default_value("1000"),
-        Arg::with_name("hex")
+            .default_value("1000")
+    ];
+
+    if modifier_arguments {
+        args.push(Arg::with_name("hex")
             .long("hex")
             .short("H")
-            .help("Set hexadecimal mode"),
-        Arg::with_name("binary")
+            .help("Set hexadecimal mode"));
+
+        args.push(Arg::with_name("binary")
             .long("binary")
             .short("B")
             .help("Set binary mode")
-            .conflicts_with("hex")
-    ]
+            .conflicts_with("hex"));
+    }
+
+    args
 }
 
 pub fn text_input_arguments<'a>() -> Vec<Arg<'a, 'a>> {

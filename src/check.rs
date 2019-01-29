@@ -89,7 +89,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("check")
         .about("Send data to serial port and check for correct response")
-        .args(commands::serial_arguments(false).as_slice())
+        .args(commands::serial_arguments(false, true).as_slice())
         .args(commands::text_input_arguments().as_slice())
         .args(commands::text_output_arguments().as_slice())
         .arg(Arg::with_name("echo")
