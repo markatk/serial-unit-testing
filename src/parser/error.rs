@@ -36,7 +36,10 @@ pub enum Error {
     IllegalToken(String, u32, u32),
     MissingClosingParenthesis(String, u32, u32),
     MissingDirectionSeparator(u32, u32),
-    MissingGroupIdentifier(u32, u32)
+    MissingGroupIdentifier(u32, u32),
+    MissingTestIdentifier(u32, u32),
+    MissingContent(String, u32, u32),
+    InvalidLineStart(u32, u32),
 }
 
 impl fmt::Display for Error {
@@ -47,7 +50,10 @@ impl fmt::Display for Error {
             Error::IllegalToken(ref value, line, column) => formatter.write_fmt(format_args!("Illegal token {} at {}:{}", value, line, column)),
             Error::MissingClosingParenthesis(ref value, line, column) => formatter.write_fmt(format_args!("Missing closing parenthesis {} at {}:{}", value, line, column)),
             Error::MissingDirectionSeparator(line, column) => formatter.write_fmt(format_args!("Missing direction separator at {}:{}", line, column)),
-            Error::MissingGroupIdentifier(line, column) => formatter.write_fmt(format_args!("Missing group identifier at {}:{}", line, column))
+            Error::MissingGroupIdentifier(line, column) => formatter.write_fmt(format_args!("Missing group identifier at {}:{}", line, column)),
+            Error::MissingTestIdentifier(line, column) => formatter.write_fmt(format_args!("Missing test identifier at {}:{}", line, column)),
+            Error::MissingContent(ref content_type, line, column) => formatter.write_fmt(format_args!("Missing test {} at {}:{}", content_type, line, column)),
+            Error::InvalidLineStart(line, column) => formatter.write_fmt(format_args!("Invalid line start at {}:{}", line, column))
         }
     }
 }
@@ -60,7 +66,10 @@ impl StdError for Error {
             Error::IllegalToken(_, _, _) => "Illegal token",
             Error::MissingClosingParenthesis(_, _, _) => "Missing closing parenthesis",
             Error::MissingDirectionSeparator(_, _) => "Missing direction separator",
-            Error::MissingGroupIdentifier(_, _) => "Missing group identifier"
+            Error::MissingGroupIdentifier(_, _) => "Missing group identifier",
+            Error::MissingTestIdentifier(_, _) => "Missing test identifier",
+            Error::MissingContent(_, _, _) => "Missing test content",
+            Error::InvalidLineStart(_, _) => "Invalid line start"
         }
     }
 }

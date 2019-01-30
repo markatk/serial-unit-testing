@@ -30,10 +30,11 @@ use serial::Serial;
 
 pub use tests::test_case::{TestCase, TestCaseSettings};
 
+#[derive(Debug)]
 pub struct TestSuite {
     pub name: String,
     pub stop_on_failure: bool,
-    pub tests: Vec<TestCase>,
+    tests: Vec<TestCase>,
 }
 
 impl TestSuite {

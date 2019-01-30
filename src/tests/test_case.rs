@@ -35,6 +35,8 @@ use regex::Regex;
 use serial::Serial;
 use utils;
 
+
+#[derive(Debug)]
 pub struct TestCaseSettings {
     pub input_format: utils::TextFormat,
     pub output_format: utils::TextFormat,
@@ -51,6 +53,7 @@ impl Default for TestCaseSettings {
     }
 }
 
+#[derive(Debug)]
 pub struct TestCase {
     pub settings: TestCaseSettings,
 

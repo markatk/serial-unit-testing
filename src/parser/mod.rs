@@ -27,7 +27,7 @@
  */
 
 use std::fs;
-use std::io::{self, BufReader, Read};
+use std::io::{BufReader, Read};
 
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
@@ -123,6 +123,8 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
                 Ok(test_suite) => test_suites.push(test_suite),
                 Err(err) => return Err(err)
             };
+
+            continue;
         }
 
         if first_token.token_type == TokenType::LeftTestParenthesis || first_token.token_type == TokenType::FormatSpecifier || first_token.token_type == TokenType::Content {
@@ -137,17 +139,11 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
                 }
                 Err(err) => return Err(err)
             };
+
+            continue;
         }
 
-
-    }
-
-    for test_suite in &test_suites {
-        println!("Test Suite: {}", test_suite.name);
-
-        for test in test_suite.tests.iter() {
-            println!("\t{}", test.to_string());
-        }
+        return Err(Error::InvalidLineStart(first_token.line, first_token.column));
     }
 
     Ok(test_suites)
@@ -174,17 +170,55 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
 
     if let Err((state, token)) = result {
         return match state {
+            2 => Err(Error::MissingTestIdentifier(token.line, token.column)),
+            3 => Err(Error::MissingClosingParenthesis(")".to_string(), token.line, token.column)),
+            4 | 5 => Err(Error::MissingContent("input".to_string(), token.line, token.column)),
+            6 => Err(Error::MissingDirectionSeparator(token.line, token.column)),
+            7 | 8 => Err(Error::MissingContent("output".to_string(), token.line, token.column)),
             _ => Err(Error::UnknownError(token.line, token.column))
         };
     }
 
     // create test case
     let mut name = String::new();
-    let input: String = String::new();
-    let output: String = String::new();
-    let settings = TestCaseSettings::default();
+    let input: String;
+    let output: String;
+    let mut settings = TestCaseSettings::default();
 
-    
+    let mut index = 0;
+
+    if tokens[index].token_type == TokenType::LeftTestParenthesis {
+        name = tokens[index + 1].value.clone();
+
+        index += 3;
+    }
+
+    if tokens[index].token_type == TokenType::FormatSpecifier {
+        settings.input_format = get_text_format(&tokens[index])?;
+        index += 1;
+    }
+
+    input = tokens[index].value.clone();
+
+    // skip direction separator
+    index += 2;
+
+    if tokens[index].token_type == TokenType::FormatSpecifier {
+        settings.output_format = get_text_format(&tokens[index])?;
+        index += 1;
+    }
+
+    output = tokens[index].value.clone();
 
     Ok(TestCase::new_with_settings(name, input, output, settings))
+}
+
+fn get_text_format(token: &Token) -> Result<TextFormat, Error> {
+    match token.value.as_str() {
+        "b" => Ok(TextFormat::Binary),
+        "o" => Ok(TextFormat::Octal),
+        "d" => Ok(TextFormat::Decimal),
+        "h" => Ok(TextFormat::Hex),
+        _ => Err(Error::UnknownError(token.line, token.column))
+    }
 }
