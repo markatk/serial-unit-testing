@@ -29,71 +29,32 @@
 use std::fmt;
 use std::error::Error as StdError;
 
-#[derive(PartialEq, Debug)]
-pub enum LineError {
-    UnknownTextFormat(char, usize),
-    InvalidFormat,
-    UnallowedCharacter(char, usize),
-    UnexpectedEnd
+#[derive(Debug, PartialEq)]
+pub enum Error {
+    ReadFileError,
+    IllegalToken(String, u32, u32),
+    MissingClosingParenthesis(String, u32, u32),
+    MissingDirectionSeparator(u32, u32)
 }
 
-impl fmt::Display for LineError {
+impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            LineError::UnknownTextFormat(ch, pos) => formatter.write_fmt(format_args!("{} Unknown text format '{}'", pos, ch)),
-            LineError::InvalidFormat => formatter.write_str(" Invalid format"),
-            LineError::UnallowedCharacter(ch, pos) => formatter.write_fmt(format_args!("{} Unallowed character '{}'", pos, ch)),
-            LineError::UnexpectedEnd => formatter.write_str(" Unexpected end")
+            Error::ReadFileError => formatter.write_str(" Unable to read file"),
+            Error::IllegalToken(value, line, column) => formatter.write_fmt(format_args!(" Illegal token {} at {}:{}", value, line, column)),
+            Error::MissingClosingParenthesis(value, line, columm) => formatter.write_fmt(format_args!(" Missing closing parenthesis {} at {}:{}", value, line, column)),
+            Error::MissingDirectionSeparator(line, column) => formatter.write_fmt(format_args!(" Missing direction separator at {}:{}", line, column))
         }
     }
 }
 
-impl StdError for LineError {
+impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
-            LineError::UnknownTextFormat(_, _) => "Unknown text format",
-            LineError::InvalidFormat => "Invalid line format",
-            LineError::UnallowedCharacter(_, _) => "Unallowed character",
-            LineError::UnexpectedEnd => "Unexpected end of line"
-        }
-    }
-}
-
-#[derive(PartialEq, Debug)]
-pub enum ParseError {
-    InvalidLine(usize, Option<LineError>)
-}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ParseError::InvalidLine(num, e) => {
-                if let Some(internal_error) = e {
-                    formatter.write_fmt(format_args!("{}:{}", num, internal_error))
-                } else {
-                    formatter.write_fmt(format_args!("Invalid line {}", num))
-                }
-            }
-        }
-    }
-}
-
-impl StdError for ParseError {
-    fn description(&self) -> &str {
-        match *self {
-            ParseError::InvalidLine(_, _) => "Invalid line format"
-        }
-    }
-
-    fn cause(&self) -> Option<&StdError> {
-        match self {
-            ParseError::InvalidLine(_, e) => {
-                if let Some(internal_error) = e {
-                    Some(internal_error)
-                } else {
-                    None
-                }
-            }
+            Error::ReadFileError => "File file error",
+            Error::IllegalToken(_, _, _) => "Illegal token",
+            Error::MissingClosingParenthesis(_, _, _) => "Missing closing parenthesis",
+            Error::MissingDirectionSeparator(_, _) => "Missing direction separator"
         }
     }
 }
