@@ -77,9 +77,10 @@ impl Lexer {
             return self.skip_comment();
         }
 
-        // TODO: Check if really is modifier or identifier start
         if char_util::is_modifier(ch) {
-            return self.recognize_modifier(ch);
+            if self.position + 1 < self.input.len() && self.input.chars().nth(self.position + 1).unwrap() == '"' {
+                return self.recognize_modifier(ch);
+            }
         }
 
         if char_util::is_identifier_start(ch) {
