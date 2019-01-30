@@ -29,16 +29,14 @@
 use super::token::Token;
 
 pub struct FiniteStateMachine {
-    states: Vec<u32>,
     initial_state: u32,
     accepting_states: Vec<u32>,
     next_state: fn(u32, &Token) -> u32
 }
 
 impl FiniteStateMachine {
-    pub fn new(state_count: u32, initial_state: u32, accepting_states: Vec<u32>, next_state: fn(u32, &Token) -> u32) -> FiniteStateMachine {
+    pub fn new(initial_state: u32, accepting_states: Vec<u32>, next_state: fn(u32, &Token) -> u32) -> FiniteStateMachine {
         FiniteStateMachine {
-            states: (1..state_count).collect(),
             initial_state,
             accepting_states,
             next_state
