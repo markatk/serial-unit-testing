@@ -26,84 +26,105 @@
  * SOFTWARE.
  */
 
+#![allow(dead_code)]
 
 use std::iter;
 use std::str;
 use std::fs;
-use std::io::{BufReader, BufRead};
+use std::io::{BufReader, BufRead, Read};
 
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
 
 mod error;
+mod token;
+mod char_util;
+mod lexer;
+
+use self::lexer::Lexer;
 
 pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseError> {
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
 
     let mut test_suites: Vec<TestSuite> = Vec::new();
 
-    for (num, line) in reader.lines().enumerate() {
-        let line = line.unwrap();
+    let mut content = String::new();
 
-        if line.is_empty() {
-            continue;
-        }
+    reader.read_to_string(&mut content);
 
-        let mut iterator = line.chars().enumerate();
-        let mut skip_line = false;
-        let mut found_group = false;
+    let mut lexer = Lexer::new(content);
 
-        loop {
-            match iterator.next() {
-                Some((_, ' ')) | Some((_, '\t')) => (),
-                Some((_, '[')) => {
-                    found_group = true;
-                    
-                    break;
-                },
-                Some((_, '#')) => {
-                    skip_line = true;
+    let tokens = lexer.get_tokens();
 
-                    break;
-                },
-                _ => break
-            };
-        }
+    println!("Tokens: {}", tokens.len());
 
-        if skip_line {
-            continue;
-        }
-
-        if found_group {
-            let mut group_name = String::new();
-
-            loop {
-                match iterator.next() {
-                    Some((_, ']')) => break,
-                    Some((_, ch)) => group_name.push(ch),
-                    None => return Err(error::ParseError::InvalidLine(num + 1, Some(error::LineError::UnexpectedEnd)))
-                };
-            }
-
-            test_suites.push(TestSuite::new(group_name));
-
-            continue;
-        }
-
-        let test_case = match parse_line(&line) {
-            Ok(test_case) => test_case,
-            Err(e) => return Err(error::ParseError::InvalidLine(num + 1, Some(e)))
-        };
-
-        if test_suites.len() > 0 {
-            test_suites.last_mut().unwrap().push(test_case);
-        } else {
-            let mut test_suite = TestSuite::new(String::new());
-            test_suite.push(test_case);
-
-            test_suites.push(test_suite);
-        }
+    for token in tokens {
+        println!("{:?}", token);
     }
+
+    // for (num, line) in reader.lines().enumerate() {
+    //     let line = line.unwrap();
+
+    //     if line.is_empty() {
+    //         continue;
+    //     }
+
+    //     let mut iterator = line.chars().enumerate();
+    //     let mut skip_line = false;
+    //     let mut found_group = false;
+
+    //     loop {
+    //         match iterator.next() {
+    //             Some((_, ' ')) | Some((_, '\t')) => (),
+    //             Some((_, '[')) => {
+    //                 found_group = true;
+                    
+    //                 break;
+    //             },
+    //             Some((_, '#')) => {
+    //                 skip_line = true;
+
+    //                 break;
+    //             },
+    //             _ => break
+    //         };
+    //     }
+
+    //     if skip_line {
+    //         continue;
+    //     }
+
+    //     if found_group {
+    //         let mut group_name = String::new();
+
+    //         loop {
+    //             match iterator.next() {
+    //                 Some((_, ']')) => break,
+    //                 Some((_, ',')) => (),
+    //                 Some((_, ch)) => group_name.push(ch),
+    //                 None => return Err(error::ParseError::InvalidLine(num + 1, Some(error::LineError::UnexpectedEnd)))
+    //             };
+    //         }
+
+    //         test_suites.push(TestSuite::new(group_name));
+
+    //         continue;
+    //     }
+
+    //     let test_case = match parse_line(&line) {
+    //         Ok(test_case) => test_case,
+    //         Err(e) => return Err(error::ParseError::InvalidLine(num + 1, Some(e)))
+    //     };
+
+    //     if test_suites.len() > 0 {
+    //         test_suites.last_mut().unwrap().push(test_case);
+    //     } else {
+    //         let mut test_suite = TestSuite::new(String::new());
+    //         test_suite.push(test_case);
+
+    //         test_suites.push(test_suite);
+    //     }
+    // }
 
     Ok(test_suites)
 }
