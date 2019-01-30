@@ -41,8 +41,8 @@ impl Lexer {
         Lexer {
             input,
             position: 0,
-            line: 0,
-            column: 0
+            line: 1,
+            column: 1
         }
     }
 
@@ -245,7 +245,7 @@ impl Lexer {
         let column = self.column;
 
         self.position += 1;
-        self.column = 0;
+        self.column = 1;
         self.line += 1;
 
         if self.position < self.input.len() {

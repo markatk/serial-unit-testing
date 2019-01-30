@@ -26,12 +26,8 @@
  * SOFTWARE.
  */
 
-#![allow(dead_code)]
-
-use std::iter;
-use std::str;
 use std::fs;
-use std::io::{BufReader, BufRead, Read};
+use std::io::{self, BufReader, Read};
 
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
@@ -40,232 +36,155 @@ mod error;
 mod token;
 mod char_util;
 mod lexer;
+mod finite_state_maschine;
 
 use self::lexer::Lexer;
+use self::token::{Token, TokenType};
+use self::error::Error;
+use self::finite_state_maschine::FiniteStateMachine;
 
-pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, error::ParseError> {
+pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     let mut reader = BufReader::new(file);
-
-    let mut test_suites: Vec<TestSuite> = Vec::new();
-
     let mut content = String::new();
 
-    reader.read_to_string(&mut content);
-
-    let mut lexer = Lexer::new(content);
-
-    let tokens = lexer.get_tokens();
-
-    println!("Tokens: {}", tokens.len());
-
-    for token in tokens {
-        println!("{:?}", token);
+    if let Err(_) = reader.read_to_string(&mut content) {
+        return Err(Error::ReadFileError);
     }
 
-    // for (num, line) in reader.lines().enumerate() {
-    //     let line = line.unwrap();
+    let mut lexer = Lexer::new(content);
+    let tokens = lexer.get_tokens();
 
-    //     if line.is_empty() {
-    //         continue;
-    //     }
+    analyse_tokens(tokens)
+}
 
-    //     let mut iterator = line.chars().enumerate();
-    //     let mut skip_line = false;
-    //     let mut found_group = false;
+fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
+    let mut lines: Vec<Vec<Token>> = Vec::new();
+    let mut line: Vec<Token> = Vec::new();
 
-    //     loop {
-    //         match iterator.next() {
-    //             Some((_, ' ')) | Some((_, '\t')) => (),
-    //             Some((_, '[')) => {
-    //                 found_group = true;
-                    
-    //                 break;
-    //             },
-    //             Some((_, '#')) => {
-    //                 skip_line = true;
+    // split token stream into lines
+    for token in tokens {
+        if token.token_type == TokenType::Illegal {
+            return Err(Error::IllegalToken(token.value, token.line, token.column));
+        }
 
-    //                 break;
-    //             },
-    //             _ => break
-    //         };
-    //     }
+        if token.token_type == TokenType::Newline {
+            // only add line if not empty
+            if line.len() > 0 {
+                lines.push(line);
 
-    //     if skip_line {
-    //         continue;
-    //     }
+                line = Vec::new();
+            }
 
-    //     if found_group {
-    //         let mut group_name = String::new();
+            continue;
+        }
 
-    //         loop {
-    //             match iterator.next() {
-    //                 Some((_, ']')) => break,
-    //                 Some((_, ',')) => (),
-    //                 Some((_, ch)) => group_name.push(ch),
-    //                 None => return Err(error::ParseError::InvalidLine(num + 1, Some(error::LineError::UnexpectedEnd)))
-    //             };
-    //         }
+        line.push(token);
+    }
 
-    //         test_suites.push(TestSuite::new(group_name));
+    // analyse each line
+    let mut test_suites: Vec<TestSuite> = Vec::new();
 
-    //         continue;
-    //     }
+    // [ Identifier ]
+    let group_state_machine = FiniteStateMachine::new(4, 1, vec!(4), |state, token| -> u32 {
+        match state {
+            1 if token.token_type == TokenType::LeftGroupParenthesis => 2,
+            2 if token.token_type == TokenType::Identifier => 3,
+            3 if token.token_type == TokenType::RightGroupParenthesis => 4,
+            _ => 0
+        }
+    });
 
-    //     let test_case = match parse_line(&line) {
-    //         Ok(test_case) => test_case,
-    //         Err(e) => return Err(error::ParseError::InvalidLine(num + 1, Some(e)))
-    //     };
+    // <> mark optional tokens
+    // / mark alternative tokens
+    // <( Identifier )> <b/o/d/h>" Content " : <b/o/d/h>" Content "
+    let test_state_machine = FiniteStateMachine::new(9, 1, vec!(9), |state, token| -> u32 {
+        match state {
+            1 if token.token_type == TokenType::LeftTestParenthesis => 2,
+            1 if token.token_type == TokenType::FormatSpecifier => 5,
+            1 if token.token_type == TokenType::Content => 5,
+            2 if token.token_type == TokenType::Identifier => 3,
+            3 if token.token_type == TokenType::RightTestParenthesis => 4,
+            4 if token.token_type == TokenType::FormatSpecifier => 5,
+            4 if token.token_type == TokenType::Content => 6,
+            5 if token.token_type == TokenType::Content => 6,
+            6 if token.token_type == TokenType::DirectionSeparator => 7,
+            7 if token.token_type == TokenType::FormatSpecifier => 8,
+            7 if token.token_type == TokenType::Content => 9,
+            8 if token.token_type == TokenType::Content => 9,
+            _ => 0
+        }
+    });
 
-    //     if test_suites.len() > 0 {
-    //         test_suites.last_mut().unwrap().push(test_case);
-    //     } else {
-    //         let mut test_suite = TestSuite::new(String::new());
-    //         test_suite.push(test_case);
+    for line in lines {
+        let first_token: &Token = line.first().unwrap();
 
-    //         test_suites.push(test_suite);
-    //     }
-    // }
+        if first_token.token_type == TokenType::LeftGroupParenthesis {
+            match analyse_test_group(&line, &group_state_machine) {
+                Ok(test_suite) => test_suites.push(test_suite),
+                Err(err) => return Err(err)
+            };
+        }
+
+        if first_token.token_type == TokenType::LeftTestParenthesis || first_token.token_type == TokenType::FormatSpecifier || first_token.token_type == TokenType::Content {
+            match analyse_test(&line, &test_state_machine) {
+                Ok(test) => {
+                    if test_suites.is_empty() {
+                        test_suites.push(TestSuite::new(String::new()));
+                    }
+
+                    let mut test_suite: &mut TestSuite = test_suites.last_mut().unwrap();
+                    test_suite.push(test);
+                }
+                Err(err) => return Err(err)
+            };
+        }
+
+
+    }
+
+    for test_suite in &test_suites {
+        println!("Test Suite: {}", test_suite.name);
+
+        for test in test_suite.tests.iter() {
+            println!("\t{}", test.to_string());
+        }
+    }
 
     Ok(test_suites)
 }
 
-pub fn parse_line(line: &str) -> Result<TestCase, error::LineError> {
-    let mut iterator = line.chars().enumerate().peekable();
+fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Result<TestSuite, Error> {
+    let result = state_machine.run(&tokens);
 
-    let test_name = get_test_name(&mut iterator)?;
-    let input_format = get_text_format(&mut iterator)?;
-    let input = get_formatted_text(&mut iterator, &input_format)?;
-
-    // skip separator
-    let mut found_separator = false;
-
-    loop {
-        match iterator.peek() {
-            Some((_, ' ')) | Some((_, '\t')) => (),
-            Some((_, ':')) if found_separator == false => {
-                found_separator = true;
-            },
-            _ if found_separator => break,
-            Some((pos, ch)) => return Err(error::LineError::UnallowedCharacter(*ch, *pos)),
-            None => return Err(error::LineError::UnexpectedEnd)
+    if let Err((state, token)) = result {
+        return match state {
+            2 => Err(Error::MissingGroupIdentifier(token.line, token.column)),
+            3 => Err(Error::MissingClosingParenthesis("]".to_string(), token.line, token.column)),
+            _ => Err(Error::UnknownError(token.line, token.column))
         };
-
-        iterator.next();
     }
 
-    let output_format = get_text_format(&mut iterator)?;
-    let output = get_formatted_text(&mut iterator, &output_format)?;
+    let name = &tokens[1].value;
 
-    let settings = TestCaseSettings {
-        ignore_case: false,
-        input_format,
-        output_format
-    };
-
-    Ok(TestCase::new_with_settings(test_name, input, output, settings))
+    Ok(TestSuite::new(name.to_string()))
 }
 
-fn get_text_format(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<TextFormat, error::LineError> {
-    let format: TextFormat;
+fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Result<TestCase, Error> {
+    let result = state_machine.run(&tokens);
 
-    loop {
-        match iterator.peek() {
-            Some((_, 'b')) => {
-                format = TextFormat::Binary;
-
-                break;
-            },
-            Some((_, 'o')) => {
-                format = TextFormat::Octal;
-
-                break;
-            },
-            Some((_, 'd')) => {
-                format = TextFormat::Decimal;
-
-                break;
-            },
-            Some((_, 'h')) => {
-                format = TextFormat::Hex;
-
-                break;
-            },
-            Some((_, '"')) => {
-                format = TextFormat::Text;
-
-                break;
-            },
-            Some((_, ' ')) | Some((_, '\t')) => (),
-            ch @ _ => return Err(error::LineError::UnknownTextFormat(ch.unwrap().1, ch.unwrap().0))
+    if let Err((state, token)) = result {
+        return match state {
+            _ => Err(Error::UnknownError(token.line, token.column))
         };
-
-        iterator.next();
     }
 
-    if format != TextFormat::Text {
-        iterator.next();
-    }
-
-    Ok(format)
-}
-
-fn get_test_name(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>) -> Result<String, error::LineError> {
-    if let Some((_, ch)) = iterator.peek() {
-        if *ch != '(' {
-            return Ok(String::new());
-        }
-    } else {
-        return Err(error::LineError::UnexpectedEnd);
-    }
-
-    iterator.next();
-
+    // create test case
     let mut name = String::new();
+    let input: String = String::new();
+    let output: String = String::new();
+    let settings = TestCaseSettings::default();
 
-    loop {
-        if let Some((_, next_char)) = iterator.next() {
-            if next_char == ')' {
-                break;
-            }
+    
 
-            name.push(next_char);
-        } else {
-            return Err(error::LineError::UnexpectedEnd);
-        }
-    }
-
-    Ok(name)
-}
-
-fn get_formatted_text(iterator: &mut iter::Peekable<iter::Enumerate<str::Chars>>, text_format: &TextFormat) -> Result<String, error::LineError> {
-    if let Some((_, ch)) = iterator.next() {
-        if ch != '"' {
-            return Err(error::LineError::InvalidFormat);
-        }
-    } else {
-        return Err(error::LineError::UnexpectedEnd);
-    }
-
-    let mut text = String::new();
-    let mut escape_next_char = false;
-
-    loop {
-        let (_, next_char) = iterator.next().unwrap();
-
-        match next_char {
-            '"' if escape_next_char == false => break,
-            '\\' if *text_format == TextFormat::Text => {
-                escape_next_char = true;
-
-                text.push(next_char);
-
-                continue;
-            },
-            _ => text.push(next_char)
-        };
-
-        escape_next_char = false;
-    }
-
-    Ok(text)
+    Ok(TestCase::new_with_settings(name, input, output, settings))
 }

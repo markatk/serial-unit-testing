@@ -31,19 +31,23 @@ use std::error::Error as StdError;
 
 #[derive(Debug, PartialEq)]
 pub enum Error {
+    UnknownError(u32, u32),
     ReadFileError,
     IllegalToken(String, u32, u32),
     MissingClosingParenthesis(String, u32, u32),
-    MissingDirectionSeparator(u32, u32)
+    MissingDirectionSeparator(u32, u32),
+    MissingGroupIdentifier(u32, u32)
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Error::ReadFileError => formatter.write_str(" Unable to read file"),
-            Error::IllegalToken(value, line, column) => formatter.write_fmt(format_args!(" Illegal token {} at {}:{}", value, line, column)),
-            Error::MissingClosingParenthesis(value, line, columm) => formatter.write_fmt(format_args!(" Missing closing parenthesis {} at {}:{}", value, line, column)),
-            Error::MissingDirectionSeparator(line, column) => formatter.write_fmt(format_args!(" Missing direction separator at {}:{}", line, column))
+            Error::UnknownError(line, column) => formatter.write_fmt(format_args!("Unknown error at {}:{}", line, column)),
+            Error::ReadFileError => formatter.write_str("Unable to read file"),
+            Error::IllegalToken(ref value, line, column) => formatter.write_fmt(format_args!("Illegal token {} at {}:{}", value, line, column)),
+            Error::MissingClosingParenthesis(ref value, line, column) => formatter.write_fmt(format_args!("Missing closing parenthesis {} at {}:{}", value, line, column)),
+            Error::MissingDirectionSeparator(line, column) => formatter.write_fmt(format_args!("Missing direction separator at {}:{}", line, column)),
+            Error::MissingGroupIdentifier(line, column) => formatter.write_fmt(format_args!("Missing group identifier at {}:{}", line, column))
         }
     }
 }
@@ -51,10 +55,12 @@ impl fmt::Display for Error {
 impl StdError for Error {
     fn description(&self) -> &str {
         match *self {
+            Error::UnknownError(_, _) => "Unknown error",
             Error::ReadFileError => "File file error",
             Error::IllegalToken(_, _, _) => "Illegal token",
             Error::MissingClosingParenthesis(_, _, _) => "Missing closing parenthesis",
-            Error::MissingDirectionSeparator(_, _) => "Missing direction separator"
+            Error::MissingDirectionSeparator(_, _) => "Missing direction separator",
+            Error::MissingGroupIdentifier(_, _) => "Missing group identifier"
         }
     }
 }

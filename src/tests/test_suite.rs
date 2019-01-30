@@ -33,7 +33,7 @@ pub use tests::test_case::{TestCase, TestCaseSettings};
 pub struct TestSuite {
     pub name: String,
     pub stop_on_failure: bool,
-    tests: Vec<TestCase>,
+    pub tests: Vec<TestCase>,
 }
 
 impl TestSuite {
