@@ -47,8 +47,8 @@ impl fmt::Display for Error {
         match *self {
             Error::UnknownError(line, column) => formatter.write_fmt(format_args!("Unknown error at {}:{}", line, column)),
             Error::ReadFileError => formatter.write_str("Unable to read file"),
-            Error::IllegalToken(ref value, line, column) => formatter.write_fmt(format_args!("Illegal token {} at {}:{}", value, line, column)),
-            Error::MissingClosingParenthesis(ref value, line, column) => formatter.write_fmt(format_args!("Missing closing parenthesis {} at {}:{}", value, line, column)),
+            Error::IllegalToken(ref value, line, column) => formatter.write_fmt(format_args!("Illegal token '{}' at {}:{}", value, line, column)),
+            Error::MissingClosingParenthesis(ref value, line, column) => formatter.write_fmt(format_args!("Missing closing parenthesis '{}' at {}:{}", value, line, column)),
             Error::MissingDirectionSeparator(line, column) => formatter.write_fmt(format_args!("Missing direction separator at {}:{}", line, column)),
             Error::MissingGroupIdentifier(line, column) => formatter.write_fmt(format_args!("Missing group identifier at {}:{}", line, column)),
             Error::MissingTestIdentifier(line, column) => formatter.write_fmt(format_args!("Missing test identifier at {}:{}", line, column)),

@@ -102,7 +102,7 @@ impl Lexer {
             return self.recognize_newline();
         }
 
-        return Token::new(TokenType::Illegal);
+        return Token::new_with_value(TokenType::Illegal, ch.to_string(), self.line, self.column);
     }
 
     fn skip_whitespaces(&mut self) {
