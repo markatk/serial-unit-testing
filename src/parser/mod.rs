@@ -34,6 +34,7 @@ use utils::TextFormat;
 
 mod error;
 mod token;
+mod string_util;
 mod char_util;
 mod lexer;
 mod finite_state_maschine;
@@ -104,6 +105,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
             1 if token.token_type == TokenType::Content => 5,
             2 if token.token_type == TokenType::Identifier => 3,
             3 if token.token_type == TokenType::RightTestParenthesis => 4,
+            3 if token.token_type == TokenType::ContentSeparator => 10,
             4 if token.token_type == TokenType::FormatSpecifier => 5,
             4 if token.token_type == TokenType::Content => 6,
             5 if token.token_type == TokenType::Content => 6,
@@ -111,6 +113,11 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
             7 if token.token_type == TokenType::FormatSpecifier => 8,
             7 if token.token_type == TokenType::Content => 9,
             8 if token.token_type == TokenType::Content => 9,
+            10 if token.token_type == TokenType::Identifier => 11,
+            11 if token.token_type == TokenType::OptionSeparator => 12,
+            12 if token.token_type == TokenType::Identifier => 13,
+            13 if token.token_type == TokenType::RightTestParenthesis => 4,
+            13 if token.token_type == TokenType::ContentSeparator => 10,
             _ => 0
         }
     });
@@ -189,8 +196,13 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
 
     if tokens[index].token_type == TokenType::LeftTestParenthesis {
         name = tokens[index + 1].value.clone();
+        index += 2;
 
-        index += 3;
+        while tokens[index].token_type == TokenType::ContentSeparator {
+            set_test_option(&tokens[index + 1 .. index + 4], &mut settings)?;
+
+            index += 4;
+        }
     }
 
     if tokens[index].token_type == TokenType::FormatSpecifier {
@@ -220,5 +232,31 @@ fn get_text_format(token: &Token) -> Result<TextFormat, Error> {
         "d" => Ok(TextFormat::Decimal),
         "h" => Ok(TextFormat::Hex),
         _ => Err(Error::UnknownError(token.line, token.column))
+    }
+}
+
+fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<(), Error> {
+    let value = tokens[2].value.clone();
+
+    match tokens[0].value.trim() {
+        "ignore-case" => {
+            if let Some(bool_val) = string_util::get_boolean_value(&value) {
+                settings.ignore_case = bool_val;
+
+                Ok(())
+            } else {
+                Err(Error::InvalidOptionValue("boolean".to_string(), tokens[2].line, tokens[2].column))
+            }
+        },
+        "delay" => {
+            if let Some(time) = string_util::get_time_value(&value) {
+                println!("Set delay {}", time);
+
+                Ok(())
+            } else {
+                Err(Error::InvalidOptionValue("time".to_string(), tokens[2].line, tokens[2].column))
+            }
+        },
+        _ => Err(Error::UnknownError(tokens[0].line, tokens[0].column))
     }
 }

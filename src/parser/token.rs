@@ -33,10 +33,12 @@ pub enum TokenType {
     Newline,
 
     FormatSpecifier,
-    ContentSeparator,
-    DirectionSeparator,
     Identifier,
     Content,
+
+    ContentSeparator,
+    DirectionSeparator,
+    OptionSeparator,
 
     LeftGroupParenthesis,
     RightGroupParenthesis,

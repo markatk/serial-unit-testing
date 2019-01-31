@@ -1,5 +1,5 @@
 /*
- * File: src/parser/char_util.rs
+ * File: src/parser/string_util.rs
  * Date: 30.01.2019
  * Auhtor: MarkAtk
  * 
@@ -26,38 +26,43 @@
  * SOFTWARE.
  */
 
-pub fn is_parenthesis(ch: char) -> bool {
-    ch == '[' || ch == ']' || ch == '(' || ch == ')'
+pub fn get_boolean_value(value: &str) -> Option<bool> {
+    match value {
+        "false" | "FALSE" => Some(false),
+        "true" | "TRUE" => Some(true),
+        _ => None
+    }
 }
 
-pub fn is_modifier(ch: char) -> bool {
-    ch == 'b' || ch == 'o' || ch == 'd' || ch == 'h'
-}
+pub fn get_time_value(value: &str) -> Option<u32> {
+    let mut time_string = String::new();
+    let mut unit_string = String::new();
 
-pub fn is_separator(ch: char) -> bool {
-    ch == ':' || ch == ',' || ch == '='
-}
+    // Get <time><unit> strings
+    for ch in value.chars() {
+        if ch.is_digit(10) && unit_string.is_empty() {
+            time_string.push(ch);
+        } else if ch.is_digit(10) == false {
+            unit_string.push(ch);
+        } else {
+            // Wrong format
+            return None;
+        }
+    }
 
-pub fn is_identifier(ch: char) -> bool {
-    ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == ' ' || ch == '\t'
-}
+    if time_string.is_empty() {
+        return None;
+    }
 
-pub fn is_identifier_start(ch: char) -> bool {
-    ch.is_alphanumeric()
-}
+    if let Ok(time) = time_string.parse::<u32>() {
+        let unit = match unit_string.trim() {
+            "us" | "µs" => 1,
+            "ms" => 1_000,
+            "s" | _ => 1_000_000,
+        };
 
-pub fn is_content_start(ch: char) -> bool {
-    ch == '"'
-}
-
-pub fn is_newline(ch: char) -> bool {
-    ch == '\n'
-}
-
-pub fn is_whitespace(ch: char) -> bool {
-    ch == ' ' || ch == '\t'
-}
-
-pub fn is_comment_start(ch: char) -> bool {
-    ch == '#'
+        Some(time * unit)
+    } else {
+        None
+    }
 }

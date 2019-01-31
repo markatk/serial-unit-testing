@@ -212,6 +212,7 @@ impl Lexer {
         let token_type = match ch {
             ':' => TokenType::DirectionSeparator,
             ',' => TokenType::ContentSeparator,
+            '=' => TokenType::OptionSeparator,
             _ => TokenType::Illegal
         };
 
