@@ -254,7 +254,16 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
         },
         "delay" => {
             if let Some(time) = string_util::get_time_value(&value) {
-                settings.delay = Some(Duration::from_micros(time));
+                settings.delay = Some(time);
+
+                Ok(())
+            } else {
+                Err(Error::InvalidOptionValue("time".to_string(), tokens[2].line, tokens[2].column))
+            }
+        },
+        "timeout" => {
+            if let Some(time) = string_util::get_time_value(&value) {
+                settings.timeout = time;
 
                 Ok(())
             } else {

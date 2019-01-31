@@ -26,6 +26,8 @@
  * SOFTWARE.
  */
 
+use std::time::Duration;
+
 pub fn get_boolean_value(value: &str) -> Option<bool> {
     match value {
         "false" | "FALSE" => Some(false),
@@ -34,7 +36,7 @@ pub fn get_boolean_value(value: &str) -> Option<bool> {
     }
 }
 
-pub fn get_time_value(value: &str) -> Option<u64> {
+pub fn get_time_value(value: &str) -> Option<Duration> {
     let mut time_string = String::new();
     let mut unit_string = String::new();
 
@@ -55,13 +57,12 @@ pub fn get_time_value(value: &str) -> Option<u64> {
     }
 
     if let Ok(time) = time_string.parse::<u64>() {
-        let unit = match unit_string.trim() {
-            "us" | "µs" => 1,
-            "ms" => 1_000,
-            "s" | _ => 1_000_000,
-        };
-
-        Some(time * unit)
+        match unit_string.trim() {
+            "us" | "µs" => Some(Duration::from_micros(time)),
+            "ms" => Some(Duration::from_millis(time)),
+            "s" | "" => Some(Duration::from_secs(time)),
+            _ => None
+        }
     } else {
         None
     }
