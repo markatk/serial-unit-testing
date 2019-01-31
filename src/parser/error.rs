@@ -40,7 +40,8 @@ pub enum Error {
     MissingTestIdentifier(u32, u32),
     MissingContent(String, u32, u32),
     InvalidLineStart(u32, u32),
-    InvalidOptionValue(String, u32, u32)
+    InvalidOptionValue(String, u32, u32),
+    UnknownTestOption(String, u32, u32)
 }
 
 impl fmt::Display for Error {
@@ -55,7 +56,8 @@ impl fmt::Display for Error {
             Error::MissingTestIdentifier(line, column) => formatter.write_fmt(format_args!("Missing test identifier at {}:{}", line, column)),
             Error::MissingContent(ref content_type, line, column) => formatter.write_fmt(format_args!("Missing test {} at {}:{}", content_type, line, column)),
             Error::InvalidLineStart(line, column) => formatter.write_fmt(format_args!("Invalid line start at {}:{}", line, column)),
-            Error::InvalidOptionValue(ref expected_type, line, column) => formatter.write_fmt(format_args!("Invalid option type at {}:{}. {} type expected", line, column, expected_type))
+            Error::InvalidOptionValue(ref expected_type, line, column) => formatter.write_fmt(format_args!("Invalid option type at {}:{}. {} type expected", line, column, expected_type)),
+            Error::UnknownTestOption(ref name, line, column) => formatter.write_fmt(format_args!("Unknown test option '{}' at {}:{}", name, line, column))
         }
     }
 }
@@ -72,7 +74,8 @@ impl StdError for Error {
             Error::MissingTestIdentifier(_, _) => "Missing test identifier",
             Error::MissingContent(_, _, _) => "Missing test content",
             Error::InvalidLineStart(_, _) => "Invalid line start",
-            Error::InvalidOptionValue(_, _, _) => "Invalid option value"
+            Error::InvalidOptionValue(_, _, _) => "Invalid option value",
+            Error::UnknownTestOption(_, _, _) => "Unknown test option"
         }
     }
 }

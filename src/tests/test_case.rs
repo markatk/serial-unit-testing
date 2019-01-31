@@ -28,6 +28,8 @@
 
 use std::io;
 use std::str;
+use std::time::Duration;
+use std::thread::sleep;
 
 use colored::*;
 use regex::Regex;
@@ -35,12 +37,14 @@ use regex::Regex;
 use serial::Serial;
 use utils;
 
-
 #[derive(Debug)]
 pub struct TestCaseSettings {
     pub input_format: utils::TextFormat,
     pub output_format: utils::TextFormat,
-    pub ignore_case: bool
+    pub ignore_case: bool,
+    pub repeat: u32,
+    pub delay: Option<Duration>,
+    pub timeout: Duration
 }
 
 impl Default for TestCaseSettings {
@@ -48,7 +52,10 @@ impl Default for TestCaseSettings {
         TestCaseSettings {
             ignore_case: false,
             input_format: utils::TextFormat::Text,
-            output_format: utils::TextFormat::Text
+            output_format: utils::TextFormat::Text,
+            repeat: 0,
+            delay: None,
+            timeout: Duration::from_secs(1)
         }
     }
 }
@@ -88,6 +95,11 @@ impl TestCase {
     } 
 
     pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
+        // if delay is set wait before execution
+        if let Some(delay) = self.settings.delay {
+            sleep(delay);
+        }
+
         let input: String;
 
         if self.settings.input_format == utils::TextFormat::Text {
@@ -104,7 +116,7 @@ impl TestCase {
         let mut response = String::new();
 
         loop {
-            match serial.read() {
+            match serial.read_with_timeout(self.settings.timeout) {
                 Ok(bytes) => {
                     let mut new_text = match self.settings.output_format {
                         utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),

@@ -29,6 +29,7 @@
 use std::boxed::Box;
 use std::io;
 use std::str;
+use std::time::Duration;
 
 use serialport;
 
@@ -98,6 +99,18 @@ impl Serial {
 
     pub fn read<'a>(&'a mut self) -> Result<&'a [u8], io::Error> {
         let length = self.port.read(&mut self.read_buffer)?;
+
+        Ok(&self.read_buffer[..length])
+    }
+
+    pub fn read_with_timeout<'a>(&'a mut self, timeout: Duration) -> Result<&'a [u8], io::Error> {
+        // remember old timeout
+        let old_timeout = self.port.timeout();
+        self.port.set_timeout(timeout)?;
+
+        let length = self.port.read(&mut self.read_buffer)?;
+
+        self.port.set_timeout(old_timeout)?;
 
         Ok(&self.read_buffer[..length])
     }

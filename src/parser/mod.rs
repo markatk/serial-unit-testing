@@ -28,6 +28,7 @@
 
 use std::fs;
 use std::io::{BufReader, Read};
+use std::time::Duration;
 
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
@@ -203,6 +204,8 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
 
             index += 4;
         }
+
+        index += 1;
     }
 
     if tokens[index].token_type == TokenType::FormatSpecifier {
@@ -237,8 +240,9 @@ fn get_text_format(token: &Token) -> Result<TextFormat, Error> {
 
 fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<(), Error> {
     let value = tokens[2].value.clone();
+    let name = tokens[0].value.trim();
 
-    match tokens[0].value.trim() {
+    match name {
         "ignore-case" => {
             if let Some(bool_val) = string_util::get_boolean_value(&value) {
                 settings.ignore_case = bool_val;
@@ -250,13 +254,13 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
         },
         "delay" => {
             if let Some(time) = string_util::get_time_value(&value) {
-                println!("Set delay {}", time);
+                settings.delay = Some(Duration::from_micros(time));
 
                 Ok(())
             } else {
                 Err(Error::InvalidOptionValue("time".to_string(), tokens[2].line, tokens[2].column))
             }
         },
-        _ => Err(Error::UnknownError(tokens[0].line, tokens[0].column))
+        _ => Err(Error::UnknownTestOption(name.to_string(), tokens[0].line, tokens[0].column))
     }
 }

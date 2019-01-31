@@ -34,7 +34,7 @@ pub fn get_boolean_value(value: &str) -> Option<bool> {
     }
 }
 
-pub fn get_time_value(value: &str) -> Option<u32> {
+pub fn get_time_value(value: &str) -> Option<u64> {
     let mut time_string = String::new();
     let mut unit_string = String::new();
 
@@ -42,7 +42,7 @@ pub fn get_time_value(value: &str) -> Option<u32> {
     for ch in value.chars() {
         if ch.is_digit(10) && unit_string.is_empty() {
             time_string.push(ch);
-        } else if ch.is_digit(10) == false {
+        } else if ch.is_digit(10) == false && time_string.is_empty() == false {
             unit_string.push(ch);
         } else {
             // Wrong format
@@ -54,7 +54,7 @@ pub fn get_time_value(value: &str) -> Option<u32> {
         return None;
     }
 
-    if let Ok(time) = time_string.parse::<u32>() {
+    if let Ok(time) = time_string.parse::<u64>() {
         let unit = match unit_string.trim() {
             "us" | "µs" => 1,
             "ms" => 1_000,
