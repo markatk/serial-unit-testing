@@ -95,60 +95,15 @@ impl TestCase {
     } 
 
     pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
-        // if delay is set wait before execution
-        if let Some(delay) = self.settings.delay {
-            sleep(delay);
-        }
-
+        // get input and desired output in correct format
         let input: String;
+        let mut output: String;
 
         if self.settings.input_format == utils::TextFormat::Text {
             input = self.descape_string(&self.input);
         } else {
             input = self.input.clone();
         }
-
-        match serial.write_format(&input, &self.settings.input_format) {
-            Ok(_) => (),
-            Err(e) => return Err(format!("Unable to write to serial port {}", e))
-        };
-
-        let mut response = String::new();
-
-        loop {
-            match serial.read_with_timeout(self.settings.timeout) {
-                Ok(bytes) => {
-                    let mut new_text = match self.settings.output_format {
-                        utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                        _ => utils::radix_string(bytes, &self.settings.output_format)
-                    };
-
-                    if self.settings.ignore_case {
-                        new_text = new_text.to_lowercase();
-                    }
-
-                    response.push_str(new_text.as_str());
-
-                    if self.output == response {
-                        break;
-                    }
-
-                    if self.output.starts_with(response.as_str()) == false {
-                        break;
-                    }
-                },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
-                    if response.len() == 0 {
-                        return Err("Connection timed out".to_string());
-                    }
-
-                    break;
-                },
-                Err(e) => return Err(format!("Error while running test {}", e))
-            }
-        }
-
-        let mut output: String;
 
         if self.settings.output_format == utils::TextFormat::Text {
             output = self.descape_string(&self.output);
@@ -162,13 +117,70 @@ impl TestCase {
 
         let regex = Regex::new(&output).unwrap();
 
-        if let Some(mat) = regex.find(&response) {
-                    self.successful = Some(mat.start() == 0 && mat.end() == response.len());
-        } else {
-            self.successful = Some(false);
+        // run test repeat + 1 times
+        let mut success: bool = false;
+
+        for _ in 0..self.settings.repeat + 1 {
+            // if delay is set wait before execution
+            if let Some(delay) = self.settings.delay {
+                sleep(delay);
+            }
+
+            match serial.write_format(&input, &self.settings.input_format) {
+                Ok(_) => (),
+                Err(e) => return Err(format!("Unable to write to serial port {}", e))
+            };
+
+            let mut response = String::new();
+
+            loop {
+                match serial.read_with_timeout(self.settings.timeout) {
+                    Ok(bytes) => {
+                        let mut new_text = match self.settings.output_format {
+                            utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
+                            _ => utils::radix_string(bytes, &self.settings.output_format)
+                        };
+
+                        if self.settings.ignore_case {
+                            new_text = new_text.to_lowercase();
+                        }
+
+                        response.push_str(new_text.as_str());
+
+                        if self.output == response {
+                            break;
+                        }
+
+                        if self.output.starts_with(response.as_str()) == false {
+                            break;
+                        }
+                    },
+                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                        if response.len() == 0 {
+                            return Err("Connection timed out".to_string());
+                        }
+
+                        break;
+                    },
+                    Err(e) => return Err(format!("Error while running test {}", e))
+                }
+            }
+
+            // check if response is correct
+            if let Some(mat) = regex.find(&response) {
+                success = mat.start() == 0 && mat.end() == response.len();
+            } else {
+                success = false;
+            }
+
+            self.response = Some(response);
+
+            if success == false {
+                break;
+            }
         }
 
-        self.response = Some(response);
+        self.successful = Some(success);
 
         Ok(())
     }
@@ -215,7 +227,13 @@ impl ToString for TestCase {
     fn to_string(&self) -> String {
         if let Some(successful) = self.successful {
             if successful {
-                format!("{}...{}", self.title(), "OK".green())
+                let mut repeat = String::new();
+
+                if self.settings.repeat > 0 {
+                    repeat = format!(" ({}x)", self.settings.repeat);
+                }
+
+                format!("{}...{}{}", self.title(), "OK".green(), repeat)
             } else {
                 if let Some(ref response) = self.response {
                     format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.output, response)

@@ -270,6 +270,15 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
                 Err(Error::InvalidOptionValue("time".to_string(), tokens[2].line, tokens[2].column))
             }
         },
+        "repeat" => {
+            if let Ok(count) = value.parse::<u32>() {
+                settings.repeat = count;
+
+                Ok(())
+            } else {
+                Err(Error::InvalidOptionValue("number".to_string(), tokens[2].line, tokens[2].column))
+            }
+        },
         _ => Err(Error::UnknownTestOption(name.to_string(), tokens[0].line, tokens[0].column))
     }
 }
