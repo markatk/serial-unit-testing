@@ -1,7 +1,7 @@
 /*
  * File: src/parser/token.rs
  * Date: 29.01.2019
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

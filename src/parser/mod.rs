@@ -1,7 +1,7 @@
 /*
  * File: src/parser/mod.rs
  * Date: 02.10.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 
@@ -28,7 +28,6 @@
 
 use std::fs;
 use std::io::{BufReader, Read};
-use std::time::Duration;
 
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
@@ -86,7 +85,10 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
     // analyse each line
     let mut test_suites: Vec<TestSuite> = Vec::new();
 
-    // [ Identifier ]
+    // <> mark optional tokens
+    // / mark alternative tokens
+    // * repeat tokens
+    // [ Identifier <, Identifier = Value>* ]
     let group_state_machine = FiniteStateMachine::new(1, vec!(4), |state, token| -> u32 {
         match state {
             1 if token.token_type == TokenType::LeftGroupParenthesis => 2,
@@ -96,9 +98,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
         }
     });
 
-    // <> mark optional tokens
-    // / mark alternative tokens
-    // <( Identifier )> <b/o/d/h>" Content " : <b/o/d/h>" Content "
+    // <( Identifier <, Identifier = Value>* )> <b/o/d/h>" Content " : <b/o/d/h>" Content "
     let test_state_machine = FiniteStateMachine::new(1, vec!(9), |state, token| -> u32 {
         match state {
             1 if token.token_type == TokenType::LeftTestParenthesis => 2,

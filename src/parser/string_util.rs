@@ -1,7 +1,7 @@
 /*
  * File: src/parser/string_util.rs
  * Date: 30.01.2019
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 
