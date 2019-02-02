@@ -1,7 +1,7 @@
 /*
  * File: tests/test_suite.rs
  * Date: 03.10.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

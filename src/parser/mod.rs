@@ -192,6 +192,8 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     let input: String;
     let output: String;
     let mut settings = TestCaseSettings::default();
+    let mut input_format: Option<TextFormat> = None;
+    let mut output_format: Option<TextFormat> = None;
 
     let mut index = 0;
 
@@ -209,7 +211,7 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     }
 
     if tokens[index].token_type == TokenType::FormatSpecifier {
-        settings.input_format = get_text_format(&tokens[index])?;
+        input_format = Some(get_text_format(&tokens[index])?);
         index += 1;
     }
 
@@ -219,13 +221,24 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     index += 2;
 
     if tokens[index].token_type == TokenType::FormatSpecifier {
-        settings.output_format = get_text_format(&tokens[index])?;
+        output_format = Some(get_text_format(&tokens[index])?);
         index += 1;
     }
 
     output = tokens[index].value.clone();
 
-    Ok(TestCase::new_with_settings(name, input, output, settings))
+    let mut test = TestCase::new(name, input, output);
+    test.settings = settings;
+
+    if let Some(format) = input_format {
+        test.input_format = format;
+    }
+
+    if let Some(format) = output_format {
+        test.output_format = format;
+    }
+
+    Ok(test)
 }
 
 fn get_text_format(token: &Token) -> Result<TextFormat, Error> {

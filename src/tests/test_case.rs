@@ -1,7 +1,7 @@
 /*
  * File: tests/test_case.rs
  * Date: 03.10.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 
@@ -39,8 +39,6 @@ use utils;
 
 #[derive(Debug)]
 pub struct TestCaseSettings {
-    pub input_format: utils::TextFormat,
-    pub output_format: utils::TextFormat,
     pub ignore_case: bool,
     pub repeat: u32,
     pub delay: Option<Duration>,
@@ -51,8 +49,6 @@ impl Default for TestCaseSettings {
     fn default() -> TestCaseSettings {
         TestCaseSettings {
             ignore_case: false,
-            input_format: utils::TextFormat::Text,
-            output_format: utils::TextFormat::Text,
             repeat: 0,
             delay: None,
             timeout: Duration::from_secs(1)
@@ -63,6 +59,8 @@ impl Default for TestCaseSettings {
 #[derive(Debug)]
 pub struct TestCase {
     pub settings: TestCaseSettings,
+    pub input_format: utils::TextFormat,
+    pub output_format: utils::TextFormat,
 
     name: String,
     input: String,
@@ -78,34 +76,25 @@ impl TestCase {
             input,
             output,
             settings: Default::default(),
+            input_format: utils::TextFormat::Text,
+            output_format: utils::TextFormat::Text,
             response: None,
             successful: None
         }
     }
-
-    pub fn new_with_settings(name: String, input: String, output: String, settings: TestCaseSettings) -> TestCase {
-        TestCase {
-            name,
-            input,
-            output,
-            settings,
-            response: None,
-            successful: None
-        }
-    } 
 
     pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
         // get input and desired output in correct format
         let input: String;
         let mut output: String;
 
-        if self.settings.input_format == utils::TextFormat::Text {
+        if self.input_format == utils::TextFormat::Text {
             input = self.descape_string(&self.input);
         } else {
             input = self.input.clone();
         }
 
-        if self.settings.output_format == utils::TextFormat::Text {
+        if self.output_format == utils::TextFormat::Text {
             output = self.descape_string(&self.output);
         } else {
             output = self.output.clone();
@@ -126,7 +115,7 @@ impl TestCase {
                 sleep(delay);
             }
 
-            match serial.write_format(&input, &self.settings.input_format) {
+            match serial.write_format(&input, &self.input_format) {
                 Ok(_) => (),
                 Err(e) => return Err(format!("Unable to write to serial port {}", e))
             };
@@ -136,9 +125,9 @@ impl TestCase {
             loop {
                 match serial.read_with_timeout(self.settings.timeout) {
                     Ok(bytes) => {
-                        let mut new_text = match self.settings.output_format {
+                        let mut new_text = match self.output_format {
                             utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                            _ => utils::radix_string(bytes, &self.settings.output_format)
+                            _ => utils::radix_string(bytes, &self.output_format)
                         };
 
                         if self.settings.ignore_case {
