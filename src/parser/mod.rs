@@ -37,12 +37,12 @@ mod token;
 mod string_util;
 mod char_util;
 mod lexer;
-mod finite_state_maschine;
+mod finite_state_machine;
 
 use self::lexer::Lexer;
 use self::token::{Token, TokenType};
 use self::error::Error;
-use self::finite_state_maschine::FiniteStateMachine;
+use self::finite_state_machine::FiniteStateMachine;
 
 pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     let mut reader = BufReader::new(file);
