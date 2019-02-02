@@ -1,7 +1,7 @@
 /*
  * File: src/utils.rs
  * Date: 30.09.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

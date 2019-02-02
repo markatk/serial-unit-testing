@@ -1,7 +1,7 @@
 /*
  * File: src/monitor.rs
  * Date: 13.09.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

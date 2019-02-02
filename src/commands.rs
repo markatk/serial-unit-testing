@@ -1,7 +1,7 @@
 /*
- * File: src/commnds.rs
+ * File: src/commands.rs
  * Date: 30.09.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

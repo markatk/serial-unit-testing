@@ -1,7 +1,7 @@
 /*
  * File: src/main.rs
  * Date: 12.09.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

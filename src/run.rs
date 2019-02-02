@@ -1,7 +1,7 @@
 /*
  * File: src/run.rs
  * Date: 01.10.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

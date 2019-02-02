@@ -1,7 +1,7 @@
 /*
  * File: src/verify.rs
  * Date: 02.10.2018
- * Auhtor: MarkAtk
+ * Author: MarkAtk
  * 
  * MIT License
  * 

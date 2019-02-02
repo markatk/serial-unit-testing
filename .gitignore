@@ -2,4 +2,6 @@
 **/*.rs.bk
 
 .vscode/
+.idea/
+
 *.script
