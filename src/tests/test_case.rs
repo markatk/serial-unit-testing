@@ -39,19 +39,19 @@ use utils;
 
 #[derive(Debug)]
 pub struct TestCaseSettings {
-    pub ignore_case: bool,
-    pub repeat: u32,
+    pub ignore_case: Option<bool>,
+    pub repeat: Option<u32>,
     pub delay: Option<Duration>,
-    pub timeout: Duration
+    pub timeout: Option<Duration>
 }
 
 impl Default for TestCaseSettings {
     fn default() -> TestCaseSettings {
         TestCaseSettings {
-            ignore_case: false,
-            repeat: 0,
+            ignore_case: None,
+            repeat: None,
             delay: None,
-            timeout: Duration::from_secs(1)
+            timeout: None
         }
     }
 }
@@ -100,16 +100,21 @@ impl TestCase {
             output = self.output.clone();
         }
 
-        if self.settings.ignore_case {
+        if self.settings.ignore_case.unwrap_or(false) {
             output = output.to_lowercase();
         }
 
         let regex = Regex::new(&output).unwrap();
 
         // run test repeat + 1 times
+        let mut repeat = 1;
         let mut success: bool = false;
 
-        for _ in 0..self.settings.repeat + 1 {
+        if let Some(count) = self.settings.repeat {
+            repeat += count;
+        }
+
+        for _ in 0..repeat {
             // if delay is set wait before execution
             if let Some(delay) = self.settings.delay {
                 sleep(delay);
@@ -120,40 +125,7 @@ impl TestCase {
                 Err(e) => return Err(format!("Unable to write to serial port {}", e))
             };
 
-            let mut response = String::new();
-
-            loop {
-                match serial.read_with_timeout(self.settings.timeout) {
-                    Ok(bytes) => {
-                        let mut new_text = match self.output_format {
-                            utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                            _ => utils::radix_string(bytes, &self.output_format)
-                        };
-
-                        if self.settings.ignore_case {
-                            new_text = new_text.to_lowercase();
-                        }
-
-                        response.push_str(new_text.as_str());
-
-                        if self.output == response {
-                            break;
-                        }
-
-                        if self.output.starts_with(response.as_str()) == false {
-                            break;
-                        }
-                    },
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
-                        if response.len() == 0 {
-                            return Err("Connection timed out".to_string());
-                        }
-
-                        break;
-                    },
-                    Err(e) => return Err(format!("Error while running test {}", e))
-                }
-            }
+            let response = self.read_response(serial)?;
 
             // check if response is correct
             if let Some(mat) = regex.find(&response) {
@@ -176,6 +148,53 @@ impl TestCase {
 
     pub fn is_successful(&self) -> Option<bool> {
         self.successful
+    }
+
+    fn read_response(&mut self, serial: &mut Serial) -> Result<String, String> {
+        let mut response = String::new();
+
+        loop {
+            let response_chunk;
+
+            if let Some(timeout) = self.settings.timeout {
+                response_chunk = serial.read_with_timeout(timeout);
+            } else {
+                response_chunk = serial.read();
+            }
+
+            match response_chunk {
+                Ok(bytes) => {
+                    let mut new_text = match self.output_format {
+                        utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
+                        _ => utils::radix_string(bytes, &self.output_format)
+                    };
+
+                    if self.settings.ignore_case.unwrap_or(false) {
+                        new_text = new_text.to_lowercase();
+                    }
+
+                    response.push_str(new_text.as_str());
+
+                    if self.output == response {
+                        break;
+                    }
+
+                    if self.output.starts_with(response.as_str()) == false {
+                        break;
+                    }
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                    if response.len() == 0 {
+                        return Err("Connection timed out".to_string());
+                    }
+
+                    break;
+                },
+                Err(e) => return Err(format!("Error while running test {}", e))
+            }
+        }
+
+        Ok(response)
     }
 
     fn title(&self) -> String {
@@ -218,8 +237,8 @@ impl ToString for TestCase {
             if successful {
                 let mut repeat = String::new();
 
-                if self.settings.repeat > 0 {
-                    repeat = format!(" ({}x)", self.settings.repeat);
+                if let Some(count) = self.settings.repeat {
+                    repeat = format!(" ({}x)", count);
                 }
 
                 format!("{}...{}{}", self.title(), "OK".green(), repeat)

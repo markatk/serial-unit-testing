@@ -258,7 +258,7 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
     match name {
         "ignore-case" => {
             if let Some(bool_val) = string_util::get_boolean_value(&value) {
-                settings.ignore_case = bool_val;
+                settings.ignore_case = Some(bool_val);
 
                 Ok(())
             } else {
@@ -276,7 +276,7 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
         },
         "timeout" => {
             if let Some(time) = string_util::get_time_value(&value) {
-                settings.timeout = time;
+                settings.timeout = Some(time);
 
                 Ok(())
             } else {
@@ -285,7 +285,7 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
         },
         "repeat" => {
             if let Ok(count) = value.parse::<u32>() {
-                settings.repeat = count;
+                settings.repeat = Some(count);
 
                 Ok(())
             } else {
