@@ -44,6 +44,7 @@ pub enum Error {
     MissingContent(String, u32, u32),
     InvalidLineStart(u32, u32),
     InvalidOptionValue(String, u32, u32),
+    InvalidOutputContent(String, u32, u32),
     UnknownTestOption(String, u32, u32)
 }
 
@@ -63,6 +64,7 @@ impl fmt::Display for Error {
             Error::MissingContent(ref content_type, line, column) => formatter.write_fmt(format_args!("Missing test {} at {}:{}", content_type, line, column)),
             Error::InvalidLineStart(line, column) => formatter.write_fmt(format_args!("Invalid line start at {}:{}", line, column)),
             Error::InvalidOptionValue(ref expected_type, line, column) => formatter.write_fmt(format_args!("Invalid option type at {}:{}. {} type expected", line, column, expected_type)),
+            Error::InvalidOutputContent(ref content, line, column) => formatter.write_fmt(format_args!("Invalid output content '{}' at {}:{}", content, line, column)),
             Error::UnknownTestOption(ref name, line, column) => formatter.write_fmt(format_args!("Unknown test option '{}' at {}:{}", name, line, column))
         }
     }
@@ -84,6 +86,7 @@ impl StdError for Error {
             Error::MissingContent(_, _, _) => "Missing test content",
             Error::InvalidLineStart(_, _) => "Invalid line start",
             Error::InvalidOptionValue(_, _, _) => "Invalid option value",
+            Error::InvalidOutputContent(_, _, _) => "Invalid output content",
             Error::UnknownTestOption(_, _, _) => "Unknown test option"
         }
     }

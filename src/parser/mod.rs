@@ -28,6 +28,7 @@
 
 use std::fs;
 use std::io::{BufReader, Read};
+use regex::Regex;
 
 use tests::{TestCase, TestSuite, TestCaseSettings};
 use utils::TextFormat;
@@ -246,6 +247,9 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     }
 
     output = tokens[index].value.clone();
+    if let Err(_) = Regex::new(&output) {
+        return Err(Error::InvalidOutputContent(output, tokens[index].line, tokens[index].column));
+    }
 
     let mut test = TestCase::new(name, input, output);
     test.settings = settings;

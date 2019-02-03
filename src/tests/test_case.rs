@@ -124,7 +124,10 @@ impl TestCase {
             output = output.to_lowercase();
         }
 
-        let regex = Regex::new(&output).unwrap();
+        let regex = match Regex::new(&output) {
+            Ok(regex) => regex,
+            Err(_) => return Err(format!("Error in regex"))
+        };
 
         // run test repeat + 1 times
         let mut repeat = 1;
