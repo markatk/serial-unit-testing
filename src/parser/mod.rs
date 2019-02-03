@@ -163,10 +163,12 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -
     let result = state_machine.run(&tokens);
 
     if let Err((state, token)) = result {
-        // TODO: Add missing states
         return match state {
             2 => Err(Error::MissingGroupIdentifier(token.line, token.column)),
             3 => Err(Error::MissingClosingParenthesis("]".to_string(), token.line, token.column)),
+            5 => Err(Error::MissingOptionIdentifier(token.line, token.column)),
+            6 => Err(Error::MissingOptionSeparator(token.line, token.column)),
+            7 => Err(Error::MissingOptionValue(token.line, token.column)),
             _ => Err(Error::UnknownError(token.line, token.column))
         };
     }
@@ -192,13 +194,15 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     let result = state_machine.run(&tokens);
 
     if let Err((state, token)) = result {
-        // TODO: Add missing states
         return match state {
             2 => Err(Error::MissingTestIdentifier(token.line, token.column)),
             3 => Err(Error::MissingClosingParenthesis(")".to_string(), token.line, token.column)),
             4 | 5 => Err(Error::MissingContent("input".to_string(), token.line, token.column)),
             6 => Err(Error::MissingDirectionSeparator(token.line, token.column)),
             7 | 8 => Err(Error::MissingContent("output".to_string(), token.line, token.column)),
+            10 => Err(Error::MissingOptionIdentifier(token.line, token.column)),
+            11 => Err(Error::MissingOptionSeparator(token.line, token.column)),
+            12 => Err(Error::MissingOptionValue(token.line, token.column)),
             _ => Err(Error::UnknownError(token.line, token.column))
         };
     }
