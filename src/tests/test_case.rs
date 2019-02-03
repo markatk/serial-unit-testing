@@ -37,12 +37,32 @@ use regex::Regex;
 use serial::Serial;
 use utils;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TestCaseSettings {
     pub ignore_case: Option<bool>,
     pub repeat: Option<u32>,
     pub delay: Option<Duration>,
     pub timeout: Option<Duration>
+}
+
+impl TestCaseSettings {
+    pub fn merge_weak(&mut self, other: &TestCaseSettings) {
+        if self.ignore_case.is_none() && other.ignore_case.is_some() {
+            self.ignore_case = other.ignore_case;
+        }
+
+        if self.repeat.is_none() && other.repeat.is_some() {
+            self.repeat = other.repeat;
+        }
+
+        if self.delay.is_none() && other.delay.is_some() {
+            self.delay = other.delay;
+        }
+
+        if self.timeout.is_none() && other.timeout.is_some() {
+            self.timeout = other.timeout;
+        }
+    }
 }
 
 impl Default for TestCaseSettings {

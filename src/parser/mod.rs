@@ -94,6 +94,10 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
             1 if token.token_type == TokenType::LeftGroupParenthesis => 2,
             2 if token.token_type == TokenType::Identifier => 3,
             3 if token.token_type == TokenType::RightGroupParenthesis => 4,
+            3 if token.token_type == TokenType::ContentSeparator => 5,
+            5 if token.token_type == TokenType::Identifier => 6,
+            6 if token.token_type == TokenType::OptionSeparator => 7,
+            7 if token.token_type == TokenType::Identifier => 3,
             _ => 0
         }
     });
@@ -116,9 +120,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
             8 if token.token_type == TokenType::Content => 9,
             10 if token.token_type == TokenType::Identifier => 11,
             11 if token.token_type == TokenType::OptionSeparator => 12,
-            12 if token.token_type == TokenType::Identifier => 13,
-            13 if token.token_type == TokenType::RightTestParenthesis => 4,
-            13 if token.token_type == TokenType::ContentSeparator => 10,
+            12 if token.token_type == TokenType::Identifier => 3,
             _ => 0
         }
     });
@@ -161,6 +163,7 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -
     let result = state_machine.run(&tokens);
 
     if let Err((state, token)) = result {
+        // TODO: Add missing states
         return match state {
             2 => Err(Error::MissingGroupIdentifier(token.line, token.column)),
             3 => Err(Error::MissingClosingParenthesis("]".to_string(), token.line, token.column)),
@@ -170,13 +173,26 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -
 
     let name = &tokens[1].value;
 
-    Ok(TestSuite::new(name.to_string()))
+    let mut settings = TestCaseSettings::default();
+    let mut index = 2;
+
+    while tokens[index].token_type == TokenType::ContentSeparator {
+        set_test_option(&tokens[index + 1 .. index + 4], &mut settings)?;
+
+        index += 4;
+    }
+
+    let mut test_suite = TestSuite::new(name.to_string());
+    test_suite.test_settings = settings;
+
+    Ok(test_suite)
 }
 
 fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Result<TestCase, Error> {
     let result = state_machine.run(&tokens);
 
     if let Err((state, token)) = result {
+        // TODO: Add missing states
         return match state {
             2 => Err(Error::MissingTestIdentifier(token.line, token.column)),
             3 => Err(Error::MissingClosingParenthesis(")".to_string(), token.line, token.column)),

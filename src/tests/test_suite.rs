@@ -34,7 +34,8 @@ pub use tests::test_case::{TestCase, TestCaseSettings};
 pub struct TestSuite {
     pub name: String,
     pub stop_on_failure: bool,
-    tests: Vec<TestCase>,
+    pub test_settings: TestCaseSettings,
+    tests: Vec<TestCase>
 }
 
 impl TestSuite {
@@ -42,12 +43,17 @@ impl TestSuite {
         TestSuite {
             name,
             stop_on_failure: true,
+            test_settings: Default::default(),
             tests: Vec::new()
         }
     }
 
     pub fn push(&mut self, test: TestCase) {
         self.tests.push(test);
+
+        if let Some(pushed_test) = self.tests.last_mut() {
+            pushed_test.settings.merge_weak(&self.test_settings);
+        }
     }
 
     pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
