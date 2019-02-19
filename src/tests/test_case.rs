@@ -93,6 +93,7 @@ pub struct TestCase {
     output: String,
     response: Option<String>,
     successful: Option<bool>,
+    error: Option<String>
 }
 
 impl TestCase {
@@ -105,7 +106,8 @@ impl TestCase {
             input_format: utils::TextFormat::Text,
             output_format: utils::TextFormat::Text,
             response: None,
-            successful: None
+            successful: None,
+            error: None
         }
     }
 
@@ -132,7 +134,7 @@ impl TestCase {
 
         let regex = match Regex::new(&output) {
             Ok(regex) => regex,
-            Err(_) => return Err(format!("Error in regex"))
+            Err(_) => return self.exit_run_with_error(format!("Error in regex"))
         };
 
         // run test repeat + 1 times
@@ -151,10 +153,13 @@ impl TestCase {
 
             match serial.write_format(&input, &self.input_format) {
                 Ok(_) => (),
-                Err(e) => return Err(format!("Unable to write to serial port {}", e))
+                Err(e) => return self.exit_run_with_error(format!("Unable to write to serial port: {}", e))
             };
 
-            let response = self.read_response(serial)?;
+            let response = match self.read_response(serial) {
+                Ok(res) => res,
+                Err(err) => return self.exit_run_with_error(err)
+            };
 
             // check if response is correct
             if let Some(mat) = regex.find(&response) {
@@ -258,34 +263,45 @@ impl TestCase {
 
         response
     }
+
+    fn exit_run_with_error(&mut self, err: String) -> Result<(), String> {
+        self.error = Some(err.clone());
+
+        Err(err)
+    }
 }
 
 impl ToString for TestCase {
     fn to_string(&self) -> String {
+        if let Some(err) = &self.error {
+            return format!("{}...{} {}", self.title(), "Error:".red(), err);
+        }
+
         if let Some(successful) = self.successful {
-            if successful || self.settings.allow_failure.unwrap_or(false) {
-                let mut repeat = String::new();
-
-                if let Some(count) = self.settings.repeat {
-                    repeat = format!(" ({}x)", count);
-                }
-
-                let result: String;
-
-                if successful {
-                    result = format!("{}", "OK".green());
-                } else {
-                    result = format!("{} (failed)", "OK".yellow());
-                }
-
-                format!("{}...{}{}", self.title(), result, repeat)
-            } else {
-                if let Some(ref response) = self.response {
+            if successful == false && self.settings.allow_failure.unwrap_or(false) == false {
+                return if let Some(ref response) = self.response {
                     format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.output, response)
                 } else {
                     format!("{}...{}, expected '{}' but received nothing", self.title(), "Failed".red(), self.output)
-                }
+                };
             }
+
+            // test passed
+            let mut repeat = String::new();
+
+            if let Some(count) = self.settings.repeat {
+                repeat = format!(" ({}x)", count);
+            }
+
+            let result: String;
+
+            if successful {
+                result = format!("{}", "OK".green());
+            } else {
+                result = format!("{} (failed)", "OK".yellow());
+            }
+
+            format!("{}...{}{}", self.title(), result, repeat)
         } else {
             format!("{}", self.title())
         }

@@ -81,17 +81,11 @@ impl TestSuite {
             }
 
             let result = match test.run(serial) {
-                Ok(_) => {
-                    println!("{}", test.to_string());
-
-                    test.is_successful()
-                },
-                Err(e) => {
-                    println!("Error running test {}", e);
-
-                    Some(false)
-                }
+                Ok(_) => test.is_successful(),
+                Err(_) => Some(false)
             };
+
+            println!("{}", test.to_string());
 
             if result != Some(true) && self.stop_on_failure {
                 return false;
