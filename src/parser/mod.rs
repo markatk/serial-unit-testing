@@ -316,6 +316,15 @@ fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<
                 Err(Error::InvalidOptionValue("number".to_string(), tokens[2].line, tokens[2].column))
             }
         },
+        "allow_failure" => {
+            if let Some(bool_val) = string_util::get_boolean_value(&value) {
+                settings.allow_failure = Some(bool_val);
+
+                Ok(())
+            } else {
+                Err(Error::InvalidOptionValue("boolean".to_string(), tokens[2].line, tokens[2].column))
+            }
+        },
         _ => Err(Error::UnknownTestOption(name.to_string(), tokens[0].line, tokens[0].column))
     }
 }

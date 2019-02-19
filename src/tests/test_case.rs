@@ -42,7 +42,8 @@ pub struct TestCaseSettings {
     pub ignore_case: Option<bool>,
     pub repeat: Option<u32>,
     pub delay: Option<Duration>,
-    pub timeout: Option<Duration>
+    pub timeout: Option<Duration>,
+    pub allow_failure: Option<bool>
 }
 
 impl TestCaseSettings {
@@ -62,6 +63,10 @@ impl TestCaseSettings {
         if self.timeout.is_none() && other.timeout.is_some() {
             self.timeout = other.timeout;
         }
+
+        if self.allow_failure.is_none() && other.allow_failure.is_some() {
+            self.allow_failure = other.allow_failure;
+        }
     }
 }
 
@@ -71,7 +76,8 @@ impl Default for TestCaseSettings {
             ignore_case: None,
             repeat: None,
             delay: None,
-            timeout: None
+            timeout: None,
+            allow_failure: None
         }
     }
 }
@@ -257,14 +263,22 @@ impl TestCase {
 impl ToString for TestCase {
     fn to_string(&self) -> String {
         if let Some(successful) = self.successful {
-            if successful {
+            if successful || self.settings.allow_failure.unwrap_or(false) {
                 let mut repeat = String::new();
 
                 if let Some(count) = self.settings.repeat {
                     repeat = format!(" ({}x)", count);
                 }
 
-                format!("{}...{}{}", self.title(), "OK".green(), repeat)
+                let result: String;
+
+                if successful {
+                    result = format!("{}", "OK".green());
+                } else {
+                    result = format!("{} (failed)", "OK".yellow());
+                }
+
+                format!("{}...{}{}", self.title(), result, repeat)
             } else {
                 if let Some(ref response) = self.response {
                     format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.output, response)
