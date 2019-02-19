@@ -64,7 +64,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let stop_on_failure = matches.is_present("stop");
 
     for mut test_suite in test_suites {
-        test_suite.stop_on_failure = stop_on_failure;
+        test_suite.settings.stop_on_failure = stop_on_failure;
 
         let result = test_suite.run_and_print(&mut serial);
 

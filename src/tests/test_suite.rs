@@ -30,10 +30,23 @@ use serial::Serial;
 
 pub use tests::test_case::{TestCase, TestCaseSettings};
 
+#[derive(Debug, Clone)]
+pub struct TestSuiteSettings {
+    pub stop_on_failure: bool
+}
+
+impl Default for TestSuiteSettings {
+    fn default() -> TestSuiteSettings {
+        TestSuiteSettings {
+            stop_on_failure: true
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct TestSuite {
     pub name: String,
-    pub stop_on_failure: bool,
+    pub settings: TestSuiteSettings,
     pub test_settings: TestCaseSettings,
     tests: Vec<TestCase>
 }
@@ -42,7 +55,7 @@ impl TestSuite {
     pub fn new(name: String) -> TestSuite {
         TestSuite {
             name,
-            stop_on_failure: true,
+            settings: Default::default(),
             test_settings: Default::default(),
             tests: Vec::new()
         }
@@ -60,7 +73,7 @@ impl TestSuite {
         for mut test in self.tests.iter_mut() {
             test.run(serial)?;
 
-            if self.stop_on_failure && test.is_successful() == Some(false) {
+            if self.settings.stop_on_failure && test.is_successful() == Some(false) {
                 return Ok(false);
             }
         }
@@ -87,7 +100,7 @@ impl TestSuite {
 
             println!("{}", test.to_string());
 
-            if result != Some(true) && self.stop_on_failure {
+            if result != Some(true) && self.settings.stop_on_failure {
                 return false;
             }
         }
