@@ -184,6 +184,10 @@ impl TestCase {
         self.successful
     }
 
+    pub fn error(&self) -> Option<String> {
+        self.error.clone()
+    }
+
     fn read_response(&mut self, serial: &mut Serial) -> Result<String, String> {
         let mut response = String::new();
 

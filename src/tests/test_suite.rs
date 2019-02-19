@@ -128,6 +128,10 @@ impl TestSuite {
         let mut count = 0;
 
         for test in &self.tests {
+            if test.is_successful().is_none() && test.error().is_none() {
+                continue;
+            }
+
             if (test.is_successful().unwrap_or(false) || test.settings.allow_failure.unwrap_or(false)) == success {
                 count += 1;
             }
