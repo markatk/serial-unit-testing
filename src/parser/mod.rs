@@ -46,6 +46,10 @@ use self::error::Error;
 use self::finite_state_machine::FiniteStateMachine;
 
 pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
+    parse_file_with_default_settings(file, Default::default())
+}
+
+pub fn parse_file_with_default_settings(file: &mut fs::File, default_test_settings: TestCaseSettings) -> Result<Vec<TestSuite>, Error> {
     let mut reader = BufReader::new(file);
     let mut content = String::new();
 
@@ -56,10 +60,10 @@ pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     let mut lexer = Lexer::new(content);
     let tokens = lexer.get_tokens();
 
-    analyse_tokens(tokens)
+    analyse_tokens(tokens, default_test_settings)
 }
 
-fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
+fn analyse_tokens(tokens: Vec<Token>, default_test_settings: TestCaseSettings) -> Result<Vec<TestSuite>, Error> {
     let mut lines: Vec<Vec<Token>> = Vec::new();
     let mut line: Vec<Token> = Vec::new();
 
@@ -132,7 +136,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
         let first_token: &Token = line.first().unwrap();
 
         if first_token.token_type == TokenType::LeftGroupParenthesis {
-            match analyse_test_group(&line, &group_state_machine) {
+            match analyse_test_group(&line, &group_state_machine, default_test_settings.clone()) {
                 Ok(test_suite) => test_suites.push(test_suite),
                 Err(err) => return Err(err)
             };
@@ -162,7 +166,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
     Ok(test_suites)
 }
 
-fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Result<TestSuite, Error> {
+fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, default_test_settings: TestCaseSettings) -> Result<TestSuite, Error> {
     let result = state_machine.run(&tokens);
 
     if let Err((state, token)) = result {
@@ -178,7 +182,7 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -
 
     let name = &tokens[1].value;
 
-    let mut settings = TestCaseSettings::default();
+    let mut settings = default_test_settings;
     let mut index = 2;
 
     while tokens[index].token_type == TokenType::ContentSeparator {

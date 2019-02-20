@@ -30,4 +30,4 @@ pub mod test_case;
 pub mod test_suite;
 
 pub use self::test_case::{TestCase, TestCaseSettings};
-pub use self::test_suite::TestSuite;
+pub use self::test_suite::{TestSuite, TestSuiteSettings};

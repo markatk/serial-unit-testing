@@ -34,6 +34,7 @@ use colored::*;
 
 use serial_unit_testing::serial::Serial;
 use serial_unit_testing::parser;
+use serial_unit_testing::tests::TestCaseSettings;
 
 use commands;
 
@@ -52,7 +53,10 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let mut serial = Serial::open_with_settings(port_name, &settings)?;
 
     // parse and run tests
-    let test_suites = match parser::parse_file(&mut file) {
+    let mut default_test_settings = TestCaseSettings::default();
+    default_test_settings.verbose = Some(matches.is_present("verbose"));
+
+    let test_suites = match parser::parse_file_with_default_settings(&mut file, default_test_settings) {
         Ok(test_suites) => test_suites,
         Err(e) => return Err(format!("Unable to parse file: {}", e))
     };
@@ -62,11 +66,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let mut failed_tests = 0;
 
     let stop_on_failure = matches.is_present("stop");
-    let verbose = matches.is_present("verbose");
 
     for mut test_suite in test_suites {
         test_suite.settings.stop_on_failure = stop_on_failure;
-        test_suite.test_settings.verbose = Some(verbose);
 
         let result = test_suite.run_and_print(&mut serial);
 
