@@ -62,9 +62,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let mut failed_tests = 0;
 
     let stop_on_failure = matches.is_present("stop");
+    let verbose = matches.is_present("verbose");
 
     for mut test_suite in test_suites {
         test_suite.settings.stop_on_failure = stop_on_failure;
+        test_suite.test_settings.verbose = Some(verbose);
 
         let result = test_suite.run_and_print(&mut serial);
 
@@ -101,4 +103,8 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("stop-on-failure")
             .short("S")
             .help("Stop on first test failing"))
+        .arg(Arg::with_name("verbose")
+            .long("verbose")
+            .short("v")
+            .help("Show verbose output"))
 }

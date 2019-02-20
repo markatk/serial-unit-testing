@@ -89,7 +89,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
     // <> mark optional tokens
     // / mark alternative tokens
     // * repeat tokens
-    // [ Identifier <, Identifier = Value>* ]
+    // [ Identifier <, Identifier < = Value> >* ]
     let group_state_machine = FiniteStateMachine::new(1, vec!(4), |state, token| -> u32 {
         match state {
             1 if token.token_type == TokenType::LeftGroupParenthesis => 2,
@@ -103,7 +103,7 @@ fn analyse_tokens(tokens: Vec<Token>) -> Result<Vec<TestSuite>, Error> {
         }
     });
 
-    // <( Identifier <, Identifier (= Value>)* )> <b/o/d/h>" Content " : <b/o/d/h>" Content "
+    // <( Identifier <, Identifier < = Value> >* )> < <b/o/d/h>" Content ">* : < <b/o/d/h>" Content ">*
     let test_state_machine = FiniteStateMachine::new(1, vec!(9), |state, token| -> u32 {
         match state {
             1 if token.token_type == TokenType::LeftTestParenthesis => 2,

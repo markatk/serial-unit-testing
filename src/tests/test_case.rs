@@ -43,7 +43,8 @@ pub struct TestCaseSettings {
     pub repeat: Option<u32>,
     pub delay: Option<Duration>,
     pub timeout: Option<Duration>,
-    pub allow_failure: Option<bool>
+    pub allow_failure: Option<bool>,
+    pub verbose: Option<bool>
 }
 
 impl TestCaseSettings {
@@ -67,6 +68,10 @@ impl TestCaseSettings {
         if self.allow_failure.is_none() && other.allow_failure.is_some() {
             self.allow_failure = other.allow_failure;
         }
+
+        if self.verbose.is_none() && other.verbose.is_some() {
+            self.verbose = other.verbose;
+        }
     }
 }
 
@@ -77,7 +82,8 @@ impl Default for TestCaseSettings {
             repeat: None,
             delay: None,
             timeout: None,
-            allow_failure: None
+            allow_failure: None,
+            verbose: None
         }
     }
 }
@@ -291,21 +297,29 @@ impl ToString for TestCase {
             }
 
             // test passed
-            let mut repeat = String::new();
-
-            if let Some(count) = self.settings.repeat {
-                repeat = format!(" ({}x)", count);
-            }
-
-            let result: String;
-
-            if successful {
-                result = format!("{}", "OK".green());
+            let repeat = if let Some(count) = self.settings.repeat {
+                format!(" ({}x)", count)
             } else {
-                result = format!("{} (failed)", "OK".yellow());
-            }
+                String::new()
+            };
 
-            format!("{}...{}{}", self.title(), result, repeat)
+            let verbose = if self.settings.verbose.unwrap_or(false) {
+                if let Some(ref response) = self.response {
+                    format!(", response: '{}'", response)
+                } else {
+                    format!(", no response")
+                }
+            } else {
+                String::new()
+            };
+
+            let result = if successful {
+                format!("{}", "OK".green())
+            } else {
+                format!("{} (failed)", "OK".yellow())
+            };
+
+            format!("{}...{}{}{}", self.title(), result, repeat, verbose)
         } else {
             format!("{}", self.title())
         }
