@@ -11,7 +11,7 @@ keywords = ["serial", "test", "unit"]
 categories = ["command-line-utilities", "development-tools", "parsing"]
 
 [badges]
-appveyor = { repository = "https://ci.appveyor.com/project/markatk/serial-unit-testing" }
+appveyor = { repository = "markatk/serial-unit-testing" }
 travis-ci = { repository = "markatk/serial-unit-testing" }
 
 [lib]
