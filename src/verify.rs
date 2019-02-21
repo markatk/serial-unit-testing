@@ -37,7 +37,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let filename = matches.value_of("file").unwrap();
 
     let mut file = match File::open(filename) {
-        Ok(mut file) => file,
+        Ok(file) => file,
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => return Err("File not found".to_string()), 
         Err(e) => return Err(format!("{}", e))
     };

@@ -79,7 +79,7 @@ impl TestSuite {
     }
 
     pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
-        for mut test in self.tests.iter_mut() {
+        for test in self.tests.iter_mut() {
             test.run(serial)?;
 
             if self.settings.stop_on_failure && test.is_successful() == Some(false) {

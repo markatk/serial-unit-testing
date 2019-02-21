@@ -154,7 +154,7 @@ fn analyse_tokens(tokens: Vec<Token>, default_test_settings: TestCaseSettings) -
                         test_suites.push(TestSuite::new(String::new()));
                     }
 
-                    let mut test_suite: &mut TestSuite = test_suites.last_mut().unwrap();
+                    let test_suite: &mut TestSuite = test_suites.last_mut().unwrap();
                     test_suite.push(test);
                 }
                 Err(err) => return Err(err)
