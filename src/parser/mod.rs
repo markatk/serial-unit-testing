@@ -98,6 +98,7 @@ fn analyse_tokens(tokens: Vec<Token>, default_test_settings: TestCaseSettings) -
         match state {
             1 if token.token_type == TokenType::LeftGroupParenthesis => 2,
             2 if token.token_type == TokenType::Identifier => 3,
+            2 if token.token_type == TokenType::ContentSeparator => 5,
             3 if token.token_type == TokenType::RightGroupParenthesis => 4,
             3 if token.token_type == TokenType::ContentSeparator => 5,
             5 if token.token_type == TokenType::Identifier => 6,
@@ -114,6 +115,7 @@ fn analyse_tokens(tokens: Vec<Token>, default_test_settings: TestCaseSettings) -
             1 if token.token_type == TokenType::FormatSpecifier => 5,
             1 if token.token_type == TokenType::Content => 5,
             2 if token.token_type == TokenType::Identifier => 3,
+            2 if token.token_type == TokenType::ContentSeparator => 10,
             3 if token.token_type == TokenType::RightTestParenthesis => 4,
             3 if token.token_type == TokenType::ContentSeparator => 10,
             4 if token.token_type == TokenType::FormatSpecifier => 5,
@@ -180,13 +182,17 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
         };
     }
 
-    let name = &tokens[1].value;
+    let name = if tokens[1].token_type == TokenType::Identifier {
+        tokens[1].value.clone()
+    } else {
+        String::new()
+    };
 
     let mut settings = default_test_settings;
 
     analyse_options(&tokens[2..], &mut settings, TokenType::RightGroupParenthesis)?;
 
-    let mut test_suite = TestSuite::new(name.to_string());
+    let mut test_suite = TestSuite::new(name);
     test_suite.test_settings = settings;
 
     Ok(test_suite)
@@ -220,8 +226,12 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     let mut index = 0;
 
     if tokens[index].token_type == TokenType::LeftTestParenthesis {
-        name = tokens[index + 1].value.clone();
-        index += 2;
+        if tokens[index + 1].token_type == TokenType::Identifier {
+            name = tokens[1].value.clone();
+            index += 1;
+        }
+
+        index += 1;
 
         index += analyse_options(&tokens[index..], &mut settings, TokenType::RightTestParenthesis)?;
     }
