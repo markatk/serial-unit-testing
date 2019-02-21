@@ -182,7 +182,11 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
         };
     }
 
+    let mut index = 1;
+
     let name = if tokens[1].token_type == TokenType::Identifier {
+        index += 1;
+
         tokens[1].value.clone()
     } else {
         String::new()
@@ -190,7 +194,7 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
 
     let mut settings = default_test_settings;
 
-    analyse_options(&tokens[2..], &mut settings, TokenType::RightGroupParenthesis)?;
+    analyse_options(&tokens[index..], &mut settings, TokenType::RightGroupParenthesis)?;
 
     let mut test_suite = TestSuite::new(name);
     test_suite.test_settings = settings;
