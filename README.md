@@ -1,5 +1,6 @@
 # Serial Unit Testing
 
+![Crates.io](https://img.shields.io/crates/v/serial-unit-testing.svg)
 [![Build Status](https://travis-ci.org/markatk/serial-unit-testing.svg?branch=master)](https://travis-ci.org/markatk/serial-unit-testing)
 [![Build status](https://ci.appveyor.com/api/projects/status/7b9osucvqpqp9ebd/branch/master?svg=true)](https://ci.appveyor.com/project/markatk/serial-unit-testing/branch/master)
 
