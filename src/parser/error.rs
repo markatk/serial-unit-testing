@@ -45,7 +45,8 @@ pub enum Error {
     InvalidLineStart(u32, u32),
     InvalidOptionValue(String, u32, u32),
     InvalidOutputContent(String, u32, u32),
-    UnknownTestOption(String, u32, u32)
+    UnknownTestOption(String, u32, u32),
+    UnknownGroupOption(String, u32, u32)
 }
 
 impl fmt::Display for Error {
@@ -65,7 +66,8 @@ impl fmt::Display for Error {
             Error::InvalidLineStart(line, column) => formatter.write_fmt(format_args!("Invalid line start at {}:{}", line, column)),
             Error::InvalidOptionValue(ref expected_type, line, column) => formatter.write_fmt(format_args!("Invalid option type at {}:{}. {} type expected", line, column, expected_type)),
             Error::InvalidOutputContent(ref content, line, column) => formatter.write_fmt(format_args!("Invalid output content '{}' at {}:{}", content, line, column)),
-            Error::UnknownTestOption(ref name, line, column) => formatter.write_fmt(format_args!("Unknown test option '{}' at {}:{}", name, line, column))
+            Error::UnknownTestOption(ref name, line, column) => formatter.write_fmt(format_args!("Unknown test option '{}' at {}:{}", name, line, column)),
+            Error::UnknownGroupOption(ref name, line, column) => formatter.write_fmt(format_args!("Unknown group option '{}' at {}:{}", name, line, column))
         }
     }
 }
@@ -87,7 +89,8 @@ impl StdError for Error {
             Error::InvalidLineStart(_, _) => "Invalid line start",
             Error::InvalidOptionValue(_, _, _) => "Invalid option value",
             Error::InvalidOutputContent(_, _, _) => "Invalid output content",
-            Error::UnknownTestOption(_, _, _) => "Unknown test option"
+            Error::UnknownTestOption(_, _, _) => "Unknown test option",
+            Error::UnknownGroupOption(_, _, _) => "Unknown group option"
         }
     }
 }

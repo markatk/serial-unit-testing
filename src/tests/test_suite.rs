@@ -61,6 +61,15 @@ impl TestSuite {
         }
     }
 
+    pub fn new_with_settings(name: String, settings: TestSuiteSettings, test_settings: TestCaseSettings) -> TestSuite {
+        TestSuite {
+            name,
+            settings,
+            test_settings,
+            tests: Vec::new()
+        }
+    }
+
     pub fn push(&mut self, test: TestCase) {
         self.tests.push(test);
 

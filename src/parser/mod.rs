@@ -39,11 +39,14 @@ mod string_util;
 mod char_util;
 mod lexer;
 mod finite_state_machine;
+mod options;
 
 use self::lexer::Lexer;
 use self::token::{Token, TokenType};
 use self::error::Error;
 use self::finite_state_machine::FiniteStateMachine;
+use self::options::{set_test_option, set_group_option};
+use tests::TestSuiteSettings;
 
 pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     parse_file_with_default_settings(file, Default::default())
@@ -192,12 +195,12 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
         String::new()
     };
 
-    let mut settings = default_test_settings;
+    let mut settings = TestSuiteSettings::default();
+    let mut test_settings = default_test_settings;
 
-    analyse_options(&tokens[index..], &mut settings, TokenType::RightGroupParenthesis)?;
+    analyse_group_options(&tokens[index..], &mut settings, &mut test_settings)?;
 
-    let mut test_suite = TestSuite::new(name);
-    test_suite.test_settings = settings;
+    let test_suite = TestSuite::new_with_settings(name, settings, test_settings);
 
     Ok(test_suite)
 }
@@ -237,7 +240,7 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
 
         index += 1;
 
-        index += analyse_options(&tokens[index..], &mut settings, TokenType::RightTestParenthesis)?;
+        index += analyse_test_options(&tokens[index..], &mut settings)?;
     }
 
     if tokens[index].token_type == TokenType::FormatSpecifier {
@@ -274,17 +277,44 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     Ok(test)
 }
 
-fn analyse_options(tokens: &[Token], settings: &mut TestCaseSettings, closing_token: TokenType) -> Result<usize, Error> {
+fn analyse_test_options(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<usize, Error> {
     let mut index = 0;
 
     while tokens[index].token_type == TokenType::ContentSeparator {
         // get length of option
         let mut option_length = 1;
-        while tokens[index + option_length].token_type != TokenType::ContentSeparator && tokens[index + option_length].token_type != closing_token {
+        while tokens[index + option_length].token_type != TokenType::ContentSeparator && tokens[index + option_length].token_type != TokenType::RightTestParenthesis {
             option_length += 1;
         }
 
         let offset = set_test_option(&tokens[index + 1 .. index + option_length], settings)?;
+
+        index += 2 + offset;
+    }
+
+    Ok(index + 1)
+}
+
+fn analyse_group_options(tokens: &[Token], settings: &mut TestSuiteSettings, test_settings: &mut TestCaseSettings) -> Result<usize, Error> {
+    let mut index = 0;
+
+    while tokens[index].token_type == TokenType::ContentSeparator {
+        // get length of option
+        let mut option_length = 1;
+        while tokens[index + option_length].token_type != TokenType::ContentSeparator && tokens[index + option_length].token_type != TokenType::RightGroupParenthesis {
+            option_length += 1;
+        }
+
+        // test for both group and test option
+        let offset = match set_test_option(&tokens[index + 1 .. index + option_length], test_settings) {
+            Ok(offset) => offset,
+            Err(err) => {
+                match err {
+                    Error::UnknownTestOption(_, _, _) => set_group_option(&tokens[index + 1 .. index + option_length], settings)?,
+                    _ => return Err(err)
+                }
+            },
+        };
 
         index += 2 + offset;
     }
@@ -299,82 +329,5 @@ fn get_text_format(token: &Token) -> Result<TextFormat, Error> {
         "d" => Ok(TextFormat::Decimal),
         "h" => Ok(TextFormat::Hex),
         _ => Err(Error::UnknownError(token.line, token.column))
-    }
-}
-
-fn set_test_option(tokens: &[Token], settings: &mut TestCaseSettings) -> Result<usize, Error> {
-    let name = tokens[0].value.trim();
-
-    // options with implicit value
-    match name {
-        "ignore-case" => {
-            let (value, offset) = if tokens.len() >= 3 {
-                (string_util::get_boolean_value(&tokens[2].value.clone()), 2)
-            } else {
-                (Some(true), 0)
-            };
-
-            if let Some(bool_val) = value {
-                settings.ignore_case = Some(bool_val);
-
-                return Ok(offset);
-            } else {
-                return Err(Error::InvalidOptionValue("boolean".to_string(), tokens[2].line, tokens[2].column));
-            }
-        },
-        "allow_failure" => {
-            let (value, offset) = if tokens.len() >= 3 {
-                (string_util::get_boolean_value(&tokens[2].value.clone()), 2)
-            } else {
-                (Some(true), 0)
-            };
-
-            if let Some(bool_val) = value {
-                settings.allow_failure = Some(bool_val);
-
-                return Ok(offset);
-            } else {
-                return Err(Error::InvalidOptionValue("boolean".to_string(), tokens[2].line, tokens[2].column));
-            }
-        },
-        _ => ()
-    };
-
-    // options with explicit value
-    if tokens.len() < 3 {
-        return Err(Error::MissingOptionValue(tokens[0].line, tokens[0].column));
-    }
-
-    let value = tokens[2].value.clone();
-
-    match name {
-        "delay" => {
-            if let Some(time) = string_util::get_time_value(&value) {
-                settings.delay = Some(time);
-
-                Ok(2)
-            } else {
-                Err(Error::InvalidOptionValue("time".to_string(), tokens[2].line, tokens[2].column))
-            }
-        },
-        "timeout" => {
-            if let Some(time) = string_util::get_time_value(&value) {
-                settings.timeout = Some(time);
-
-                Ok(2)
-            } else {
-                Err(Error::InvalidOptionValue("time".to_string(), tokens[2].line, tokens[2].column))
-            }
-        },
-        "repeat" => {
-            if let Ok(count) = value.parse::<u32>() {
-                settings.repeat = Some(count);
-
-                Ok(2)
-            } else {
-                Err(Error::InvalidOptionValue("number".to_string(), tokens[2].line, tokens[2].column))
-            }
-        },
-        _ => Err(Error::UnknownTestOption(name.to_string(), tokens[0].line, tokens[0].column))
     }
 }
