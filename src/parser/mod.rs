@@ -183,13 +183,8 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
     let name = &tokens[1].value;
 
     let mut settings = default_test_settings;
-    let mut index = 2;
 
-    while tokens[index].token_type == TokenType::ContentSeparator {
-        set_test_option(&tokens[index + 1 .. index + 4], &mut settings)?;
-
-        index += 4;
-    }
+    analyse_options(&tokens[2..], &mut settings, TokenType::RightGroupParenthesis)?;
 
     let mut test_suite = TestSuite::new(name.to_string());
     test_suite.test_settings = settings;
@@ -228,19 +223,7 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
         name = tokens[index + 1].value.clone();
         index += 2;
 
-        while tokens[index].token_type == TokenType::ContentSeparator {
-            // get length of option
-            let mut option_length = 1;
-            while tokens[index + option_length].token_type != TokenType::ContentSeparator && tokens[index + option_length].token_type != TokenType::RightTestParenthesis {
-                option_length += 1;
-            }
-
-            let offset = set_test_option(&tokens[index + 1 .. index + option_length], &mut settings)?;
-
-            index += 2 + offset;
-        }
-
-        index += 1;
+        index += analyse_options(&tokens[index..], &mut settings, TokenType::RightTestParenthesis)?;
     }
 
     if tokens[index].token_type == TokenType::FormatSpecifier {
@@ -275,6 +258,24 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
     }
 
     Ok(test)
+}
+
+fn analyse_options(tokens: &[Token], settings: &mut TestCaseSettings, closing_token: TokenType) -> Result<usize, Error> {
+    let mut index = 0;
+
+    while tokens[index].token_type == TokenType::ContentSeparator {
+        // get length of option
+        let mut option_length = 1;
+        while tokens[index + option_length].token_type != TokenType::ContentSeparator && tokens[index + option_length].token_type != closing_token {
+            option_length += 1;
+        }
+
+        let offset = set_test_option(&tokens[index + 1 .. index + option_length], settings)?;
+
+        index += 2 + offset;
+    }
+
+    Ok(index + 1)
 }
 
 fn get_text_format(token: &Token) -> Result<TextFormat, Error> {
