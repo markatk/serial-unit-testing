@@ -38,7 +38,7 @@ pub struct TestSuiteSettings {
 impl Default for TestSuiteSettings {
     fn default() -> TestSuiteSettings {
         TestSuiteSettings {
-            stop_on_failure: true
+            stop_on_failure: false
         }
     }
 }
