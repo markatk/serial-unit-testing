@@ -28,8 +28,6 @@
 
 #[macro_use]
 extern crate clap;
-extern crate serialport;
-extern crate colored;
 
 extern crate serial_unit_testing;
 
