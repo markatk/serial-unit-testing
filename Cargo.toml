@@ -1,8 +1,10 @@
 [package]
 name = "serial-unit-testing"
+description = "Serial unit testing program and library"
 version = "0.1.3"
 authors = ["MarkAtk"]
 edition = "2018"
+license = "MIT"
 
 [lib]
 name = "serial_unit_testing"
