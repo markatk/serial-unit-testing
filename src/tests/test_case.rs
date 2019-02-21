@@ -30,12 +30,10 @@ use std::io;
 use std::str;
 use std::time::Duration;
 use std::thread::sleep;
-
 use colored::*;
 use regex::Regex;
-
-use serial::Serial;
-use utils;
+use crate::serial::Serial;
+use crate::utils;
 
 #[derive(Debug, Clone)]
 pub struct TestCaseSettings {

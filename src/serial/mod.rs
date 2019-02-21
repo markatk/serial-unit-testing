@@ -30,10 +30,8 @@ use std::boxed::Box;
 use std::io;
 use std::str;
 use std::time::Duration;
-
 use serialport;
-
-use utils;
+use crate::utils;
 
 pub mod settings;
 

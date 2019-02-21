@@ -26,7 +26,7 @@
  * SOFTWARE.
  */
 
-use tests::{TestCaseSettings, TestSuiteSettings};
+use crate::tests::{TestCaseSettings, TestSuiteSettings};
 use super::token::{Token};
 use super::string_util;
 use super::error::Error;

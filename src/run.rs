@@ -28,15 +28,12 @@
 
 use std::io;
 use std::fs::File;
-
 use clap::{ArgMatches, SubCommand, Arg, App};
 use colored::*;
-
 use serial_unit_testing::serial::Serial;
 use serial_unit_testing::parser;
 use serial_unit_testing::tests::TestCaseSettings;
-
-use commands;
+use crate::commands;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let filename = matches.value_of("file").unwrap();

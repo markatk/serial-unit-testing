@@ -27,13 +27,10 @@
  */
 
 use std::io;
-
 use clap::{ArgMatches, SubCommand, Arg, App};
-
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::{Serial, CheckSettings};
-
-use commands;
+use crate::commands;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();

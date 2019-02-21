@@ -29,9 +29,8 @@
 use std::fs;
 use std::io::{BufReader, Read};
 use regex::Regex;
-
-use tests::{TestCase, TestSuite, TestCaseSettings};
-use utils::TextFormat;
+use crate::tests::{TestCase, TestSuite, TestCaseSettings, TestSuiteSettings};
+use crate::utils::TextFormat;
 
 mod error;
 mod token;
@@ -46,7 +45,6 @@ use self::token::{Token, TokenType};
 use self::error::Error;
 use self::finite_state_machine::FiniteStateMachine;
 use self::options::{set_test_option, set_group_option};
-use tests::TestSuiteSettings;
 
 pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     parse_file_with_default_settings(file, Default::default())

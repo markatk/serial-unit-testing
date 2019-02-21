@@ -26,9 +26,9 @@
  * SOFTWARE.
  */
 
-use serial::Serial;
+use crate::serial::Serial;
 
-pub use tests::test_case::{TestCase, TestCaseSettings};
+pub use crate::tests::test_case::{TestCase, TestCaseSettings};
 
 #[derive(Debug, Clone)]
 pub struct TestSuiteSettings {

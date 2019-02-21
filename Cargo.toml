@@ -2,6 +2,7 @@
 name = "serial_unit_testing"
 version = "0.1.2"
 authors = ["MarkAtk"]
+edition = "2018"
 
 [lib]
 name = "serial_unit_testing"
