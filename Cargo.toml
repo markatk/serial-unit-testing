@@ -1,6 +1,6 @@
 [package]
-name = "serial_unit_testing"
-version = "0.1.2"
+name = "serial-unit-testing"
+version = "0.1.3"
 authors = ["MarkAtk"]
 edition = "2018"
 
