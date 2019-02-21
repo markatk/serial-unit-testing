@@ -19,3 +19,10 @@ addons:
   apt:
     packages:
       - libudev-dev
+
+deploy:
+  provider: cargo
+  on:
+    tags: true
+  token:
+    secure: bbB4Ev12FNo8bwaYh9lg+0jUwPaw06wy5LKh8HEywxaJQV3fCFvr40SKCUVtuwmL10uBOh+BoROlOdXb47kE4gyUV2qx7wdE0a8pQZRlIgZwKZ7gKrcPmWlsGvXv+dVemac3mxdYKB164zE+kt4tFxBfVlyxfpeK4iSekpBtISdTpzBM1esQluj7K6DZxJTNdpTenJ2oF7+Cd8pw+J5iB6Rs3u9Jf04JLCJZO+SpDWmTsJ7npqbYiexDb3LyiZBC87wNzugQ9C1t14puL3mFLmmiMbJAAU4o8RMDPGlD7DwJDxEdaSh2k3qg1/N74LmFHDCCondW0i+SXhRO1xp+pYpzNd9VVYCPEVVEQ9CSNHHUGX0OS9xLNhbpwj1iHbgUKx/JWl4aGNk9/fZHe8zJi3XglzsTln9WRXiQiqgxKM4/bWxhW8VI63TkDBdsVYvy/9/BEhpF+n8aDC10DSIk13zBVqGM7oqzLyM2HTWOBYnFLrOkrRVOzfYYLgaz4QYM0IttLXfPwa4auI59jUNs8jRkW/4nQZPaVBNyB+bYv8oMXTr3gGE3PD2cEHmFg8A7he4MJYRhuvhwOZYM0gKAsPLkEXLqsOqvR04s2hQ/2/Z4CFVQ+H7Km5YjOOz9nzo6yx1t/bMB+kWN5Wj7zFnf6wtKfhJNmz1MQ3Ps6jhyjsw=
