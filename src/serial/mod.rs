@@ -101,10 +101,19 @@ impl Serial {
         Ok(&self.read_buffer[..length])
     }
 
-    pub fn read_str(&mut self) -> Result<&str, io::Error> {
+    pub fn read_str(&mut self) -> Result<String, io::Error> {
+        self.read_str_with_format(utils::TextFormat::Text)
+    }
+
+    pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String, io::Error> {
         let data = self.read()?;
 
-        Ok(str::from_utf8(data).unwrap())
+        let result = match format {
+            utils::TextFormat::Text => str::from_utf8(data).unwrap().to_string(),
+            _ => utils::radix_string(data, &format)
+        };
+
+        Ok(result)
     }
 
     pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8], io::Error> {
@@ -119,7 +128,7 @@ impl Serial {
         Ok(&self.read_buffer[..length])
     }
 
-    pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<&str, io::Error> {
+    pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<String, io::Error> {
         // remember old timeout
         let old_timeout = self.port.timeout();
         self.port.set_timeout(timeout)?;
@@ -128,7 +137,25 @@ impl Serial {
 
         self.port.set_timeout(old_timeout)?;
 
-        Ok(str::from_utf8(&self.read_buffer[..length]).unwrap())
+        Ok(str::from_utf8(&self.read_buffer[..length]).unwrap().to_string())
+    }
+
+    pub fn read_str_with_format_and_timeout(&mut self, format: utils::TextFormat, timeout: Duration) -> Result<String, io::Error> {
+        // remember old timeout
+        let old_timeout = self.port.timeout();
+        self.port.set_timeout(timeout)?;
+
+        let length = self.port.read(&mut self.read_buffer)?;
+        let data = &self.read_buffer[..length];
+
+        self.port.set_timeout(old_timeout)?;
+
+        let result = match format {
+            utils::TextFormat::Text => str::from_utf8(data).unwrap().to_string(),
+            _ => utils::radix_string(data, &format)
+        };
+
+        Ok(result)
     }
 
     pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String), io::Error> {
