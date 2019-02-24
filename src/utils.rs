@@ -26,6 +26,8 @@
  * SOFTWARE.
  */
 
+use std::str;
+
 #[derive(PartialEq, Debug)]
 pub enum TextFormat {
     Text,
@@ -66,7 +68,11 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String
     Ok(bytes)
 }
 
-pub fn radix_string<'a>(buffer: &'a [u8], text_format: &TextFormat) -> String {
+pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> String {
+    if *text_format == TextFormat::Text {
+        return str::from_utf8(buffer).unwrap().to_string();
+    }
+
     let mut text = String::new();
 
     for b in buffer {

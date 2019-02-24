@@ -112,10 +112,7 @@ impl Serial {
     pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String, io::Error> {
         let data = self.read()?;
 
-        let result = match format {
-            utils::TextFormat::Text => str::from_utf8(data).unwrap().to_string(),
-            _ => utils::radix_string(data, &format)
-        };
+        let result = utils::radix_string(data, &format);
 
         Ok(result)
     }
@@ -126,10 +123,7 @@ impl Serial {
         loop {
             match self.read() {
                 Ok(bytes) => {
-                    let new_text = match format {
-                        utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                        _ => utils::radix_string(bytes, &format)
-                    };
+                    let new_text = utils::radix_string(bytes, &format);
 
                     response.push_str(new_text.as_str());
 
@@ -185,10 +179,7 @@ impl Serial {
 
         self.port.set_timeout(old_timeout)?;
 
-        let result = match format {
-            utils::TextFormat::Text => str::from_utf8(data).unwrap().to_string(),
-            _ => utils::radix_string(data, &format)
-        };
+        let result = utils::radix_string(data, &format);
 
         Ok(result)
     }
@@ -217,10 +208,7 @@ impl Serial {
         loop {
             match self.read() {
                 Ok(bytes) => {
-                    let mut new_text = match settings.output_format {
-                        utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                        _ => utils::radix_string(bytes, &settings.output_format)
-                    };
+                    let mut new_text = utils::radix_string(bytes, &settings.output_format);
 
                     if settings.ignore_case {
                         new_text = new_text.to_lowercase();
