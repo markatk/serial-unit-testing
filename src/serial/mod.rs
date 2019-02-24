@@ -137,9 +137,19 @@ impl Serial {
         self.check_with_settings(text, desired_response, &settings)
     }
 
+    pub fn check_read(&mut self, desired_response: &str) -> Result<(bool, String), io::Error> {
+        let settings: CheckSettings = Default::default();
+
+        self.check_read_with_settings(desired_response, &settings)
+    }
+
     pub fn check_with_settings(&mut self, text: &str, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
         self.write_format(text, &settings.input_format)?;
 
+        self.check_read_with_settings(desired_response, settings)
+    }
+
+    pub fn check_read_with_settings(&mut self, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
         let mut response = String::new();
 
         loop {
