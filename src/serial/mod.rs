@@ -105,6 +105,10 @@ impl Serial {
         self.read_str_with_format(utils::TextFormat::Text)
     }
 
+    pub fn read_min_str(&mut self, min_length: usize) -> Result<String, io::Error> {
+        self.read_min_str_with_format(min_length, utils::TextFormat::Text)
+    }
+
     pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String, io::Error> {
         let data = self.read()?;
 
@@ -114,6 +118,37 @@ impl Serial {
         };
 
         Ok(result)
+    }
+
+    pub fn read_min_str_with_format(&mut self, min_length: usize, format: utils::TextFormat) -> Result<String, io::Error> {
+        let mut response = String::new();
+
+        loop {
+            match self.read() {
+                Ok(bytes) => {
+                    let new_text = match format {
+                        utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
+                        _ => utils::radix_string(bytes, &format)
+                    };
+
+                    response.push_str(new_text.as_str());
+
+                    if response.len() >= min_length {
+                        break;
+                    }
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                    if response.len() == 0 {
+                        return Err(io::Error::new(io::ErrorKind::TimedOut, "Connection timed out"));
+                    }
+
+                    break;
+                },
+                Err(e) => return Err(e)
+            }
+        }
+
+        Ok(response)
     }
 
     pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8], io::Error> {
