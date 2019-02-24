@@ -8,6 +8,14 @@
 
 Serial unit testing is a cross-platform cli application and rust library. Using serial unit testing communication and testing with any serial port device can be done and most important automated.
 
+# Installation
+
+If you have rust installed:
+
+```
+cargo install serial-unit-testing
+```
+
 # Application
 
 The application is structured in the following sub commands:
