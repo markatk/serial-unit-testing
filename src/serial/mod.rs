@@ -95,13 +95,19 @@ impl Serial {
         Ok(())
     }
 
-    pub fn read<'a>(&'a mut self) -> Result<&'a [u8], io::Error> {
+    pub fn read(&mut self) -> Result<&[u8], io::Error> {
         let length = self.port.read(&mut self.read_buffer)?;
 
         Ok(&self.read_buffer[..length])
     }
 
-    pub fn read_with_timeout<'a>(&'a mut self, timeout: Duration) -> Result<&'a [u8], io::Error> {
+    pub fn read_str(&mut self) -> Result<&str, io::Error> {
+        let data = self.read()?;
+
+        Ok(str::from_utf8(data).unwrap())
+    }
+
+    pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8], io::Error> {
         // remember old timeout
         let old_timeout = self.port.timeout();
         self.port.set_timeout(timeout)?;
@@ -111,6 +117,18 @@ impl Serial {
         self.port.set_timeout(old_timeout)?;
 
         Ok(&self.read_buffer[..length])
+    }
+
+    pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<&str, io::Error> {
+        // remember old timeout
+        let old_timeout = self.port.timeout();
+        self.port.set_timeout(timeout)?;
+
+        let length = self.port.read(&mut self.read_buffer)?;
+
+        self.port.set_timeout(old_timeout)?;
+
+        Ok(str::from_utf8(&self.read_buffer[..length]).unwrap())
     }
 
     pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String), io::Error> {
