@@ -35,34 +35,52 @@ use crate::utils;
 
 pub mod settings;
 
+/// A serial port connection.
+///
+/// This struct handles the complete communication with a serial device regardless of the platform.
 pub struct Serial {
     port: Box<serialport::SerialPort>,
     read_buffer: Vec<u8>
 }
 
-pub struct CheckSettings {
-    pub ignore_case: bool,
-    pub input_format: utils::TextFormat,
-    pub output_format: utils::TextFormat
-}
-
-impl Default for CheckSettings {
-    fn default() -> CheckSettings {
-        CheckSettings {
-            ignore_case: false,
-            input_format: utils::TextFormat::Text,
-            output_format: utils::TextFormat::Text
-        }
-    }
-}
-
 impl Serial {
+    /// Open a new connection with default settings.
+    ///
+    /// The port name is platform specific, e.g. starts with `COM` on Windows and `/dev/tty` or similar on UNIX systems.
+    ///
+    /// Default settings are:
+    /// - Baud rate: 9600
+    /// - Timeout: 1000 (ms)
+    /// - Data bits: 8
+    /// - Parity: None,
+    /// - Stop bits: 1,
+    /// - Flow control: None
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut serial = Serial::open("/dev/ttyACM0");
+    /// serial.write("Hello World!");
+    /// ```
     pub fn open(port_name: &str) -> Result<Serial, String> {
         let settings: settings::Settings = Default::default();
 
         Serial::open_with_settings(port_name, &settings)
     }
 
+    /// Open a new connection with given settings.
+    ///
+    /// The port name is platform specific, e.g. starts with `COM` on Windows and `/dev/tty` or similar on UNIX systems.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut settings = Settings::default();
+    /// settings.baud_rate = 115200;
+    ///
+    /// let mut serial = Serial::open_with_settings("/dev/ttyACM0", &settings);
+    /// serial.write("Hello World!");
+    /// ```
     pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial, String> {
         match serialport::open_with_settings(&port_name, &settings.to_serial_port_settings()) {
             Ok(port) => {
@@ -72,12 +90,25 @@ impl Serial {
         }
     }
 
+    /// Write text to the serial port.
+    ///
+    /// This is the same as using `Serial::write_format` with `TextFormat::Text` as format specifier.
     pub fn write(&mut self, text: &str) -> Result<(), io::Error> {
         self.port.write(text.as_bytes())?;
 
         Ok(())
     }
 
+    /// Write data in the given format.
+    ///
+    /// For a list of supported formats see `TextFormat`. `TextFormat::Text` is the same as using `Serial::write`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut serial = Serial::open("/dev/ttyACM0");
+    /// serial.write_format("0a5f", TextFormat::Hex);
+    /// ```
     pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), io::Error> {
         let bytes = match text_format {
             utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
@@ -95,19 +126,36 @@ impl Serial {
         Ok(())
     }
 
+    /// Read any amount of data.
+    ///
+    /// At least one byte of data must be read to return data. The method fails when no data could be read in the timeout duration.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut serial = Serial::open("/dev/ttyACM0");
+    /// let data = serial.read().unwrap();
+    /// ```
     pub fn read(&mut self) -> Result<&[u8], io::Error> {
         let length = self.port.read(&mut self.read_buffer)?;
 
         Ok(&self.read_buffer[..length])
     }
 
+    /// Read a string.
+    ///
+    /// At least one character must be read to return successfully. The method fails when no characters could be read in the timeout duration.
     pub fn read_str(&mut self) -> Result<String, io::Error> {
         self.read_str_with_format(utils::TextFormat::Text)
     }
 
+    /// Read a string with minimum length.
+    ///
+    /// At least the amount of characters given by `min_length` must be read to return successfully. The method fails when no characters could be read in the timeout duration.
     pub fn read_min_str(&mut self, min_length: usize) -> Result<String, io::Error> {
         self.read_min_str_with_format(min_length, utils::TextFormat::Text)
     }
+
 
     pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String, io::Error> {
         let data = self.read()?;
@@ -236,5 +284,25 @@ impl Serial {
         }
 
         Ok((desired_response == response, response))
+    }
+}
+
+/// Settings for running tests on a serial port.
+pub struct CheckSettings {
+    /// Ignore response case mode.
+    pub ignore_case: bool,
+    /// Format of the data written to the serial port.
+    pub input_format: utils::TextFormat,
+    /// Format of the data received by the serial port.
+    pub output_format: utils::TextFormat
+}
+
+impl Default for CheckSettings {
+    fn default() -> CheckSettings {
+        CheckSettings {
+            ignore_case: false,
+            input_format: utils::TextFormat::Text,
+            output_format: utils::TextFormat::Text
+        }
     }
 }
