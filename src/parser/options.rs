@@ -86,6 +86,7 @@ pub fn set_group_option(tokens: &[Token], settings: &mut TestSuiteSettings) -> R
     // options with implicit value
     match name {
         "stop-on-failure" => return parse_boolean_option(tokens, &mut settings.stop_on_failure),
+        "disabled" => return parse_boolean_option(tokens, &mut settings.disabled),
         _ => ()
     };
 

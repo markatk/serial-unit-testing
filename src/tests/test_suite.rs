@@ -34,13 +34,16 @@ pub use crate::tests::test_case::{TestCase, TestCaseSettings};
 #[derive(Debug, Clone)]
 pub struct TestSuiteSettings {
     /// If set the test suite will stop on first test failing.
-    pub stop_on_failure: bool
+    pub stop_on_failure: bool,
+    /// If set the test suites will not be run.
+    pub disabled: bool
 }
 
 impl Default for TestSuiteSettings {
     fn default() -> TestSuiteSettings {
         TestSuiteSettings {
-            stop_on_failure: false
+            stop_on_failure: false,
+            disabled: false
         }
     }
 }
@@ -93,6 +96,10 @@ impl TestSuite {
     ///
     /// Execution will stop early if stop_on_failure is set and a test fails.
     pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
+        if self.settings.disabled {
+            return Ok(true);
+        }
+
         for test in self.tests.iter_mut() {
             let result = test.run(serial)?;
 
@@ -112,6 +119,10 @@ impl TestSuite {
 
         if show_title && quiet == false {
             println!("{}", self.title());
+        }
+
+        if self.settings.disabled {
+            return true;
         }
 
         for test in self.tests.iter_mut() {
@@ -177,7 +188,11 @@ impl TestSuite {
     }
 
     fn title(&self) -> String {
-        format!("{}:", self.name)
+        if self.settings.disabled {
+            format!("{}: Disabled", self.name)
+        } else {
+            format!("{}:", self.name)
+        }
     }
 }
 
