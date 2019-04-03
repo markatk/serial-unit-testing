@@ -156,7 +156,11 @@ impl Serial {
         self.read_min_str_with_format(min_length, utils::TextFormat::Text)
     }
 
-
+    /// Read a string as given format.
+    ///
+    /// The bytes received will be formatted into the given string format.
+    ///
+    /// At least one character must be read to return successfully. The method fails when no characters could be read in the timeout duration.
     pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String, io::Error> {
         let data = self.read()?;
 
@@ -165,6 +169,12 @@ impl Serial {
         Ok(result)
     }
 
+    /// Read a string as given format.
+    ///
+    /// The bytes received will be formatted into the given string format.
+    ///
+    /// At least the amount of characters (not bytes) given by `min_length` must be read to return successfully.
+    /// The method fails when no characters could be read in the timeout duration.
     pub fn read_min_str_with_format(&mut self, min_length: usize, format: utils::TextFormat) -> Result<String, io::Error> {
         let mut response = String::new();
 
@@ -193,6 +203,11 @@ impl Serial {
         Ok(response)
     }
 
+    /// Read any amount of data in given timeout duration.
+    ///
+    /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
+    ///
+    /// At least one byte of data must be read to return data. The method fails when no data could be read in the timeout duration.
     pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8], io::Error> {
         // remember old timeout
         let old_timeout = self.port.timeout();
@@ -205,6 +220,11 @@ impl Serial {
         Ok(&self.read_buffer[..length])
     }
 
+    /// Read a string in given timeout duration.
+    ///
+    /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
+    ///
+    /// At least one character must be read to return successfully. The method fails when no data could be read in the timeout duration.
     pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<String, io::Error> {
         // remember old timeout
         let old_timeout = self.port.timeout();
@@ -217,6 +237,12 @@ impl Serial {
         Ok(str::from_utf8(&self.read_buffer[..length]).unwrap().to_string())
     }
 
+    /// Read a string as given format in given timeout duration.
+    ///
+    /// The bytes received will be formatted into the given string format.
+    /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
+    ///
+    /// At least one character must be read to return successfully. The method fails when no characters could be read in the timeout duration.
     pub fn read_str_with_format_and_timeout(&mut self, format: utils::TextFormat, timeout: Duration) -> Result<String, io::Error> {
         // remember old timeout
         let old_timeout = self.port.timeout();
@@ -232,24 +258,51 @@ impl Serial {
         Ok(result)
     }
 
+    /// Send text to the serial and check if the response matches the desired response.
+    ///
+    /// The check will return early if the beginning of the responses does not match.
+    ///
+    /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let mut serial = Serial::open("/dev/ttyACM0");
+    /// let (result, actual_response) = serial.check("hello", "world");
+    /// ```
     pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String), io::Error> {
         let settings: CheckSettings = Default::default();
 
         self.check_with_settings(text, desired_response, &settings)
     }
 
+    /// Check if a response matches the desired response.
+    ///
+    /// The check will return early if the beginning of the responses does not match.
+    ///
+    /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
     pub fn check_read(&mut self, desired_response: &str) -> Result<(bool, String), io::Error> {
         let settings: CheckSettings = Default::default();
 
         self.check_read_with_settings(desired_response, &settings)
     }
 
+    /// Send text to the serial and check if the response matches the desired response with given settings.
+    ///
+    /// The check will return early if the beginning of the responses does not match.
+    ///
+    /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
     pub fn check_with_settings(&mut self, text: &str, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
         self.write_format(text, &settings.input_format)?;
 
         self.check_read_with_settings(desired_response, settings)
     }
 
+    /// Check if a response matches desired response with given settings.
+    ///
+    /// The check will return early if the beginning of the responses does not match.
+    ///
+    /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
     pub fn check_read_with_settings(&mut self, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
         let mut response = String::new();
 

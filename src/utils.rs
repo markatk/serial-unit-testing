@@ -28,15 +28,24 @@
 
 use std::str;
 
+/// Text format type for radix string conversion.
 #[derive(PartialEq, Debug)]
 pub enum TextFormat {
+    /// Text format
     Text,
+    /// Binary format
     Binary = 2,
+    /// Octal format
     Octal = 8,
+    /// Decimal format
     Decimal = 10,
+    /// Hexadecimal format
     Hex = 16
 }
 
+/// Convert a hexadecimal string into a vector of bytes.
+///
+/// Leading 0x and whitespaces will be ignored.
 pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, String> {
     let mut text = original_text.replace("0x", "");
     text = text.replace(" ", "");
@@ -44,6 +53,9 @@ pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, String> {
     bytes_from_radix_string(&text, 16)
 }
 
+/// Convert a binary string into a vector of bytes.
+///
+/// Leading 0b and whitespaces will be ignored.
 pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>, String> {
     let mut text = original_text.replace("0b", "");
     text = text.replace(" ", "");
@@ -51,6 +63,9 @@ pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>, String> 
     bytes_from_radix_string(&text, 2)
 }
 
+/// Convert a radix string into a vector of bytes.
+///
+/// Leading and trailing whitespaces will result in an error. Conversion happens by 2 characters per byte.
 pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String> {
     let mut bytes: Vec<u8> = Vec::new();
 
@@ -68,6 +83,7 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String
     Ok(bytes)
 }
 
+/// Convert a vector of bytes into a radix string with given text format.
 pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> String {
     if *text_format == TextFormat::Text {
         return str::from_utf8(buffer).unwrap().to_string();
@@ -88,6 +104,15 @@ pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> String {
     text
 }
 
+/// Print a vector of bytes in given format.
+///
+/// Depending on the format newlines will be inserted after some entries as followed:
+/// - Binary: 10
+/// - Octal: 16
+/// - Decimal: 18
+/// - Hexadecimal: 20
+///
+/// Row entries will contain the number of entries in the last row after execution.
 pub fn print_radix_string(buffer: &[u8], text_format: &TextFormat, row_entries: &mut u32) {
     let max_row_entries = match text_format {
         TextFormat::Binary => 10,
@@ -114,6 +139,9 @@ pub fn print_radix_string(buffer: &[u8], text_format: &TextFormat, row_entries: 
     }
 }
 
+/// Escape given string
+///
+/// Characters escaped are: \r, \n, \t
 pub fn escape_text(text: String) -> String {
     let mut text = text.replace("\\r", "\r");
     text = text.replace("\\n", "\n");

@@ -1,6 +1,7 @@
 # Serial Unit Testing
 
 [![Crates.io](https://img.shields.io/crates/v/serial-unit-testing.svg)](https://crates.io/crates/serial-unit-testing)
+[![Documentation](https://docs.rs/serial-unit-testing/badge.svg)](https://docs.rs/crate/serial-unit-testingserialport)
 [![Build Status](https://travis-ci.org/markatk/serial-unit-testing.svg?branch=master)](https://travis-ci.org/markatk/serial-unit-testing)
 [![Build status](https://ci.appveyor.com/api/projects/status/7b9osucvqpqp9ebd/branch/master?svg=true)](https://ci.appveyor.com/project/markatk/serial-unit-testing/branch/master)
 
@@ -16,6 +17,10 @@ If you have rust installed:
 cargo install serial-unit-testing
 ```
 
+If you don't have rust installed:
+
+**TODO**
+
 # Application
 
 The application is structured in the following sub commands:
@@ -23,7 +28,7 @@ The application is structured in the following sub commands:
 - `list`: List all available serial ports
 - `send`: Send data to a serial port
 - `check`: Send data to a serial port and check for correct response
-- `monitor`: Continously display serial port data
+- `monitor`: Continuously display serial port data
 - `run`: Run a script on a serial port
 - `verify`: Verify a script can be parsed without failure
 - `help`: Print information about the application or a subcommand

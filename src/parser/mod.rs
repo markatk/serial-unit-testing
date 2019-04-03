@@ -46,10 +46,16 @@ use self::error::Error;
 use self::finite_state_machine::FiniteStateMachine;
 use self::options::{set_test_option, set_group_option};
 
+/// Parse the given file for tests and test suites.
+///
+/// A vector of test suites is returned on successful parsing, otherwise a parsing error is returned.
 pub fn parse_file(file: &mut fs::File) -> Result<Vec<TestSuite>, Error> {
     parse_file_with_default_settings(file, Default::default())
 }
 
+/// Parse the given file for tests and test suites with the given default settings.
+///
+/// A vector of test suites is returned on successful parsing, otherwise a parsing error is returned.
 pub fn parse_file_with_default_settings(file: &mut fs::File, default_test_settings: TestCaseSettings) -> Result<Vec<TestSuite>, Error> {
     let mut reader = BufReader::new(file);
     let mut content = String::new();

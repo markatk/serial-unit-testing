@@ -35,17 +35,30 @@ use regex::Regex;
 use crate::serial::Serial;
 use crate::utils;
 
+/// Settings for running a test.
+///
+/// All not set properties will be overwritten by the test suite.
 #[derive(Debug, Clone)]
 pub struct TestCaseSettings {
+    /// Ignore case for string comparison.
     pub ignore_case: Option<bool>,
+    /// Repeat the test given times.
     pub repeat: Option<u32>,
+    /// Wait given milliseconds before executing the test.
     pub delay: Option<Duration>,
+    /// Timeout duration before the test will fail.
     pub timeout: Option<Duration>,
+    /// Allow the test to fail.
     pub allow_failure: Option<bool>,
+    /// Print additional information when executing the test.
     pub verbose: Option<bool>
 }
 
 impl TestCaseSettings {
+    /// Merge test settings with other test settings.
+    ///
+    /// Properties will be set if own property is not set but other's is.
+    /// Own properties will not be overwritten.
     pub fn merge_weak(&mut self, other: &TestCaseSettings) {
         if self.ignore_case.is_none() && other.ignore_case.is_some() {
             self.ignore_case = other.ignore_case;
@@ -86,10 +99,14 @@ impl Default for TestCaseSettings {
     }
 }
 
+/// Test representing a check on the serial.
 #[derive(Debug)]
 pub struct TestCase {
+    /// Settings to use for the test.
     pub settings: TestCaseSettings,
+    /// Text format of the input send to the serial.
     pub input_format: utils::TextFormat,
+    /// Text format of the response received by the serial.
     pub output_format: utils::TextFormat,
 
     name: String,
@@ -101,6 +118,7 @@ pub struct TestCase {
 }
 
 impl TestCase {
+    /// Create a new test.
     pub fn new(name: String, input: String, output: String) -> TestCase {
         TestCase {
             name,
@@ -115,6 +133,9 @@ impl TestCase {
         }
     }
 
+    /// Execute the test on given serial port.
+    ///
+    /// After running the test response and successful are set if no error occurred.
     pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
         // get input and desired output in correct format
         let input: String;
@@ -184,10 +205,16 @@ impl TestCase {
         Ok(())
     }
 
+    /// Check if the test was successful.
+    ///
+    /// If the test was not run before None will be returned.
     pub fn is_successful(&self) -> Option<bool> {
         self.successful
     }
 
+    /// Get the error from running the test.
+    ///
+    /// If the test was not run before or no error occurred None will be returned.
     pub fn error(&self) -> Option<String> {
         self.error.clone()
     }

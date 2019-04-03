@@ -30,8 +30,10 @@ use crate::serial::Serial;
 
 pub use crate::tests::test_case::{TestCase, TestCaseSettings};
 
+/// Settings for running a test suite.
 #[derive(Debug, Clone)]
 pub struct TestSuiteSettings {
+    /// If set the test suite will stop on first test failing.
     pub stop_on_failure: bool
 }
 
@@ -43,15 +45,20 @@ impl Default for TestSuiteSettings {
     }
 }
 
+/// Test suite representing a group of tests.
 #[derive(Debug)]
 pub struct TestSuite {
+    /// Name of the test group.
     pub name: String,
+    /// Settings to use for the test suite.
     pub settings: TestSuiteSettings,
+    /// Test settings to use for all tests.
     pub test_settings: TestCaseSettings,
     tests: Vec<TestCase>
 }
 
 impl TestSuite {
+    /// Create a new test suite.
     pub fn new(name: String) -> TestSuite {
         TestSuite {
             name,
@@ -61,6 +68,7 @@ impl TestSuite {
         }
     }
 
+    /// Create a new test suite with given suite and test settings.
     pub fn new_with_settings(name: String, settings: TestSuiteSettings, test_settings: TestCaseSettings) -> TestSuite {
         TestSuite {
             name,
@@ -70,6 +78,9 @@ impl TestSuite {
         }
     }
 
+    /// Add a test to the suite.
+    ///
+    /// Tests added to the suite will be run when the suite is executed.
     pub fn push(&mut self, test: TestCase) {
         self.tests.push(test);
 
@@ -78,6 +89,9 @@ impl TestSuite {
         }
     }
 
+    /// Run all tests belonging to the test suite on given serial port.
+    ///
+    /// Execution will stop early if stop_on_failure is set and a test fails.
     pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
         for test in self.tests.iter_mut() {
             test.run(serial)?;
@@ -90,6 +104,9 @@ impl TestSuite {
         Ok(true)
     }
 
+    /// Run all tests belonging to the test suite on given serial port and print the results.
+    ///
+    /// Execution will stop early if stop_on_failure is set and a test fails.
     pub fn run_and_print(&mut self, serial: &mut Serial) -> bool {
         let show_title = self.name != "";
 
@@ -117,18 +134,26 @@ impl TestSuite {
         true
     }
 
+    /// Get the number of tests belonging to the test suite.
     pub fn len(&self) -> usize {
         self.tests.len()
     }
 
+    /// Check if any test belongs to the test suite.
     pub fn is_empty(&self) -> bool {
         self.tests.is_empty()
     }
 
+    /// Get the number of failed tests.
+    ///
+    /// Will return 0 if not run before.
     pub fn failed(&self) -> usize {
         self.count_tests(false)
     }
 
+    /// Get the number of successful tests.
+    ///
+    /// Will return 0 if not run before.
     pub fn successful(&self) -> usize {
         self.count_tests(true)
     }
