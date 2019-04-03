@@ -63,6 +63,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let mut failed_tests = 0;
 
     let stop_on_failure = matches.is_present("stop");
+    let quiet = matches.is_present("quiet");
 
     for mut test_suite in test_suites {
         // only set stop_on_failure and never reset
@@ -70,7 +71,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             test_suite.settings.stop_on_failure = stop_on_failure;
         }
 
-        let result = test_suite.run_and_print(&mut serial);
+        let result = test_suite.run_and_print(&mut serial, quiet);
 
         let successful = test_suite.successful();
         let failed = test_suite.failed();
@@ -79,7 +80,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         successful_tests += successful;
         failed_tests += failed;
 
-        println!();
+        if quiet == false {
+            println!();
+        }
 
         if result == false && test_suite.settings.stop_on_failure {
             // global stop on failure?
@@ -95,7 +98,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         }
     }
 
-    println!("\nRan {} tests, {} successful, {} failed", total_tests.to_string().yellow(), successful_tests.to_string().green(), failed_tests.to_string().red());
+    if quiet == false {
+        println!("\nRan {} tests, {} successful, {} failed", total_tests.to_string().yellow(), successful_tests.to_string().green(), failed_tests.to_string().red());
+    }
 
     Ok(())
 }
@@ -116,4 +121,8 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("verbose")
             .short("v")
             .help("Show verbose output"))
+        .arg(Arg::with_name("quiet")
+            .long("quiet")
+            .short("q")
+            .help("Only show failed tests"))
 }

@@ -107,15 +107,15 @@ impl TestSuite {
     /// Run all tests belonging to the test suite on given serial port and print the results.
     ///
     /// Execution will stop early if stop_on_failure is set and a test fails.
-    pub fn run_and_print(&mut self, serial: &mut Serial) -> bool {
+    pub fn run_and_print(&mut self, serial: &mut Serial, quiet: bool) -> bool {
         let show_title = self.name != "";
 
-        if show_title {
+        if show_title && quiet == false {
             println!("{}", self.title());
         }
 
         for test in self.tests.iter_mut() {
-            if show_title {
+            if show_title && quiet == false {
                 print!("\t");
             }
 
@@ -124,7 +124,9 @@ impl TestSuite {
                 Err(_) => false
             };
 
-            println!("{}", test.to_string());
+            if quiet == false || result == false {
+                println!("{}", test.to_string());
+            }
 
             if result != true && self.settings.stop_on_failure {
                 return false;
