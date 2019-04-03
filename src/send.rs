@@ -35,7 +35,10 @@ use crate::commands;
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    let mut serial = Serial::open_with_settings(port_name, &settings)?;
+    let mut serial = match Serial::open_with_settings(port_name, &settings) {
+        Ok(serial) => serial,
+        Err(e) => return Err(format!("Error opening port {:?}", e))
+    };
 
     let mut text = matches.value_of("text").unwrap().to_string();
     let echo_text = matches.is_present("echo");

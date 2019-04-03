@@ -47,7 +47,10 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // open serial
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    let mut serial = Serial::open_with_settings(port_name, &settings)?;
+    let mut serial = match Serial::open_with_settings(port_name, &settings) {
+        Ok(serial) => serial,
+        Err(e) => return Err(format!("Error opening port {:?}", e))
+    };
 
     // parse and run tests
     let mut default_test_settings = TestCaseSettings::default();

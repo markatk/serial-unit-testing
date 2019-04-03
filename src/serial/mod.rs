@@ -59,10 +59,17 @@ impl Serial {
     /// # Example
     ///
     /// ```
-    /// let mut serial = Serial::open("/dev/ttyACM0");
-    /// serial.write("Hello World!");
+    /// use serial_unit_testing::serial::Serial;
+    ///
+    /// fn main() -> Result<(), std::io::Error> {
+    ///     let mut serial = Serial::open("/dev/ttyACM0")?;
+    ///     serial.write("Hello World!")?;
+    ///
+    ///     Ok(())
+    /// }
+    ///
     /// ```
-    pub fn open(port_name: &str) -> Result<Serial, String> {
+    pub fn open(port_name: &str) -> Result<Serial, io::Error> {
         let settings: settings::Settings = Default::default();
 
         Serial::open_with_settings(port_name, &settings)
@@ -75,18 +82,26 @@ impl Serial {
     /// # Example
     ///
     /// ```
-    /// let mut settings = Settings::default();
-    /// settings.baud_rate = 115200;
+    /// use serial_unit_testing::serial::Serial;
+    /// use serial_unit_testing::serial::settings::Settings;
     ///
-    /// let mut serial = Serial::open_with_settings("/dev/ttyACM0", &settings);
-    /// serial.write("Hello World!");
+    /// fn main() -> Result<(), std::io::Error> {
+    ///     let mut settings = Settings::default();
+    ///     settings.baud_rate = 115200;
+    ///
+    ///     let mut serial = Serial::open_with_settings("/dev/ttyACM0", &settings)?;
+    ///     serial.write("Hello World!")?;
+    ///
+    ///     Ok(())
+    /// }
+    ///
     /// ```
-    pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial, String> {
+    pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial, io::Error> {
         match serialport::open_with_settings(&port_name, &settings.to_serial_port_settings()) {
             Ok(port) => {
                 Ok(Serial { port, read_buffer: vec![0; 1000] })
             },
-            Err(e) => Err(format!("Error opening port {:?}", e))
+            Err(e) => Err(io::Error::new(io::ErrorKind::Other, e))
         }
     }
 
@@ -106,8 +121,16 @@ impl Serial {
     /// # Example
     ///
     /// ```
-    /// let mut serial = Serial::open("/dev/ttyACM0");
-    /// serial.write_format("0a5f", TextFormat::Hex);
+    /// use serial_unit_testing::serial::Serial;
+    /// use serial_unit_testing::utils::TextFormat;
+    ///
+    /// fn main() -> Result<(), std::io::Error> {
+    ///     let mut serial = Serial::open("/dev/ttyACM0")?;
+    ///     serial.write_format("0a5f", &TextFormat::Hex)?;
+    ///
+    ///     Ok(())
+    /// }
+    ///
     /// ```
     pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), io::Error> {
         let bytes = match text_format {
@@ -133,8 +156,14 @@ impl Serial {
     /// # Example
     ///
     /// ```
-    /// let mut serial = Serial::open("/dev/ttyACM0");
-    /// let data = serial.read().unwrap();
+    /// use serial_unit_testing::serial::Serial;
+    ///
+    /// fn main() -> Result<(), std::io::Error> {
+    ///     let mut serial = Serial::open("/dev/ttyACM0")?;
+    ///     let data = serial.read().unwrap();
+    ///
+    ///     Ok(())
+    /// }
     /// ```
     pub fn read(&mut self) -> Result<&[u8], io::Error> {
         let length = self.port.read(&mut self.read_buffer)?;
@@ -267,8 +296,14 @@ impl Serial {
     /// # Example
     ///
     /// ```
-    /// let mut serial = Serial::open("/dev/ttyACM0");
-    /// let (result, actual_response) = serial.check("hello", "world");
+    /// use serial_unit_testing::serial::Serial;
+    ///
+    /// fn main() -> Result<(), std::io::Error> {
+    ///     let mut serial = Serial::open("/dev/ttyACM0")?;
+    ///     let (result, actual_response) = serial.check("hello", "world")?;
+    ///
+    ///     Ok(())
+    /// }
     /// ```
     pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String), io::Error> {
         let settings: CheckSettings = Default::default();
