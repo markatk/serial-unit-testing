@@ -136,7 +136,7 @@ impl TestCase {
     /// Execute the test on given serial port.
     ///
     /// After running the test response and successful are set if no error occurred.
-    pub fn run(&mut self, serial: &mut Serial) -> Result<(), String> {
+    pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
         // get input and desired output in correct format
         let input: String;
         let mut output: String;
@@ -202,7 +202,7 @@ impl TestCase {
 
         self.successful = Some(success);
 
-        Ok(())
+        Ok(success)
     }
 
     /// Check if the test was successful.
@@ -299,7 +299,7 @@ impl TestCase {
         response
     }
 
-    fn exit_run_with_error(&mut self, err: String) -> Result<(), String> {
+    fn exit_run_with_error(&mut self, err: String) -> Result<bool, String> {
         self.error = Some(err.clone());
 
         Err(err)

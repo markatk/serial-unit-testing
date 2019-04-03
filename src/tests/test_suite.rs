@@ -94,9 +94,9 @@ impl TestSuite {
     /// Execution will stop early if stop_on_failure is set and a test fails.
     pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
         for test in self.tests.iter_mut() {
-            test.run(serial)?;
+            let result = test.run(serial)?;
 
-            if self.settings.stop_on_failure && test.is_successful() == Some(false) {
+            if self.settings.stop_on_failure && result == false {
                 return Ok(false);
             }
         }
@@ -120,13 +120,13 @@ impl TestSuite {
             }
 
             let result = match test.run(serial) {
-                Ok(_) => test.is_successful(),
-                Err(_) => Some(false)
+                Ok(success) => success,
+                Err(_) => false
             };
 
             println!("{}", test.to_string());
 
-            if result != Some(true) && self.settings.stop_on_failure {
+            if result != true && self.settings.stop_on_failure {
                 return false;
             }
         }
