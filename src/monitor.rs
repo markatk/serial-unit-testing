@@ -28,27 +28,72 @@
 
 use std::io::{self, Write};
 use clap::{ArgMatches, App, SubCommand};
+use tui::Terminal;
+use tui::backend::CrosstermBackend;
+use tui::widgets::{Widget, Block, Borders};
+use tui::layout::{Layout, Constraint, Direction};
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
 use crate::commands;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
+//    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
+//
+//    match Serial::open_with_settings(port_name, &settings) {
+//        Ok(mut serial) => {
+//            let text_format = commands::get_text_output_format(matches);
+//
+//            read(&mut serial, &text_format)
+//        },
+//        Err(e) => return Err(format!("Error opening port {:?}", e))
+//    }
 
-    match Serial::open_with_settings(port_name, &settings) {
-        Ok(mut serial) => {
-            let text_format = commands::get_text_output_format(matches);
-
-            read(&mut serial, &text_format)
-        },
-        Err(e) => return Err(format!("Error opening port {:?}", e))
+    match show_terminal() {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string())
     }
 }
 
 pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
-        .about("Continously display serial port data")
+        .about("Continuously display serial port data")
         .args(commands::serial_arguments(false, true).as_slice())
+}
+
+fn show_terminal() -> Result<(), io::Error> {
+    let backend = CrosstermBackend::new();
+    let mut terminal = Terminal::new(backend)?;
+
+    terminal.clear();
+    terminal.hide_cursor();
+
+    loop {
+        terminal.draw(|mut f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(10),
+                    Constraint::Percentage(80),
+                    Constraint::Percentage(10)
+                ].as_ref())
+                .split(f.size());
+
+            Block::default()
+                .title("Block")
+                .borders(Borders::ALL)
+                .render(&mut f, chunks[0]);
+
+            Block::default()
+                .title("Block 2")
+                .borders(Borders::ALL)
+                .render(&mut f, chunks[2]);
+        })?;
+
+
+    }
+
+    Ok(())
 }
 
 fn read(serial: &mut Serial, text_format: &utils::TextFormat) -> Result<(), String> {
