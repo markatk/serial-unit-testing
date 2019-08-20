@@ -27,16 +27,25 @@
  */
 
 use std::io::{self, Write};
+use std::sync::mpsc;
+use std::thread;
 use clap::{ArgMatches, App, SubCommand};
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
-use tui::widgets::{Widget, Block, Borders};
+use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
+use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
 use crate::commands;
+use std::process::exit;
 
-pub fn run(matches: &ArgMatches) -> Result<(), String> {
+enum Event<I> {
+    Input(I),
+    Tick
+}
+
+pub fn run(_matches: &ArgMatches) -> Result<(), String> {
 //    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 //
 //    match Serial::open_with_settings(port_name, &settings) {
@@ -61,11 +70,35 @@ pub fn command<'a>() -> App<'a, 'a> {
 }
 
 fn show_terminal() -> Result<(), io::Error> {
-    let backend = CrosstermBackend::new();
+    let screen = AlternateScreen::to_alternate(true)?;
+    let backend = CrosstermBackend::with_alternate_screen(screen)?;
     let mut terminal = Terminal::new(backend)?;
+    terminal.hide_cursor()?;
 
-    terminal.clear();
-    terminal.hide_cursor();
+    // register inputs
+    let (tx, rx) = mpsc::channel();
+    {
+        let tx = tx.clone();
+        thread::spawn(move || {
+            let input = input();
+            let reader = input.read_sync();
+
+            for event in reader {
+                match event {
+                    InputEvent::Keyboard(key) => {
+                        if let Err(_) = tx.send(Event::Input(key.clone())) {
+                            return;
+                        }
+                    },
+                    _ => {}
+                }
+            }
+        });
+    }
+
+    // main loop
+    terminal.clear()?;
+    let mut input = String::new();
 
     loop {
         terminal.draw(|mut f| {
@@ -73,24 +106,49 @@ fn show_terminal() -> Result<(), io::Error> {
                 .direction(Direction::Vertical)
                 .margin(1)
                 .constraints([
-                    Constraint::Percentage(10),
-                    Constraint::Percentage(80),
-                    Constraint::Percentage(10)
+                    Constraint::Min(0),
+                    Constraint::Length(3)
                 ].as_ref())
                 .split(f.size());
 
-            Block::default()
-                .title("Block")
-                .borders(Borders::ALL)
-                .render(&mut f, chunks[0]);
+            let text = [
+                Text::raw(&input)
+            ];
 
-            Block::default()
-                .title("Block 2")
-                .borders(Borders::ALL)
-                .render(&mut f, chunks[2]);
+            Paragraph::new(text.iter())
+                .block(
+                    Block::default()
+                        .title("Input")
+                        .borders(Borders::TOP))
+                .wrap(true)
+                .render(&mut f, chunks[1]);
         })?;
 
-
+        if let Ok(Event::Input(event)) = rx.recv() {
+            match event {
+                KeyEvent::Char(c) => {
+                    if c == '\n' {
+                        input.clear();
+                    } else {
+                        input.push(c);
+                    }
+                },
+                KeyEvent::Ctrl(c) => {
+                    if c == 'c' {
+                        break;
+                    }
+                },
+                KeyEvent::Backspace => {
+                    if input.is_empty() == false {
+                        input.pop();
+                    }
+                },
+                KeyEvent::Esc => {
+                    break;
+                }
+                _ => {}
+            }
+        }
     }
 
     Ok(())
