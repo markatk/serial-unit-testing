@@ -184,7 +184,9 @@ impl Monitor {
                     let mut text = self.input.clone();
                     text.push('\n');
 
-                    self.io_tx.send(text);
+                    if let Err(_err) = self.io_tx.send(text) {
+                        // TODO: Handle error
+                    }
 
                     self.input.clear();
                 } else {

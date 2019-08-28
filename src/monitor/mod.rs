@@ -78,7 +78,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
                 match io_rx.try_recv() {
                     Ok(data) => {
-                        serial.write(data.as_str());
+                        if let Err(_err) = serial.write(data.as_str()) {
+                            // TODO: Handle error
+                        }
                     },
                     Err(e) if e == mpsc::TryRecvError::Empty => (),
                     Err(_) => {
