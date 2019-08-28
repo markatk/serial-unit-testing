@@ -20,6 +20,10 @@ addons:
     packages:
       - libudev-dev
 
+script:
+  - cargo build --verbose --all
+  - cargo test --verbose --lib
+
 deploy:
   provider: cargo
   on:
