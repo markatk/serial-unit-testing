@@ -27,7 +27,7 @@
  */
 
 use std::io;
-use std::sync::mpsc;
+use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
 use std::time::Duration;
 use tui::Terminal;
@@ -35,45 +35,49 @@ use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
+use super::event::Event;
 
-pub fn show_terminal() -> Result<(), io::Error> {
-    let screen = AlternateScreen::to_alternate(true)?;
-    let backend = CrosstermBackend::with_alternate_screen(screen)?;
-    let terminal = Terminal::new(backend)?;
-
-    let mut monitor = Monitor::new(terminal);
-    monitor.run()?;
-
-    Ok(())
-}
-
-enum Event<I> {
-    Input(I),
-    CursorTick
-}
-
-struct Monitor {
+pub struct Monitor {
     terminal: Terminal<CrosstermBackend>,
+
     input: String,
     output: String,
-    cursor_state: bool
+    cursor_state: bool,
+
+    pub tx: Sender<Event<KeyEvent>>,
+    rx: Receiver<Event<KeyEvent>>
+
+    // TODO: Add cursor position
+    // TODO: Add input text type
+    // TODO: Add output text type
+    // TODO: Add input shortcuts
+    // TODO: Add output shortcuts
+    // TODO: Add output scrolling
+    // TODO: Add multiline input
 }
 
 impl Monitor {
-    pub fn new(terminal: Terminal<CrosstermBackend>) -> Monitor {
-        Monitor {
+    pub fn new() -> Result<Monitor, io::Error> {
+        let screen = AlternateScreen::to_alternate(true)?;
+        let backend = CrosstermBackend::with_alternate_screen(screen)?;
+        let terminal = Terminal::new(backend)?;
+
+        let (tx, rx) = mpsc::channel();
+
+        Ok(Monitor {
             terminal,
             input: String::new(),
             output: String::new(),
-            cursor_state: false
-        }
+            cursor_state: false,
+            tx,
+            rx
+        })
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
         // start event threads
-        let (tx, rx) = mpsc::channel();
         {
-            let tx = tx.clone();
+            let tx = self.tx.clone();
             thread::spawn(move || {
                 let input = input();
                 let reader = input.read_sync();
@@ -91,7 +95,7 @@ impl Monitor {
             });
         }
         {
-            let tx = tx.clone();
+            let tx = self.tx.clone();
             thread::spawn(move || {
                 loop {
                     tx.send(Event::CursorTick).unwrap();
@@ -108,38 +112,19 @@ impl Monitor {
         loop {
             self.render()?;
 
-            match rx.recv() {
+            match self.rx.recv() {
                 Ok(Event::Input(event)) => {
-                    match event {
-                        KeyEvent::Char(c) => {
-                            if c == '\n' {
-                                self.output.push_str(&self.input);
-                                self.output.push('\n');
-
-                                self.input.clear();
-                            } else {
-                                self.input.push(c);
-                            }
-                        },
-                        KeyEvent::Ctrl(c) => {
-                            if c == 'c' {
-                                break;
-                            }
-                        },
-                        KeyEvent::Backspace => {
-                            if self.input.is_empty() == false {
-                                self.input.pop();
-                            }
-                        },
-                        KeyEvent::Esc => {
-                            break;
-                        },
-                        _ => {}
+                    // stop execution if true returned
+                    if self.handle_keys(event) {
+                        break;
                     }
                 },
                 Ok(Event::CursorTick) => {
                     self.cursor_state = !self.cursor_state;
                 },
+                Ok(Event::Output(text)) => {
+                    self.output.push_str(&text);
+                }
                 _ => {}
             }
         }
@@ -155,10 +140,9 @@ impl Monitor {
         self.terminal.draw(|mut f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .margin(1)
                 .constraints([
                     Constraint::Min(0),
-                    Constraint::Length(3)
+                    Constraint::Length(4)
                 ].as_ref())
                 .split(f.size());
 
@@ -176,18 +160,48 @@ impl Monitor {
 
             Paragraph::new(output_text.iter())
                 .block(
-                    Block::default()
-                )
+                    Block::default())
                 .wrap(true)
                 .render(&mut f, chunks[0]);
 
             Paragraph::new(input_text.iter())
                 .block(
                     Block::default()
-                        .title("Input")
+                        .title("Input - Text")
                         .borders(Borders::TOP))
                 .wrap(true)
                 .render(&mut f, chunks[1]);
         })
+    }
+
+    fn handle_keys(&mut self, event: KeyEvent) -> bool {
+        match event {
+            KeyEvent::Char(c) => {
+                if c == '\n' {
+//                    self.output.push_str(&self.input);
+//                    self.output.push('\n');
+
+                    self.input.clear();
+                } else {
+                    self.input.push(c);
+                }
+            },
+            KeyEvent::Ctrl(c) => {
+                if c == 'c' {
+                    return true;
+                }
+            },
+            KeyEvent::Backspace => {
+                if self.input.is_empty() == false {
+                    self.input.pop();
+                }
+            },
+            KeyEvent::Esc => {
+                return true;
+            },
+            _ => {}
+        }
+
+        return false;
     }
 }

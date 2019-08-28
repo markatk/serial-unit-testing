@@ -26,27 +26,39 @@
  * SOFTWARE.
  */
 
-use std::io::{self, Write};
+use std::io;
+use std::thread;
+use std::sync::mpsc::Sender;
 use clap::{ArgMatches, App, SubCommand};
 use crate::commands;
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
+use crossterm::{KeyEvent};
 
+mod event;
 mod ui;
 
-pub fn run(_matches: &ArgMatches) -> Result<(), String> {
-//    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
-//
-//    match Serial::open_with_settings(port_name, &settings) {
-//        Ok(mut serial) => {
-//            let text_format = commands::get_text_output_format(matches);
-//
-//            read(&mut serial, &text_format)
-//        },
-//        Err(e) => return Err(format!("Error opening port {:?}", e))
-//    }
+use event::Event;
 
-    match ui::show_terminal() {
+pub fn run(matches: &ArgMatches) -> Result<(), String> {
+    let mut monitor = match ui::Monitor::new() {
+        Ok(monitor) => monitor,
+        Err(e) => return Err(e.to_string())
+    };
+
+    // open serial port
+    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
+
+    match Serial::open_with_settings(port_name, &settings) {
+        Ok(serial) => {
+            let text_format = commands::get_text_output_format(matches);
+
+            read(serial, text_format, monitor.tx.clone());
+        },
+        Err(e) => return Err(format!("Error opening port {:?}", e))
+    }
+
+    match monitor.run() {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
     }
@@ -58,21 +70,21 @@ pub fn command<'a>() -> App<'a, 'a> {
         .args(commands::serial_arguments(false, true).as_slice())
 }
 
-fn read(serial: &mut Serial, text_format: &utils::TextFormat) -> Result<(), String> {
-    let mut row_entries = 0;
+fn read(mut serial: Serial, text_format: utils::TextFormat, tx: Sender<Event<KeyEvent>>) {
+    thread::spawn(move || {
+        loop {
+            match serial.read() {
+                Ok(bytes) => {
+                    let result = utils::radix_string(bytes, &text_format);
 
-    loop {
-        match serial.read() {
-            Ok(bytes) => {
-                match text_format {
-                    utils::TextFormat::Text => io::stdout().write_all(bytes).unwrap(),
-                    _ => utils::print_radix_string(bytes, &text_format, &mut row_entries)
-                };
-
-                io::stdout().flush().unwrap();
-            },
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-            Err(e) => return Err(format!("{:?}", e))
+                    if let Err(_) = tx.send(Event::Output(result)) {
+                        return;
+                    }
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                // TODO: Pass error to monitor
+                Err(_) => return
+            }
         }
-    }
+    });
 }
