@@ -30,6 +30,7 @@ use std::io;
 use std::thread;
 use std::sync::mpsc;
 use clap::{ArgMatches, App, SubCommand};
+use crossterm::KeyEvent;
 use crate::commands;
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
@@ -68,23 +69,32 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                         let result = utils::radix_string(bytes, &text_format);
 
                         if let Err(_) = tx.send(Event::Output(result)) {
+                            eprintln!("Unable to send to ui thread");
+
                             return;
                         }
                     },
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                    // TODO: Pass error to monitor
-                    Err(_) => return
+                    Err(_) => {
+                        show_error(&tx, "Unable to read from serial".to_string());
+
+                        return;
+                    }
                 }
 
                 match io_rx.try_recv() {
                     Ok(data) => {
                         if let Err(_err) = serial.write(data.as_str()) {
-                            // TODO: Handle error
+                            show_error(&tx, "Unable to write to serial".to_string());
+
+                            return;
                         }
                     },
                     Err(e) if e == mpsc::TryRecvError::Empty => (),
                     Err(_) => {
-                        // TODO: Handle error
+                        show_error(&tx, "I/O thread closed".to_string());
+
+                        return;
                     }
                 }
             }
@@ -102,4 +112,10 @@ pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
         .about("Continuously display serial port data")
         .args(commands::serial_arguments(false, true).as_slice())
+}
+
+fn show_error(tx: &mpsc::Sender<Event<KeyEvent>>, text: String) {
+    if let Err(_err) = tx.send(Event::Error(text)) {
+        eprintln!("Unable to send to ui thread");
+    }
 }

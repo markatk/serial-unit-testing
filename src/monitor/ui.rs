@@ -126,7 +126,10 @@ impl Monitor {
                 },
                 Ok(Event::Output(text)) => {
                     self.output.push_str(&text);
-                }
+                },
+                Ok(Event::Error(text)) => {
+                    return Err(io::Error::new(io::ErrorKind::Other, text));
+                },
                 _ => {}
             }
         }

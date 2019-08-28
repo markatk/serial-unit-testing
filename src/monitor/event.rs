@@ -29,5 +29,6 @@
 pub enum Event<I> {
     Input(I),
     CursorTick,
-    Output(String)
+    Output(String),
+    Error(String)
 }
