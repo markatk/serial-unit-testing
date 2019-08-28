@@ -44,8 +44,9 @@ pub struct Monitor {
     output: String,
     cursor_state: bool,
 
-    pub tx: Sender<Event<KeyEvent>>,
-    rx: Receiver<Event<KeyEvent>>
+    pub ui_tx: Sender<Event<KeyEvent>>,
+    ui_rx: Receiver<Event<KeyEvent>>,
+    io_tx: Sender<String>
 
     // TODO: Add cursor position
     // TODO: Add input text type
@@ -57,27 +58,28 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    pub fn new() -> Result<Monitor, io::Error> {
+    pub fn new(io_tx: Sender<String>) -> Result<Monitor, io::Error> {
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
         let terminal = Terminal::new(backend)?;
 
-        let (tx, rx) = mpsc::channel();
+        let (ui_tx, ui_rx) = mpsc::channel();
 
         Ok(Monitor {
             terminal,
             input: String::new(),
             output: String::new(),
             cursor_state: false,
-            tx,
-            rx
+            ui_tx,
+            ui_rx,
+            io_tx
         })
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
         // start event threads
         {
-            let tx = self.tx.clone();
+            let tx = self.ui_tx.clone();
             thread::spawn(move || {
                 let input = input();
                 let reader = input.read_sync();
@@ -95,7 +97,7 @@ impl Monitor {
             });
         }
         {
-            let tx = self.tx.clone();
+            let tx = self.ui_tx.clone();
             thread::spawn(move || {
                 loop {
                     tx.send(Event::CursorTick).unwrap();
@@ -112,7 +114,7 @@ impl Monitor {
         loop {
             self.render()?;
 
-            match self.rx.recv() {
+            match self.ui_rx.recv() {
                 Ok(Event::Input(event)) => {
                     // stop execution if true returned
                     if self.handle_keys(event) {
@@ -178,8 +180,11 @@ impl Monitor {
         match event {
             KeyEvent::Char(c) => {
                 if c == '\n' {
-//                    self.output.push_str(&self.input);
-//                    self.output.push('\n');
+                    // send io event with text
+                    let mut text = self.input.clone();
+                    text.push('\n');
+
+                    self.io_tx.send(text);
 
                     self.input.clear();
                 } else {

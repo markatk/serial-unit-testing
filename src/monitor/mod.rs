@@ -28,20 +28,22 @@
 
 use std::io;
 use std::thread;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc;
 use clap::{ArgMatches, App, SubCommand};
 use crate::commands;
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
-use crossterm::{KeyEvent};
 
 mod event;
 mod ui;
 
 use event::Event;
+use std::time::Duration;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
-    let mut monitor = match ui::Monitor::new() {
+    let (io_tx, io_rx) = mpsc::channel();
+
+    let mut monitor = match ui::Monitor::new(io_tx) {
         Ok(monitor) => monitor,
         Err(e) => return Err(e.to_string())
     };
@@ -49,15 +51,45 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // open serial port
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    match Serial::open_with_settings(port_name, &settings) {
-        Ok(serial) => {
-            let text_format = commands::get_text_output_format(matches);
-
-            read(serial, text_format, monitor.tx.clone());
-        },
+    let mut serial = match Serial::open_with_settings(port_name, &settings) {
+        Ok(serial) => serial,
         Err(e) => return Err(format!("Error opening port {:?}", e))
+    };
+
+    // start thread for receiving from and sending to serial port
+    {
+        let text_format = commands::get_text_output_format(matches);
+        let tx = monitor.ui_tx.clone();
+
+        thread::spawn(move || {
+            loop {
+                match serial.read_with_timeout(Duration::from_millis(10)) {
+                    Ok(bytes) => {
+                        let result = utils::radix_string(bytes, &text_format);
+
+                        if let Err(_) = tx.send(Event::Output(result)) {
+                            return;
+                        }
+                    },
+                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                    // TODO: Pass error to monitor
+                    Err(_) => return
+                }
+
+                match io_rx.try_recv() {
+                    Ok(data) => {
+                        serial.write(data.as_str());
+                    },
+                    Err(e) if e == mpsc::TryRecvError::Empty => (),
+                    Err(_) => {
+                        // TODO: Handle error
+                    }
+                }
+            }
+        });
     }
 
+    // run ui
     match monitor.run() {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
@@ -68,23 +100,4 @@ pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
         .about("Continuously display serial port data")
         .args(commands::serial_arguments(false, true).as_slice())
-}
-
-fn read(mut serial: Serial, text_format: utils::TextFormat, tx: Sender<Event<KeyEvent>>) {
-    thread::spawn(move || {
-        loop {
-            match serial.read() {
-                Ok(bytes) => {
-                    let result = utils::radix_string(bytes, &text_format);
-
-                    if let Err(_) = tx.send(Event::Output(result)) {
-                        return;
-                    }
-                },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
-                // TODO: Pass error to monitor
-                Err(_) => return
-            }
-        }
-    });
 }
