@@ -34,6 +34,7 @@ use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
+use tui::style::{Style, Modifier};
 use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
 use super::event::Event;
 use serial_unit_testing::utils::{self, TextFormat};
@@ -50,7 +51,9 @@ pub struct Monitor {
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     ui_rx: Receiver<Event<KeyEvent>>,
-    io_tx: Sender<(String, TextFormat)>
+    io_tx: Sender<(String, TextFormat)>,
+
+    error: Option<String>
 
     // TODO: Add input shortcuts -> Change format, History with up and down
     // TODO: Add output shortcuts -> clear output, change format
@@ -77,7 +80,8 @@ impl Monitor {
             cursor_position: 1,
             ui_tx,
             ui_rx,
-            io_tx
+            io_tx,
+            error: None
         })
     }
 
@@ -114,7 +118,6 @@ impl Monitor {
 
         // main loop
         self.terminal.hide_cursor()?;
-        self.terminal.clear()?;
 
         loop {
             self.render()?;
@@ -130,13 +133,13 @@ impl Monitor {
                     self.cursor_state = !self.cursor_state;
                 },
                 Ok(Event::Output(data)) => {
+                    // TODO: Fix newline handling
                     let text = utils::radix_string(&data, &self.output_format);
 
                     self.output.push_str(&text);
                 },
                 Ok(Event::Error(text)) => {
-                    // TODO: Handle proper disconnect message
-                    return Err(io::Error::new(io::ErrorKind::Other, text));
+                    self.error = Some(text);
                 },
                 _ => {}
             }
@@ -150,6 +153,7 @@ impl Monitor {
         let input_format = &self.input_format;
         let output = &self.output;
         let output_format = &self.output_format;
+        let error = &self.error;
 
         self.terminal.draw(|mut f| {
             let chunks = Layout::default()
@@ -160,13 +164,19 @@ impl Monitor {
                 ].as_ref())
                 .split(f.size());
 
-            let input_text = [
-                Text::raw(input)
-            ];
+            let input_text = if error.is_none() {
+                [Text::raw(input)]
+            } else {
+                [Text::styled(input, Style::default().modifier(Modifier::BOLD))]
+            };
 
-            let output_text = [
+            let mut output_text = vec![
                 Text::raw(output)
             ];
+
+            if let Some(err) = error {
+                output_text.push(Text::styled(format!("\nERROR: {}", err), Style::default().modifier(Modifier::BOLD)))
+            }
 
             Paragraph::new(output_text.iter())
                 .block(
@@ -200,7 +210,7 @@ impl Monitor {
                     }
 
                     if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
-                        // TODO: Handle error
+                        self.error = Some("Unable to send event to I/O thread".to_string());
                     }
 
                     self.input.clear();
@@ -262,6 +272,11 @@ impl Monitor {
     }
 
     fn get_input_render_text(&mut self) -> String {
+        // do not show input when an error is detected
+        if self.error.is_some() {
+            return "Press ESC key to close".to_string();
+        }
+
         if self.cursor_state == false {
             return self.input.clone();
         }
