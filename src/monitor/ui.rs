@@ -43,12 +43,12 @@ pub struct Monitor {
     input: String,
     output: String,
     cursor_state: bool,
+    cursor_position: usize,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     ui_rx: Receiver<Event<KeyEvent>>,
     io_tx: Sender<String>
 
-    // TODO: Add cursor position
     // TODO: Add input text type
     // TODO: Add output text type
     // TODO: Add input shortcuts
@@ -70,6 +70,7 @@ impl Monitor {
             input: String::new(),
             output: String::new(),
             cursor_state: false,
+            cursor_position: 1,
             ui_tx,
             ui_rx,
             io_tx
@@ -128,6 +129,7 @@ impl Monitor {
                     self.output.push_str(&text);
                 },
                 Ok(Event::Error(text)) => {
+                    // TODO: Handle proper disconnect message
                     return Err(io::Error::new(io::ErrorKind::Other, text));
                 },
                 _ => {}
@@ -138,9 +140,24 @@ impl Monitor {
     }
 
     fn render(&mut self) -> Result<(), io::Error> {
-        let input = &self.input;
+        let mut input = self.input.clone();
         let output = &self.output;
         let cursor_state = self.cursor_state;
+
+        // place cursor in input text
+        if cursor_state {
+            let mut pos = self.cursor_position;
+
+            if self.input.is_empty() == false && pos < self.input.len() {
+                input.remove(pos);
+            }
+
+            if pos < self.input.len() {
+                input.insert(pos, '█');
+            } else {
+                input.push('█');
+            }
+        }
 
         self.terminal.draw(|mut f| {
             let chunks = Layout::default()
@@ -151,13 +168,9 @@ impl Monitor {
                 ].as_ref())
                 .split(f.size());
 
-            let mut input_text = vec![
+            let input_text = [
                 Text::raw(input)
             ];
-
-            if cursor_state {
-                input_text.push(Text::raw("█"));
-            }
 
             let output_text = [
                 Text::raw(output)
@@ -192,8 +205,12 @@ impl Monitor {
                     }
 
                     self.input.clear();
+
+                    self.reset_cursor();
                 } else {
                     self.input.push(c);
+
+                    self.advance_cursor();
                 }
             },
             KeyEvent::Ctrl(c) => {
@@ -204,7 +221,15 @@ impl Monitor {
             KeyEvent::Backspace => {
                 if self.input.is_empty() == false {
                     self.input.pop();
+
+                    self.retreat_cursor();
                 }
+            },
+            KeyEvent::Left => {
+                self.retreat_cursor();
+            },
+            KeyEvent::Right => {
+                self.advance_cursor();
             },
             KeyEvent::Esc => {
                 return true;
@@ -213,5 +238,21 @@ impl Monitor {
         }
 
         return false;
+    }
+
+    fn reset_cursor(&mut self) {
+        self.cursor_position = 1;
+    }
+
+    fn advance_cursor(&mut self) {
+        if self.cursor_position < self.input.len() {
+            self.cursor_position += 1;
+        }
+    }
+
+    fn retreat_cursor(&mut self) {
+        if self.cursor_position > 0 {
+            self.cursor_position -= 1;
+        }
     }
 }
