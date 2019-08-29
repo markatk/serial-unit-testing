@@ -60,6 +60,7 @@ pub struct Monitor {
     // TODO: Add output scrolling
     // TODO: Add multiline input -> shift-enter for sending
     // TODO: Support unicode?
+    // TODO: Add input escaping
 }
 
 impl Monitor {
@@ -132,8 +133,10 @@ impl Monitor {
                 Ok(Event::CursorTick) => {
                     self.cursor_state = !self.cursor_state;
                 },
-                Ok(Event::Output(data)) => {
-                    // TODO: Fix newline handling
+                Ok(Event::Output(mut data)) => {
+                    // filter carriage return characters as they stop newline from working
+                    data.retain(|f| *f != 13);
+
                     let text = utils::radix_string(&data, &self.output_format);
 
                     self.output.push_str(&text);
@@ -156,6 +159,7 @@ impl Monitor {
         let error = &self.error;
 
         self.terminal.draw(|mut f| {
+            // create constraints
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
@@ -164,6 +168,7 @@ impl Monitor {
                 ].as_ref())
                 .split(f.size());
 
+            // get input and output styled text
             let input_text = if error.is_none() {
                 [Text::raw(input)]
             } else {
@@ -178,6 +183,7 @@ impl Monitor {
                 output_text.push(Text::styled(format!("\nERROR: {}", err), Style::default().modifier(Modifier::BOLD)))
             }
 
+            // draw widgets into constraints
             Paragraph::new(output_text.iter())
                 .block(
                     Block::default())
