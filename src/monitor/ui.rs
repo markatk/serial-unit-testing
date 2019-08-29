@@ -146,14 +146,12 @@ impl Monitor {
 
         // place cursor in input text
         if cursor_state {
-            let mut pos = self.cursor_position;
-
-            if self.input.is_empty() == false && pos < self.input.len() {
-                input.remove(pos);
+            if self.input.is_empty() == false && self.cursor_position < self.input.len() {
+                input.remove(self.cursor_position);
             }
 
-            if pos < self.input.len() {
-                input.insert(pos, '█');
+            if self.cursor_position < self.input.len() {
+                input.insert(self.cursor_position, '█');
             } else {
                 input.push('█');
             }
@@ -208,7 +206,12 @@ impl Monitor {
 
                     self.reset_cursor();
                 } else {
-                    self.input.push(c);
+                    if self.cursor_position < self.input.len() {
+                        self.input.insert(self.cursor_position, c);
+                    } else {
+                        self.input.push(c);
+                    }
+
 
                     self.advance_cursor();
                 }
@@ -219,10 +222,19 @@ impl Monitor {
                 }
             },
             KeyEvent::Backspace => {
-                if self.input.is_empty() == false {
-                    self.input.pop();
+                if self.input.is_empty() == false && self.cursor_position != 0 {
+                    if self.cursor_position < self.input.len() {
+                        self.input.remove(self.cursor_position - 1);
+                    } else {
+                        self.input.pop();
+                    }
 
                     self.retreat_cursor();
+                }
+            },
+            KeyEvent::Delete => {
+                if self.input.is_empty() == false && self.cursor_position < self.input.len() {
+                    self.input.remove(self.cursor_position);
                 }
             },
             KeyEvent::Left => {
