@@ -36,29 +36,31 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
 use super::event::Event;
+use serial_unit_testing::utils::{self, TextFormat};
 
 pub struct Monitor {
     terminal: Terminal<CrosstermBackend>,
 
     input: String,
+    pub input_format: TextFormat,
     output: String,
+    pub output_format: TextFormat,
     cursor_state: bool,
     cursor_position: usize,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     ui_rx: Receiver<Event<KeyEvent>>,
-    io_tx: Sender<String>
+    io_tx: Sender<(String, TextFormat)>
 
-    // TODO: Add input text type
-    // TODO: Add output text type
-    // TODO: Add input shortcuts
-    // TODO: Add output shortcuts
+    // TODO: Add input shortcuts -> Change format, History with up and down
+    // TODO: Add output shortcuts -> clear output, change format
     // TODO: Add output scrolling
-    // TODO: Add multiline input
+    // TODO: Add multiline input -> shift-enter for sending
+    // TODO: Support unicode?
 }
 
 impl Monitor {
-    pub fn new(io_tx: Sender<String>) -> Result<Monitor, io::Error> {
+    pub fn new(io_tx: Sender<(String, TextFormat)>) -> Result<Monitor, io::Error> {
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
         let terminal = Terminal::new(backend)?;
@@ -68,7 +70,9 @@ impl Monitor {
         Ok(Monitor {
             terminal,
             input: String::new(),
+            input_format: TextFormat::Text,
             output: String::new(),
+            output_format: TextFormat::Text,
             cursor_state: false,
             cursor_position: 1,
             ui_tx,
@@ -125,7 +129,9 @@ impl Monitor {
                 Ok(Event::CursorTick) => {
                     self.cursor_state = !self.cursor_state;
                 },
-                Ok(Event::Output(text)) => {
+                Ok(Event::Output(data)) => {
+                    let text = utils::radix_string(&data, &self.output_format);
+
                     self.output.push_str(&text);
                 },
                 Ok(Event::Error(text)) => {
@@ -140,22 +146,10 @@ impl Monitor {
     }
 
     fn render(&mut self) -> Result<(), io::Error> {
-        let mut input = self.input.clone();
+        let input = self.get_input_render_text();
+        let input_format = &self.input_format;
         let output = &self.output;
-        let cursor_state = self.cursor_state;
-
-        // place cursor in input text
-        if cursor_state {
-            if self.input.is_empty() == false && self.cursor_position < self.input.len() {
-                input.remove(self.cursor_position);
-            }
-
-            if self.cursor_position < self.input.len() {
-                input.insert(self.cursor_position, '█');
-            } else {
-                input.push('█');
-            }
-        }
+        let output_format = &self.output_format;
 
         self.terminal.draw(|mut f| {
             let chunks = Layout::default()
@@ -183,7 +177,9 @@ impl Monitor {
             Paragraph::new(input_text.iter())
                 .block(
                     Block::default()
-                        .title("Input - Text")
+                        .title(format!("Input - {} / Output - {}",
+                                       Monitor::get_format_name(input_format),
+                                       Monitor::get_format_name(output_format)).as_str())
                         .borders(Borders::TOP))
                 .wrap(true)
                 .render(&mut f, chunks[1]);
@@ -196,9 +192,14 @@ impl Monitor {
                 if c == '\n' {
                     // send io event with text
                     let mut text = self.input.clone();
-                    text.push('\n');
 
-                    if let Err(_err) = self.io_tx.send(text) {
+                    // TODO: Add newline in every format
+                    // TODO: Add option to toggle newline append
+                    if self.input_format == TextFormat::Text {
+                        text.push('\n');
+                    }
+
+                    if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
                         // TODO: Handle error
                     }
 
@@ -218,6 +219,7 @@ impl Monitor {
             },
             KeyEvent::Ctrl(c) => {
                 if c == 'c' {
+                    // Exit application
                     return true;
                 }
             },
@@ -243,6 +245,13 @@ impl Monitor {
             KeyEvent::Right => {
                 self.advance_cursor();
             },
+            // TODO: Replace with settings window/shortcuts
+            KeyEvent::Up => {
+                self.input_format = Monitor::get_next_format(&self.input_format);
+            },
+            KeyEvent::Down => {
+                self.output_format = Monitor::get_next_format(&self.output_format);
+            },
             KeyEvent::Esc => {
                 return true;
             },
@@ -250,6 +259,27 @@ impl Monitor {
         }
 
         return false;
+    }
+
+    fn get_input_render_text(&mut self) -> String {
+        if self.cursor_state == false {
+            return self.input.clone();
+        }
+
+        let mut input = self.input.clone();
+
+        // place cursor in input text
+        if self.input.is_empty() == false && self.cursor_position < self.input.len() {
+            input.remove(self.cursor_position);
+        }
+
+        if self.cursor_position < self.input.len() {
+            input.insert(self.cursor_position, '█');
+        } else {
+            input.push('█');
+        }
+
+        input
     }
 
     fn reset_cursor(&mut self) {
@@ -265,6 +295,26 @@ impl Monitor {
     fn retreat_cursor(&mut self) {
         if self.cursor_position > 0 {
             self.cursor_position -= 1;
+        }
+    }
+
+    fn get_format_name(format: &TextFormat) -> &str {
+        match format {
+            TextFormat::Text => "Text",
+            TextFormat::Binary => "Binary",
+            TextFormat::Octal => "Octal",
+            TextFormat::Decimal => "Decimal",
+            TextFormat::Hex => "Hexadecimal"
+        }
+    }
+
+    fn get_next_format(format: &TextFormat) -> TextFormat {
+        match format {
+            TextFormat::Text => TextFormat::Binary,
+            TextFormat::Binary => TextFormat::Octal,
+            TextFormat::Octal => TextFormat::Decimal,
+            TextFormat::Decimal => TextFormat::Hex,
+            TextFormat::Hex => TextFormat::Text
         }
     }
 }

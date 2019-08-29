@@ -32,7 +32,6 @@ use std::sync::mpsc;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::KeyEvent;
 use crate::commands;
-use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
 
 mod event;
@@ -49,6 +48,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         Err(e) => return Err(e.to_string())
     };
 
+    monitor.input_format = commands::get_text_input_format(matches);
+    monitor.output_format = commands::get_text_output_format(matches);
+
     // open serial port
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
@@ -59,16 +61,13 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     // start thread for receiving from and sending to serial port
     {
-        let text_format = commands::get_text_output_format(matches);
         let tx = monitor.ui_tx.clone();
 
         thread::spawn(move || {
             loop {
                 match serial.read_with_timeout(Duration::from_millis(10)) {
                     Ok(bytes) => {
-                        let result = utils::radix_string(bytes, &text_format);
-
-                        if let Err(_) = tx.send(Event::Output(result)) {
+                        if let Err(_) = tx.send(Event::Output(bytes.to_vec())) {
                             eprintln!("Unable to send to ui thread");
 
                             return;
@@ -83,8 +82,8 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                 }
 
                 match io_rx.try_recv() {
-                    Ok(data) => {
-                        if let Err(_err) = serial.write(data.as_str()) {
+                    Ok((data, format)) => {
+                        if let Err(_err) = serial.write_format(data.as_str(), &format) {
                             show_error(&tx, "Unable to write to serial".to_string());
 
                             return;
