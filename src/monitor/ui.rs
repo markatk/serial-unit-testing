@@ -176,7 +176,7 @@ impl Monitor {
             };
 
             let mut output_text = vec![
-                Text::raw(output)
+                Text::raw(Monitor::get_last_lines(output, chunks[0].height as usize))
             ];
 
             if let Some(err) = error {
@@ -337,5 +337,19 @@ impl Monitor {
             TextFormat::Decimal => TextFormat::Hex,
             TextFormat::Hex => TextFormat::Text
         }
+    }
+
+    fn get_last_lines(text: &str, n: usize) -> String {
+        text
+            .lines()
+            .rev()
+            .take(n)
+            .fold("".to_string(), |current, line| {
+                let mut result = line.to_string();
+                result.push('\n');
+                result.push_str(&current);
+
+                result
+            })
     }
 }
