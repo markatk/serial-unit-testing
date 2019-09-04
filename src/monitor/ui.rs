@@ -44,12 +44,13 @@ pub struct Monitor {
 
     input: String,
     pub input_format: TextFormat,
+    input_history: Vec<String>,
+    input_history_index: i32,
+    input_backup: String,
     output: String,
     pub output_format: TextFormat,
     cursor_state: bool,
     cursor_position: usize,
-    input_history: Vec<String>,
-    input_history_index: i32,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     ui_rx: Receiver<Event<KeyEvent>>,
@@ -77,12 +78,13 @@ impl Monitor {
             terminal,
             input: String::new(),
             input_format: TextFormat::Text,
+            input_history: vec!(),
+            input_history_index: -1,
+            input_backup: String::new(),
             output: String::with_capacity(10000),
             output_format: TextFormat::Text,
             cursor_state: false,
             cursor_position: 1,
-            input_history: vec!(),
-            input_history_index: -1,
             ui_tx,
             ui_rx,
             io_tx,
@@ -224,15 +226,19 @@ impl Monitor {
                     }
 
                     // add history entry if input has changed
-                    if let Some(last_input) = self.input_history.first() {
-                        if *last_input != self.input {
+                    if self.input.is_empty() == false {
+                        if let Some(last_input) = self.input_history.first() {
+                            if *last_input != self.input {
+                                self.input_history.insert(0, self.input.clone());
+                            }
+                        } else {
                             self.input_history.insert(0, self.input.clone());
                         }
-                    } else {
-                        self.input_history.insert(0, self.input.clone());
                     }
 
+                    // reset input and history
                     self.input_history_index = -1;
+                    self.input_backup.clear();
 
                     self.reset_input();
                 } else {
@@ -275,6 +281,10 @@ impl Monitor {
             },
             // TODO: Replace with settings window/shortcuts
             KeyEvent::Up => {
+                if self.input_history_index == -1 {
+                    self.input_backup = self.input.clone();
+                }
+
                 self.input_history_index += 1;
                 let max_index = self.input_history.len() as i32;
 
@@ -293,10 +303,11 @@ impl Monitor {
 
                 if self.input_history_index >= 0 {
                     self.input = self.input_history[self.input_history_index as usize].clone();
-                    self.cursor_position = self.input.len();
                 } else {
-                    self.reset_input();
+                    self.input = self.input_backup.clone();
                 }
+
+                self.cursor_position = self.input.len();
             },
             KeyEvent::Esc => {
                 return true;
