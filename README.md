@@ -33,6 +33,20 @@ The application is structured in the following sub commands:
 - `verify`: Verify a script can be parsed without failure
 - `help`: Print information about the application or a subcommand
 
+# Example Script
+
+```
+# Example script
+
+(Independent Test One)"h\n" : "Help"
+(Independent Test Two)h"00FF" : h"00"
+h"00af" : h"03"
+
+[Group One]
+(Group Test One)"gp\n" : "yes"
+(Group Test Two)"gq\n" : "no"
+```
+
 # Script syntax
 
 Scripts can be executed with the `run` command or parsed with `parser::parse_file`. They must follow the following syntax:
@@ -64,20 +78,6 @@ Each line not being a comment or group (and not being empty) is interpreted as a
 Content in text mode can be escaped with a backslash `\` thus characters like `"` can be included.
 
 Example: `(Test One)h"58990d" : "OK\r"`
-
-## Example Script
-
-```
-# Example script
-
-(Independent Test One)"h\n" : "Help"
-(Independent Test Two)h"00FF" : h"00"
-h"00af" : h"03"
-
-[Group One]
-(Group Test One)"gp\n" : "yes"
-(Group Test Two)"gq\n" : "no"
-```
 
 # License
 
