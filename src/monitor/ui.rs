@@ -48,6 +48,8 @@ pub struct Monitor {
     pub output_format: TextFormat,
     cursor_state: bool,
     cursor_position: usize,
+    input_history: Vec<String>,
+    input_history_index: i32,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     ui_rx: Receiver<Event<KeyEvent>>,
@@ -55,9 +57,9 @@ pub struct Monitor {
 
     error: Option<String>
 
-    // TODO: Add input shortcuts -> Change format, History with up and down
+    // TODO: Add input shortcuts -> Change format
     // TODO: Add output shortcuts -> clear output, change format
-    // TODO: Add output scrolling
+    // TODO: Add output manual scrolling
     // TODO: Add multiline input -> shift-enter for sending
     // TODO: Support unicode?
     // TODO: Add input escaping
@@ -75,10 +77,12 @@ impl Monitor {
             terminal,
             input: String::new(),
             input_format: TextFormat::Text,
-            output: String::new(),
+            output: String::with_capacity(10000),
             output_format: TextFormat::Text,
             cursor_state: false,
             cursor_position: 1,
+            input_history: vec!(),
+            input_history_index: -1,
             ui_tx,
             ui_rx,
             io_tx,
@@ -219,16 +223,24 @@ impl Monitor {
                         self.error = Some("Unable to send event to I/O thread".to_string());
                     }
 
-                    self.input.clear();
+                    // add history entry if input has changed
+                    if let Some(last_input) = self.input_history.first() {
+                        if *last_input != self.input {
+                            self.input_history.insert(0, self.input.clone());
+                        }
+                    } else {
+                        self.input_history.insert(0, self.input.clone());
+                    }
 
-                    self.reset_cursor();
+                    self.input_history_index = -1;
+
+                    self.reset_input();
                 } else {
                     if self.cursor_position < self.input.len() {
                         self.input.insert(self.cursor_position, c);
                     } else {
                         self.input.push(c);
                     }
-
 
                     self.advance_cursor();
                 }
@@ -263,10 +275,28 @@ impl Monitor {
             },
             // TODO: Replace with settings window/shortcuts
             KeyEvent::Up => {
-                self.input_format = Monitor::get_next_format(&self.input_format);
+                self.input_history_index += 1;
+                let max_index = self.input_history.len() as i32;
+
+                if self.input_history_index >= max_index {
+                    self.input_history_index = max_index - 1;
+                }
+
+                self.input = self.input_history[self.input_history_index as usize].clone();
+                self.cursor_position = self.input.len();
             },
             KeyEvent::Down => {
-                self.output_format = Monitor::get_next_format(&self.output_format);
+                self.input_history_index -= 1;
+                if self.input_history_index < 0 {
+                    self.input_history_index = -1;
+                }
+
+                if self.input_history_index >= 0 {
+                    self.input = self.input_history[self.input_history_index as usize].clone();
+                    self.cursor_position = self.input.len();
+                } else {
+                    self.reset_input();
+                }
             },
             KeyEvent::Esc => {
                 return true;
@@ -303,7 +333,9 @@ impl Monitor {
         input
     }
 
-    fn reset_cursor(&mut self) {
+    fn reset_input(&mut self) {
+        self.input.clear();
+
         self.cursor_position = 1;
     }
 
