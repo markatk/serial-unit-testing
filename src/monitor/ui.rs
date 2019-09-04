@@ -281,6 +281,10 @@ impl Monitor {
             },
             // TODO: Replace with settings window/shortcuts
             KeyEvent::Up => {
+                if self.input_history.is_empty() {
+                    return false;
+                }
+
                 if self.input_history_index == -1 {
                     self.input_backup = self.input.clone();
                 }
@@ -296,11 +300,16 @@ impl Monitor {
                 self.cursor_position = self.input.len();
             },
             KeyEvent::Down => {
+                if self.input_history_index == -1 {
+                    return false;
+                }
+
                 self.input_history_index -= 1;
                 if self.input_history_index < 0 {
                     self.input_history_index = -1;
                 }
 
+                // update input with history or input backup
                 if self.input_history_index >= 0 {
                     self.input = self.input_history[self.input_history_index as usize].clone();
                 } else {
