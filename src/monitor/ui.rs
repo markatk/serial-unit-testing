@@ -58,9 +58,7 @@ pub struct Monitor {
 
     error: Option<String>
 
-    // TODO: Add input shortcuts -> Change format
-    // TODO: Add output shortcuts -> clear output, change format
-    // TODO: Add output manual scrolling
+    // TODO: Add output manual scrolling and current line display in corner
     // TODO: Add multiline input -> shift-enter for sending or shift-enter for multi line?
     // TODO: Support unicode?
     // TODO: Add input escaping
@@ -192,10 +190,16 @@ impl Monitor {
             }
 
             let control_text = [
-                Text::raw("F1"),
+                Text::raw("F1 "),
                 Text::styled("Help", Style::default().bg(Color::Cyan)),
-                Text::raw("F2"),
-                Text::styled("Input format", Style::default().bg(Color::Cyan))
+                Text::raw(" F2 "),
+                Text::styled("Input format", Style::default().bg(Color::Cyan)),
+                Text::raw(" F3 "),
+                Text::styled("Output format", Style::default().bg(Color::Cyan)),
+                Text::raw(" F4 "),
+                Text::styled("Clear", Style::default().bg(Color::Cyan)),
+                Text::raw(" F10 "),
+                Text::styled("Close", Style::default().bg(Color::Cyan))
             ];
 
             // draw widgets into constraints
@@ -335,6 +339,23 @@ impl Monitor {
             },
             KeyEvent::Esc => {
                 return true;
+            },
+            KeyEvent::F(num) => {
+                match num {
+                    2 => {
+                        self.input_format = Monitor::get_next_format(&self.input_format);
+                    },
+                    3 => {
+                        self.output_format = Monitor::get_next_format(&self.output_format);
+                    },
+                    4 => {
+                        self.output.clear();
+                    },
+                    10 => {
+                        return true;
+                    },
+                    _ => ()
+                };
             },
             _ => {}
         }
