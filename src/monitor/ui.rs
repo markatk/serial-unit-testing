@@ -34,7 +34,7 @@ use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
-use tui::style::{Style, Modifier};
+use tui::style::{Style, Modifier, Color};
 use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
 use super::event::Event;
 use serial_unit_testing::utils::{self, TextFormat};
@@ -61,9 +61,10 @@ pub struct Monitor {
     // TODO: Add input shortcuts -> Change format
     // TODO: Add output shortcuts -> clear output, change format
     // TODO: Add output manual scrolling
-    // TODO: Add multiline input -> shift-enter for sending
+    // TODO: Add multiline input -> shift-enter for sending or shift-enter for multi line?
     // TODO: Support unicode?
     // TODO: Add input escaping
+    // TODO: Add help window on F1 with keyboard shortcuts
 }
 
 impl Monitor {
@@ -170,7 +171,8 @@ impl Monitor {
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Min(0),
-                    Constraint::Length(4)
+                    Constraint::Length(4),
+                    Constraint::Length(2)
                 ].as_ref())
                 .split(f.size());
 
@@ -189,6 +191,13 @@ impl Monitor {
                 output_text.push(Text::styled(format!("\nERROR: {}", err), Style::default().modifier(Modifier::BOLD)))
             }
 
+            let control_text = [
+                Text::raw("F1"),
+                Text::styled("Help", Style::default().bg(Color::Cyan)),
+                Text::raw("F2"),
+                Text::styled("Input format", Style::default().bg(Color::Cyan))
+            ];
+
             // draw widgets into constraints
             Paragraph::new(output_text.iter())
                 .block(
@@ -205,6 +214,12 @@ impl Monitor {
                         .borders(Borders::TOP))
                 .wrap(true)
                 .render(&mut f, chunks[1]);
+
+            Paragraph::new(control_text.iter())
+                .block(
+                    Block::default())
+                .wrap(true)
+                .render(&mut f, chunks[2]);
         })
     }
 
