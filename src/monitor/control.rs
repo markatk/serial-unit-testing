@@ -51,6 +51,7 @@ pub struct Control<'a> {
     error: Option<String>,
 
     cursor_position: usize,
+    // TODO: move cursor state into monitor struct
     cursor_state: bool,
 }
 
@@ -112,6 +113,7 @@ impl<'a> Control<'a> {
             match self.get_ui_rx().recv() {
                 Ok(Event::Input(event)) => {
                     // stop execution if true returned
+                    // TODO: replace return with flag in struct
                     if self.handle_keys(event) {
                         break;
                     }
@@ -164,36 +166,9 @@ impl<'a> Control<'a> {
         match event {
             KeyEvent::Char(c) => {
                 if c == '\n' {
-                    // send io event with text
-                    let mut text = self.input.clone();
-
-                    // TODO: Add newline in every format
-                    // TODO: Add option to toggle newline append
-                    if self.input_format == TextFormat::Text {
-                        text.push('\n');
-                    }
-
-                    if let Err(_err) = self.ui.io_tx.send((text, self.input_format.clone())) {
-                        self.error = Some("Unable to send event to I/O thread".to_string());
-                    }
-
-                    // add history entry if input has changed
-                    if self.input.is_empty() == false {
-                        if let Some(last_input) = self.input_history.first() {
-                            if *last_input != self.input {
-                                self.input_history.insert(0, self.input.clone());
-                            }
-                        } else {
-                            self.input_history.insert(0, self.input.clone());
-                        }
-                    }
-
-                    // reset input and history
-                    self.input_history_index = -1;
-                    self.input_backup.clear();
-
-                    self.reset_input();
+                    self.send_input();
                 } else {
+                    // add character to input
                     if self.cursor_position < self.input.len() {
                         self.input.insert(self.cursor_position, c);
                     } else {
@@ -231,44 +206,11 @@ impl<'a> Control<'a> {
             KeyEvent::Right => {
                 self.advance_cursor();
             },
-            // TODO: Replace with settings window/shortcuts
             KeyEvent::Up => {
-                if self.input_history.is_empty() {
-                    return false;
-                }
-
-                if self.input_history_index == -1 {
-                    self.input_backup = self.input.clone();
-                }
-
-                self.input_history_index += 1;
-                let max_index = self.input_history.len() as i32;
-
-                if self.input_history_index >= max_index {
-                    self.input_history_index = max_index - 1;
-                }
-
-                self.input = self.input_history[self.input_history_index as usize].clone();
-                self.cursor_position = self.input.len();
+                self.advance_history();
             },
             KeyEvent::Down => {
-                if self.input_history_index == -1 {
-                    return false;
-                }
-
-                self.input_history_index -= 1;
-                if self.input_history_index < 0 {
-                    self.input_history_index = -1;
-                }
-
-                // update input with history or input backup
-                if self.input_history_index >= 0 {
-                    self.input = self.input_history[self.input_history_index as usize].clone();
-                } else {
-                    self.input = self.input_backup.clone();
-                }
-
-                self.cursor_position = self.input.len();
+                self.retreat_history();
             },
             KeyEvent::Esc => {
                 return true;
@@ -297,6 +239,7 @@ impl<'a> Control<'a> {
     }
 
     fn get_input_render_text(&mut self) -> String {
+        // TODO: move method into monitor struct
         // do not show input when an error is detected
         if self.error.is_some() {
             return "Press ESC key to close".to_string();
@@ -320,6 +263,84 @@ impl<'a> Control<'a> {
         }
 
         input
+    }
+
+    fn send_input(&mut self) {
+        // send io event with text
+        let mut text = self.input.clone();
+
+        // TODO: Add newline in every format
+        // TODO: Add option to toggle newline append
+        if self.input_format == TextFormat::Text {
+            text.push('\n');
+        }
+
+        if let Err(_err) = self.ui.io_tx.send((text, self.input_format.clone())) {
+            self.error = Some("Unable to send event to I/O thread".to_string());
+
+            // early return?
+        }
+
+        // add history entry if input has changed
+        if self.input.is_empty() == false {
+            self.add_history_entry(self.input.clone());
+        }
+
+        // reset input and history
+        self.input_history_index = -1;
+        self.input_backup.clear();
+
+        self.reset_input();
+    }
+
+    fn add_history_entry(&mut self, text: String) {
+        if let Some(last_input) = self.input_history.first() {
+            if *last_input != self.input {
+                self.input_history.insert(0, text);
+            }
+        } else {
+            self.input_history.insert(0, text);
+        }
+    }
+
+    fn advance_history(&mut self) {
+        if self.input_history.is_empty() {
+            return;
+        }
+
+        if self.input_history_index == -1 {
+            self.input_backup = self.input.clone();
+        }
+
+        self.input_history_index += 1;
+        let max_index = self.input_history.len() as i32;
+
+        if self.input_history_index >= max_index {
+            self.input_history_index = max_index - 1;
+        }
+
+        self.input = self.input_history[self.input_history_index as usize].clone();
+        self.cursor_position = self.input.len();
+    }
+
+    fn retreat_history(&mut self) {
+        if self.input_history_index == -1 {
+            return;
+        }
+
+        self.input_history_index -= 1;
+        if self.input_history_index < 0 {
+            self.input_history_index = -1;
+        }
+
+        // update input with history or input backup
+        if self.input_history_index >= 0 {
+            self.input = self.input_history[self.input_history_index as usize].clone();
+        } else {
+            self.input = self.input_backup.clone();
+        }
+
+        self.cursor_position = self.input.len();
     }
 
     fn get_format_name(format: &TextFormat) -> &str {
