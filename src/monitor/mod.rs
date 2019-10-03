@@ -61,7 +61,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     // start thread for receiving from and sending to serial port
     {
-        let tx = monitor.ui_tx.clone();
+        let tx = monitor.get_ui_tx().clone();
 
         thread::spawn(move || {
             loop {

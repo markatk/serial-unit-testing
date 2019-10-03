@@ -29,7 +29,6 @@
 use std::io;
 use std::thread;
 use std::sync::mpsc::{self, Sender, Receiver};
-use std::time::Duration;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
@@ -43,13 +42,10 @@ pub struct Monitor<'a> {
     terminal: Terminal<CrosstermBackend>,
 
     control_text: Vec<Text<'a>>,
-    cursor_state: bool,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
-    ui_rx: Receiver<Event<KeyEvent>>,
-    io_tx: Sender<(String, TextFormat)>,
-
-    error: Option<String>
+    pub ui_rx: Receiver<Event<KeyEvent>>,
+    pub io_tx: Sender<(String, TextFormat)>,
 
     // TODO: Add output manual scrolling and current line display in corner
     // TODO: Add multiline input -> shift-enter for sending or shift-enter for multi line?
@@ -71,11 +67,9 @@ impl<'a> Monitor<'a> {
         Ok(Monitor {
             terminal,
             control_text: vec!(),
-            cursor_state: false,
             ui_tx,
             ui_rx,
-            io_tx,
-            error: None
+            io_tx
         })
     }
 
@@ -108,23 +102,11 @@ impl<'a> Monitor<'a> {
             });
         }
 
-        // TODO: Update in render call
-        {
-            let tx = self.ui_tx.clone();
-            thread::spawn(move || {
-                loop {
-                    tx.send(Event::CursorTick).unwrap();
-
-                    thread::sleep(Duration::from_millis(500));
-                }
-            });
-        }
-
         Ok(())
     }
 
-    pub fn render(&mut self, input: &str, output: &str, input_title: &str) -> Result<(), io::Error> {
-        let error = &self.error;
+    pub fn render(&mut self, input: &str, output: &str, input_title: &str, error: &Option<String>) -> Result<(), io::Error> {
+        let control_text = &self.control_text;
 
         self.terminal.draw(|mut f| {
             // create constraints
@@ -152,19 +134,6 @@ impl<'a> Monitor<'a> {
                 output_text.push(Text::styled(format!("\nERROR: {}", err), Style::default().modifier(Modifier::BOLD)))
             }
 
-            let control_text = [
-                Text::raw("F1 "),
-                Text::styled("Help", Style::default().bg(Color::Cyan)),
-                Text::raw(" F2 "),
-                Text::styled("Input format", Style::default().bg(Color::Cyan)),
-                Text::raw(" F3 "),
-                Text::styled("Output format", Style::default().bg(Color::Cyan)),
-                Text::raw(" F4 "),
-                Text::styled("Clear", Style::default().bg(Color::Cyan)),
-                Text::raw(" F10 "),
-                Text::styled("Close", Style::default().bg(Color::Cyan))
-            ];
-
             // draw widgets into constraints
             Paragraph::new(output_text.iter())
                 .block(
@@ -180,7 +149,7 @@ impl<'a> Monitor<'a> {
                 .wrap(true)
                 .render(&mut f, chunks[1]);
 
-            Paragraph::new(self.control_text.iter())
+            Paragraph::new(control_text.iter())
                 .block(
                     Block::default())
                 .wrap(true)

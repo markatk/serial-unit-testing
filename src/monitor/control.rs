@@ -27,7 +27,9 @@
  */
 
 use std::io;
-use std::sync::mpsc::Sender;
+use std::thread;
+use std::time::Duration;
+use std::sync::mpsc::{Sender, Receiver};
 use tui::style::Color;
 use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat};
@@ -46,7 +48,10 @@ pub struct Control<'a> {
     output: String,
     output_format: TextFormat,
 
-    cursor_position: usize
+    error: Option<String>,
+
+    cursor_position: usize,
+    cursor_state: bool,
 }
 
 impl<'a> Control<'a> {
@@ -62,8 +67,18 @@ impl<'a> Control<'a> {
             input_backup: String::new(),
             output: String::new(),
             output_format,
-            cursor_position: 1
+            error: None,
+            cursor_position: 1,
+            cursor_state: false
         })
+    }
+
+    pub fn get_ui_tx(&self) -> &Sender<Event<KeyEvent>> {
+        &self.ui.ui_tx
+    }
+
+    pub fn get_ui_rx(&self) -> &Receiver<Event<KeyEvent>> {
+        &self.ui.ui_rx
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
@@ -73,13 +88,28 @@ impl<'a> Control<'a> {
         self.add_control_key(4, "Clear");
         self.add_control_key(10, "Close");
 
-        self.ui.run();
+        self.ui.run()?;
+
+        // TODO: Update in render call
+        {
+            let tx = self.get_ui_tx().clone();
+            thread::spawn(move || {
+                loop {
+                    tx.send(Event::CursorTick).unwrap();
+
+                    thread::sleep(Duration::from_millis(500));
+                }
+            });
+        }
 
         // main loop
         loop {
-            self.ui.render(&self.input, &self.output, "Input - /Output -")?;
+            let input = self.get_input_render_text();
+            let input_title = format!("Input - {}/Output - {}", Control::get_format_name(&self.input_format), Control::get_format_name(&self.output_format));
 
-            match self.ui_rx.recv() {
+            self.ui.render(input.as_str(), &self.output, input_title.as_str(), &self.error)?;
+
+            match self.get_ui_rx().recv() {
                 Ok(Event::Input(event)) => {
                     // stop execution if true returned
                     if self.handle_keys(event) {
@@ -125,9 +155,9 @@ impl<'a> Control<'a> {
         }
     }
 
-    fn add_control_key(&mut self, num: u32, name: &str) {
+    fn add_control_key(&mut self, num: u8, name: &str) {
         self.ui.add_control_text(format!("F{}", num));
-        self.ui.add_control_text_with_color(name.to_string(), Color::Cyan);
+        self.ui.add_control_text_with_color(format!("{} ", name), Color::Cyan);
     }
 
     fn handle_keys(&mut self, event: KeyEvent) -> bool {
@@ -143,7 +173,7 @@ impl<'a> Control<'a> {
                         text.push('\n');
                     }
 
-                    if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
+                    if let Err(_err) = self.ui.io_tx.send((text, self.input_format.clone())) {
                         self.error = Some("Unable to send event to I/O thread".to_string());
                     }
 
@@ -246,10 +276,10 @@ impl<'a> Control<'a> {
             KeyEvent::F(num) => {
                 match num {
                     2 => {
-                        self.input_format = Monitor::get_next_format(&self.input_format);
+                        self.input_format = Control::get_next_format(&self.input_format);
                     },
                     3 => {
-                        self.output_format = Monitor::get_next_format(&self.output_format);
+                        self.output_format = Control::get_next_format(&self.output_format);
                     },
                     4 => {
                         self.output.clear();
