@@ -36,20 +36,20 @@ use serial_unit_testing::serial::Serial;
 
 mod event;
 mod ui;
+mod control;
 
 use event::Event;
 use std::time::Duration;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
+    let input_format = commands::get_text_input_format(matches);
+    let output_format = commands::get_text_output_format(matches);
 
-    let mut monitor = match ui::Monitor::new(io_tx) {
+    let mut monitor = match control::Control::new(input_format, output_format, io_tx) {
         Ok(monitor) => monitor,
         Err(e) => return Err(e.to_string())
     };
-
-    monitor.input_format = commands::get_text_input_format(matches);
-    monitor.output_format = commands::get_text_output_format(matches);
 
     // open serial port
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();

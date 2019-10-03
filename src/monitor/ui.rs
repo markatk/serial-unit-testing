@@ -27,8 +27,8 @@
  */
 
 use std::io;
-use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
+use std::sync::mpsc::{self, Sender, Receiver};
 use std::time::Duration;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
@@ -37,20 +37,13 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
 use super::event::Event;
-use serial_unit_testing::utils::{self, TextFormat};
+use serial_unit_testing::utils::TextFormat;
 
-pub struct Monitor {
+pub struct Monitor<'a> {
     terminal: Terminal<CrosstermBackend>,
 
-    input: String,
-    pub input_format: TextFormat,
-    input_history: Vec<String>,
-    input_history_index: i32,
-    input_backup: String,
-    output: String,
-    pub output_format: TextFormat,
+    control_text: Vec<Text<'a>>,
     cursor_state: bool,
-    cursor_position: usize,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     ui_rx: Receiver<Event<KeyEvent>>,
@@ -65,30 +58,33 @@ pub struct Monitor {
     // TODO: Add help window on F1 with keyboard shortcuts
 }
 
-impl Monitor {
-    pub fn new(io_tx: Sender<(String, TextFormat)>) -> Result<Monitor, io::Error> {
+impl<'a> Monitor<'a> {
+    pub fn new(io_tx: Sender<(String, TextFormat)>) -> Result<Monitor<'a>, io::Error> {
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
-        let terminal = Terminal::new(backend)?;
+
+        let mut terminal = Terminal::new(backend)?;
+        terminal.hide_cursor()?;
 
         let (ui_tx, ui_rx) = mpsc::channel();
 
         Ok(Monitor {
             terminal,
-            input: String::new(),
-            input_format: TextFormat::Text,
-            input_history: vec!(),
-            input_history_index: -1,
-            input_backup: String::new(),
-            output: String::with_capacity(10000),
-            output_format: TextFormat::Text,
+            control_text: vec!(),
             cursor_state: false,
-            cursor_position: 1,
             ui_tx,
             ui_rx,
             io_tx,
             error: None
         })
+    }
+
+    pub fn add_control_text(&mut self, text: String) {
+        self.control_text.push(Text::raw(text));
+    }
+
+    pub fn add_control_text_with_color(&mut self, text: String, color: Color) {
+        self.control_text.push(Text::styled(text, Style::default().bg(color)));
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
@@ -111,6 +107,8 @@ impl Monitor {
                 }
             });
         }
+
+        // TODO: Update in render call
         {
             let tx = self.ui_tx.clone();
             thread::spawn(move || {
@@ -122,45 +120,10 @@ impl Monitor {
             });
         }
 
-        // main loop
-        self.terminal.hide_cursor()?;
-
-        loop {
-            self.render()?;
-
-            match self.ui_rx.recv() {
-                Ok(Event::Input(event)) => {
-                    // stop execution if true returned
-                    if self.handle_keys(event) {
-                        break;
-                    }
-                },
-                Ok(Event::CursorTick) => {
-                    self.cursor_state = !self.cursor_state;
-                },
-                Ok(Event::Output(mut data)) => {
-                    // filter carriage return characters as they stop newline from working
-                    data.retain(|f| *f != 13);
-
-                    let text = utils::radix_string(&data, &self.output_format);
-
-                    self.output.push_str(&text);
-                },
-                Ok(Event::Error(text)) => {
-                    self.error = Some(text);
-                },
-                _ => {}
-            }
-        }
-
         Ok(())
     }
 
-    fn render(&mut self) -> Result<(), io::Error> {
-        let input = self.get_input_render_text();
-        let input_format = &self.input_format;
-        let output = &self.output;
-        let output_format = &self.output_format;
+    pub fn render(&mut self, input: &str, output: &str, input_title: &str) -> Result<(), io::Error> {
         let error = &self.error;
 
         self.terminal.draw(|mut f| {
@@ -212,219 +175,17 @@ impl Monitor {
             Paragraph::new(input_text.iter())
                 .block(
                     Block::default()
-                        .title(format!("Input - {} / Output - {}",
-                                       Monitor::get_format_name(input_format),
-                                       Monitor::get_format_name(output_format)).as_str())
+                        .title(input_title)
                         .borders(Borders::TOP))
                 .wrap(true)
                 .render(&mut f, chunks[1]);
 
-            Paragraph::new(control_text.iter())
+            Paragraph::new(self.control_text.iter())
                 .block(
                     Block::default())
                 .wrap(true)
                 .render(&mut f, chunks[2]);
         })
-    }
-
-    fn handle_keys(&mut self, event: KeyEvent) -> bool {
-        match event {
-            KeyEvent::Char(c) => {
-                if c == '\n' {
-                    // send io event with text
-                    let mut text = self.input.clone();
-
-                    // TODO: Add newline in every format
-                    // TODO: Add option to toggle newline append
-                    if self.input_format == TextFormat::Text {
-                        text.push('\n');
-                    }
-
-                    if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
-                        self.error = Some("Unable to send event to I/O thread".to_string());
-                    }
-
-                    // add history entry if input has changed
-                    if self.input.is_empty() == false {
-                        if let Some(last_input) = self.input_history.first() {
-                            if *last_input != self.input {
-                                self.input_history.insert(0, self.input.clone());
-                            }
-                        } else {
-                            self.input_history.insert(0, self.input.clone());
-                        }
-                    }
-
-                    // reset input and history
-                    self.input_history_index = -1;
-                    self.input_backup.clear();
-
-                    self.reset_input();
-                } else {
-                    if self.cursor_position < self.input.len() {
-                        self.input.insert(self.cursor_position, c);
-                    } else {
-                        self.input.push(c);
-                    }
-
-                    self.advance_cursor();
-                }
-            },
-            KeyEvent::Ctrl(c) => {
-                if c == 'c' {
-                    // Exit application
-                    return true;
-                }
-            },
-            KeyEvent::Backspace => {
-                if self.input.is_empty() == false && self.cursor_position != 0 {
-                    if self.cursor_position < self.input.len() {
-                        self.input.remove(self.cursor_position - 1);
-                    } else {
-                        self.input.pop();
-                    }
-
-                    self.retreat_cursor();
-                }
-            },
-            KeyEvent::Delete => {
-                if self.input.is_empty() == false && self.cursor_position < self.input.len() {
-                    self.input.remove(self.cursor_position);
-                }
-            },
-            KeyEvent::Left => {
-                self.retreat_cursor();
-            },
-            KeyEvent::Right => {
-                self.advance_cursor();
-            },
-            // TODO: Replace with settings window/shortcuts
-            KeyEvent::Up => {
-                if self.input_history.is_empty() {
-                    return false;
-                }
-
-                if self.input_history_index == -1 {
-                    self.input_backup = self.input.clone();
-                }
-
-                self.input_history_index += 1;
-                let max_index = self.input_history.len() as i32;
-
-                if self.input_history_index >= max_index {
-                    self.input_history_index = max_index - 1;
-                }
-
-                self.input = self.input_history[self.input_history_index as usize].clone();
-                self.cursor_position = self.input.len();
-            },
-            KeyEvent::Down => {
-                if self.input_history_index == -1 {
-                    return false;
-                }
-
-                self.input_history_index -= 1;
-                if self.input_history_index < 0 {
-                    self.input_history_index = -1;
-                }
-
-                // update input with history or input backup
-                if self.input_history_index >= 0 {
-                    self.input = self.input_history[self.input_history_index as usize].clone();
-                } else {
-                    self.input = self.input_backup.clone();
-                }
-
-                self.cursor_position = self.input.len();
-            },
-            KeyEvent::Esc => {
-                return true;
-            },
-            KeyEvent::F(num) => {
-                match num {
-                    2 => {
-                        self.input_format = Monitor::get_next_format(&self.input_format);
-                    },
-                    3 => {
-                        self.output_format = Monitor::get_next_format(&self.output_format);
-                    },
-                    4 => {
-                        self.output.clear();
-                    },
-                    10 => {
-                        return true;
-                    },
-                    _ => ()
-                };
-            },
-            _ => {}
-        }
-
-        return false;
-    }
-
-    fn get_input_render_text(&mut self) -> String {
-        // do not show input when an error is detected
-        if self.error.is_some() {
-            return "Press ESC key to close".to_string();
-        }
-
-        if self.cursor_state == false {
-            return self.input.clone();
-        }
-
-        let mut input = self.input.clone();
-
-        // place cursor in input text
-        if self.input.is_empty() == false && self.cursor_position < self.input.len() {
-            input.remove(self.cursor_position);
-        }
-
-        if self.cursor_position < self.input.len() {
-            input.insert(self.cursor_position, '█');
-        } else {
-            input.push('█');
-        }
-
-        input
-    }
-
-    fn reset_input(&mut self) {
-        self.input.clear();
-
-        self.cursor_position = 1;
-    }
-
-    fn advance_cursor(&mut self) {
-        if self.cursor_position < self.input.len() {
-            self.cursor_position += 1;
-        }
-    }
-
-    fn retreat_cursor(&mut self) {
-        if self.cursor_position > 0 {
-            self.cursor_position -= 1;
-        }
-    }
-
-    fn get_format_name(format: &TextFormat) -> &str {
-        match format {
-            TextFormat::Text => "Text",
-            TextFormat::Binary => "Binary",
-            TextFormat::Octal => "Octal",
-            TextFormat::Decimal => "Decimal",
-            TextFormat::Hex => "Hexadecimal"
-        }
-    }
-
-    fn get_next_format(format: &TextFormat) -> TextFormat {
-        match format {
-            TextFormat::Text => TextFormat::Binary,
-            TextFormat::Binary => TextFormat::Octal,
-            TextFormat::Octal => TextFormat::Decimal,
-            TextFormat::Decimal => TextFormat::Hex,
-            TextFormat::Hex => TextFormat::Text
-        }
     }
 
     fn get_last_lines(text: &str, n: usize) -> String {
