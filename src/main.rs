@@ -70,7 +70,7 @@ fn main() {
         .get_matches();
 
     if let Err(e) = run(matches) {
-        println!("Error: {}", e);
+        println!("{}", e);
 
         return;
     }

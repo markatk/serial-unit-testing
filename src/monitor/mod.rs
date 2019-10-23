@@ -29,6 +29,7 @@
 use std::io;
 use std::thread;
 use std::sync::mpsc;
+use std::time::Duration;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::KeyEvent;
 use crate::commands;
@@ -39,7 +40,6 @@ mod ui;
 mod control;
 
 use event::Event;
-use std::time::Duration;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
@@ -56,7 +56,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
         Ok(serial) => serial,
-        Err(e) => return Err(format!("Error opening port {:?}", e))
+        Err(e) => return Err(format!("Unable to connect to port: {:?}", e.into_inner().unwrap().description()))
     };
 
     // start thread for receiving from and sending to serial port
