@@ -86,7 +86,11 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, String
 /// Convert a vector of bytes into a radix string with given text format.
 pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> String {
     if *text_format == TextFormat::Text {
-        return str::from_utf8(buffer).unwrap().to_string();
+        // TODO: Handle error state
+        return match str::from_utf8(buffer) {
+            Ok(text) => text.to_string(),
+            Err(_) => String::new()
+        };
     }
 
     let mut text = String::new();
