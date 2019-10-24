@@ -172,12 +172,12 @@ impl<'a> Monitor<'a> {
                 ].as_ref())
                 .split(f.size());
 
-            let help_text = [
-                Text::styled("Key  Action\n", Style::default().modifier(Modifier::BOLD)),
+            let mut help_text = vec![];
 
-                Text::styled("F1", Style::default().bg(Color::Cyan)),
-                Text::raw(" - Show help window")
-            ];
+            Monitor::add_hot_key(&mut help_text, "F1", "Show help window");
+            Monitor::add_hot_key(&mut help_text, "Shift + Enter", "Newline instead of sending input");
+
+            help_text.insert(0, Text::styled("Key  Action\n\n", Style::default().modifier(Modifier::BOLD)));
 
             let exit_text = [Text::styled("Press ESC to exit help", Style::default().modifier(Modifier::ITALIC))];
 
@@ -209,5 +209,10 @@ impl<'a> Monitor<'a> {
 
                 result
             })
+    }
+
+    fn add_hot_key(arr: &mut Vec<Text>, hot_key: &str, description: &str) {
+        arr.push(Text::styled(hot_key.to_string(), Style::default().bg(Color::Cyan)));
+        arr.push(Text::raw(format!(" - {}\n\n", description)));
     }
 }
