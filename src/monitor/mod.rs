@@ -45,15 +45,14 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
     let input_format = commands::get_text_input_format(matches);
     let output_format = commands::get_text_output_format(matches);
+    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    let mut monitor = match control::Control::new(input_format, output_format, io_tx) {
+    let mut monitor = match control::Control::new(input_format, output_format, io_tx, format!("{}, {} baud rate ", port_name, settings.baud_rate)) {
         Ok(monitor) => monitor,
         Err(e) => return Err(e.to_string())
     };
 
     // open serial port
-    let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
-
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
         Ok(serial) => serial,
         Err(e) => return Err(format!("Unable to connect to port: {:?}", e.into_inner().unwrap().description()))

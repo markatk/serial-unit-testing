@@ -41,6 +41,7 @@ use serial_unit_testing::utils::TextFormat;
 pub struct Monitor<'a> {
     terminal: Terminal<CrosstermBackend>,
 
+    title: String,
     control_text: Vec<Text<'a>>,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
@@ -55,7 +56,7 @@ pub struct Monitor<'a> {
 }
 
 impl<'a> Monitor<'a> {
-    pub fn new(io_tx: Sender<(String, TextFormat)>) -> Result<Monitor<'a>, io::Error> {
+    pub fn new(io_tx: Sender<(String, TextFormat)>, title: String) -> Result<Monitor<'a>, io::Error> {
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
 
@@ -66,6 +67,7 @@ impl<'a> Monitor<'a> {
 
         Ok(Monitor {
             terminal,
+            title,
             control_text: vec!(),
             ui_tx,
             ui_rx,
@@ -107,6 +109,7 @@ impl<'a> Monitor<'a> {
 
     pub fn render(&mut self, input: &str, output: &str, input_title: &str, error: &Option<String>) -> Result<(), io::Error> {
         let control_text = &self.control_text;
+        let title = &self.title;
 
         self.terminal.draw(|mut f| {
             // create constraints
@@ -137,7 +140,10 @@ impl<'a> Monitor<'a> {
             // draw widgets into constraints
             Paragraph::new(output_text.iter())
                 .block(
-                    Block::default())
+                    Block::default()
+                        .title(title)
+                        .title_style(Style::default().modifier(Modifier::BOLD))
+                        .borders(Borders::TOP))
                 .wrap(true)
                 .render(&mut f, chunks[0]);
 

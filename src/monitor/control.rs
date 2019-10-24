@@ -65,8 +65,8 @@ pub struct Control<'a> {
 }
 
 impl<'a> Control<'a> {
-    pub fn new(input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>) -> Result<Control<'a>, io::Error> {
-        let ui = Monitor::new(io_tx)?;
+    pub fn new(input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> Result<Control<'a>, io::Error> {
+        let ui = Monitor::new(io_tx, title)?;
 
         Ok(Control {
             ui,
@@ -137,6 +137,7 @@ impl<'a> Control<'a> {
                 },
                 Ok(Event::Output(mut data)) => {
                     // filter carriage return characters as they stop newline from working
+                    // TODO: Replace with lf if no line feed afterwards
                     data.retain(|f| *f != 13);
 
                     let text = utils::radix_string(&data, &self.output_format);
