@@ -55,6 +55,7 @@ pub struct Control<'a> {
     cursor_position: usize,
     // TODO: move cursor state into monitor struct
     cursor_state: bool,
+    show_help: bool
 }
 
 impl<'a> Control<'a> {
@@ -73,7 +74,8 @@ impl<'a> Control<'a> {
             output_format,
             error: None,
             cursor_position: 1,
-            cursor_state: false
+            cursor_state: false,
+            show_help: false
         })
     }
 
@@ -109,13 +111,17 @@ impl<'a> Control<'a> {
 
         // main loop
         loop {
-            let input = self.get_input_render_text();
-            let input_title = format!("Input - {}/Output - {}/Newline - {} ",
-                                      helpers::get_format_name(&self.input_format),
-                                      helpers::get_format_name(&self.output_format),
-                                      helpers::get_newline_format_name(&self.newline_format));
+            if self.show_help {
+                self.ui.render_help()?;
+            } else {
+                let input = self.get_input_render_text();
+                let input_title = format!("Input - {}/Output - {}/Newline - {} ",
+                                          helpers::get_format_name(&self.input_format),
+                                          helpers::get_format_name(&self.output_format),
+                                          helpers::get_newline_format_name(&self.newline_format));
 
-            self.ui.render(input.as_str(), &self.output, input_title.as_str(), &self.error)?;
+                self.ui.render(input.as_str(), &self.output, input_title.as_str(), &self.error)?;
+            }
 
             match self.get_ui_rx().recv() {
                 Ok(Event::Input(event)) => {
@@ -223,10 +229,18 @@ impl<'a> Control<'a> {
                 self.retreat_history();
             },
             KeyEvent::Esc => {
-                return true;
+                if self.show_help {
+                    self.show_help = false;
+                } else {
+                    // Exit application
+                    return true;
+                }
             },
             KeyEvent::F(num) => {
                 match num {
+                    1 => {
+                        self.show_help = true;
+                    },
                     2 => {
                         self.input_format = helpers::get_next_format(&self.input_format);
                     },
@@ -240,6 +254,7 @@ impl<'a> Control<'a> {
                         self.newline_format = helpers::get_next_newline_format(&self.newline_format);
                     },
                     10 => {
+                        // Exit application
                         return true;
                     },
                     _ => ()
@@ -351,6 +366,4 @@ impl<'a> Control<'a> {
 
         self.cursor_position = helpers::char_count(&self.input);
     }
-
-
 }
