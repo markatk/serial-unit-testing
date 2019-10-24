@@ -36,8 +36,9 @@ use serial_unit_testing::utils::{self, TextFormat};
 use super::ui::Monitor;
 use super::event::Event;
 
+#[derive(Debug, Copy, Clone, PartialEq)]
 enum NewlineFormat {
-    None = 0,
+    None,
     CarriageReturn,
     LineFeed,
     Both
@@ -286,15 +287,7 @@ impl<'a> Control<'a> {
         // send io event with text
         let mut text = self.input.clone();
 
-        // TODO: Add newline in every format
-        if self.input_format == TextFormat::Text {
-            match self.newline_format {
-                NewlineFormat::CarriageReturn => text.push('\r'),
-                NewlineFormat::LineFeed => text.push('\n'),
-                NewlineFormat::Both => text.push_str("\r\n"),
-                _ => ()
-            };
-        }
+        Control::add_newline(&mut text, self.input_format, self.newline_format);
 
         if let Err(_err) = self.ui.io_tx.send((text, self.input_format.clone())) {
             self.error = Some("Unable to send event to I/O thread".to_string());
@@ -362,6 +355,36 @@ impl<'a> Control<'a> {
         }
 
         self.cursor_position = self.input.len();
+    }
+
+    fn add_newline(text: &mut String, text_format: TextFormat, newline_format: NewlineFormat) {
+        if newline_format == NewlineFormat::None {
+            return;
+        }
+
+        let cr = match text_format {
+            TextFormat::Text => "\r",
+            TextFormat::Binary => "00001101",
+            TextFormat::Octal => "015",
+            TextFormat::Decimal => "13",
+            TextFormat::Hex => "0D"
+        };
+
+        let lf = match text_format {
+            TextFormat::Text => "\n",
+            TextFormat::Binary => "00001010",
+            TextFormat::Octal => "012",
+            TextFormat::Decimal => "10",
+            TextFormat::Hex => "0A"
+        };
+
+        if newline_format == NewlineFormat::CarriageReturn || newline_format == NewlineFormat::Both {
+            text.push_str(cr);
+        }
+
+        if newline_format == NewlineFormat::LineFeed || newline_format == NewlineFormat::Both {
+            text.push_str(lf);
+        }
     }
 
     fn get_format_name(format: &TextFormat) -> &str {
