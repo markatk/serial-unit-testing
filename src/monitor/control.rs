@@ -36,6 +36,13 @@ use serial_unit_testing::utils::{self, TextFormat};
 use super::ui::Monitor;
 use super::event::Event;
 
+enum NewlineFormat {
+    None = 0,
+    CarriageReturn,
+    LineFeed,
+    Both
+}
+
 pub struct Control<'a> {
     ui: Monitor<'a>,
 
@@ -44,6 +51,7 @@ pub struct Control<'a> {
     input_history: Vec<String>,
     input_history_index: i32,
     input_backup: String,
+    newline_format: NewlineFormat,
 
     output: String,
     output_format: TextFormat,
@@ -66,6 +74,7 @@ impl<'a> Control<'a> {
             input_history: vec!(),
             input_history_index: -1,
             input_backup: String::new(),
+            newline_format: NewlineFormat::LineFeed,
             output: String::new(),
             output_format,
             error: None,
@@ -87,6 +96,7 @@ impl<'a> Control<'a> {
         self.add_control_key(2, "Input format");
         self.add_control_key(3, "Output format");
         self.add_control_key(4, "Clear");
+        self.add_control_key(5, "Newline");
         self.add_control_key(10, "Close");
 
         self.ui.run()?;
@@ -106,7 +116,10 @@ impl<'a> Control<'a> {
         // main loop
         loop {
             let input = self.get_input_render_text();
-            let input_title = format!("Input - {}/Output - {}", Control::get_format_name(&self.input_format), Control::get_format_name(&self.output_format));
+            let input_title = format!("Input - {}/Output - {}/Newline - {} ",
+                Control::get_format_name(&self.input_format),
+                Control::get_format_name(&self.output_format),
+                Control::get_newline_format_name(&self.newline_format));
 
             self.ui.render(input.as_str(), &self.output, input_title.as_str(), &self.error)?;
 
@@ -165,6 +178,7 @@ impl<'a> Control<'a> {
     fn handle_keys(&mut self, event: KeyEvent) -> bool {
         match event {
             KeyEvent::Char(c) => {
+                // TODO: Use enter key event?
                 if c == '\n' {
                     self.send_input();
                 } else {
@@ -226,6 +240,9 @@ impl<'a> Control<'a> {
                     4 => {
                         self.output.clear();
                     },
+                    5 => {
+                        self.newline_format = Control::get_next_newline_format(&self.newline_format);
+                    },
                     10 => {
                         return true;
                     },
@@ -270,9 +287,13 @@ impl<'a> Control<'a> {
         let mut text = self.input.clone();
 
         // TODO: Add newline in every format
-        // TODO: Add option to toggle newline append
         if self.input_format == TextFormat::Text {
-            text.push('\n');
+            match self.newline_format {
+                NewlineFormat::CarriageReturn => text.push('\r'),
+                NewlineFormat::LineFeed => text.push('\n'),
+                NewlineFormat::Both => text.push_str("\r\n"),
+                _ => ()
+            };
         }
 
         if let Err(_err) = self.ui.io_tx.send((text, self.input_format.clone())) {
@@ -360,6 +381,24 @@ impl<'a> Control<'a> {
             TextFormat::Octal => TextFormat::Decimal,
             TextFormat::Decimal => TextFormat::Hex,
             TextFormat::Hex => TextFormat::Text
+        }
+    }
+
+    fn get_newline_format_name(format: &NewlineFormat) -> &str {
+        match format {
+            NewlineFormat::None => "None",
+            NewlineFormat::CarriageReturn => "Carriage return",
+            NewlineFormat::LineFeed => "Line feed",
+            NewlineFormat::Both => "Both"
+        }
+    }
+
+    fn get_next_newline_format(format: &NewlineFormat) -> NewlineFormat {
+        match format {
+            NewlineFormat::None => NewlineFormat::CarriageReturn,
+            NewlineFormat::CarriageReturn => NewlineFormat::LineFeed,
+            NewlineFormat::LineFeed => NewlineFormat::Both,
+            NewlineFormat::Both => NewlineFormat::None
         }
     }
 }
