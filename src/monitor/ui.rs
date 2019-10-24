@@ -162,6 +162,41 @@ impl<'a> Monitor<'a> {
         })
     }
 
+    pub fn render_help(&mut self) -> Result<(), io::Error> {
+        self.terminal.draw(|mut f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Min(0),
+                    Constraint::Length(2)
+                ].as_ref())
+                .split(f.size());
+
+            let help_text = [
+                Text::styled("Key  Action\n", Style::default().modifier(Modifier::BOLD)),
+
+                Text::styled("F1", Style::default().bg(Color::Cyan)),
+                Text::raw(" - Show help window")
+            ];
+
+            let exit_text = [Text::styled("Press ESC to exit help", Style::default().modifier(Modifier::ITALIC))];
+
+            // draw widgets
+            Paragraph::new(help_text.iter())
+                .block(Block::default()
+                    .title("Help")
+                    .title_style(Style::default().modifier(Modifier::BOLD))
+                    .borders(Borders::ALL))
+                .wrap(true)
+                .render(&mut f, chunks[0]);
+
+            Paragraph::new(exit_text.iter())
+                .block(Block::default())
+                .wrap(true)
+                .render(&mut f, chunks[1]);
+        })
+    }
+
     fn get_last_lines(text: &str, n: usize) -> String {
         text
             .lines()
