@@ -29,7 +29,7 @@
 use std::str;
 
 /// Text format type for radix string conversion.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum TextFormat {
     /// Text format
     Text,
