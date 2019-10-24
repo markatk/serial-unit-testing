@@ -47,7 +47,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let output_format = commands::get_text_output_format(matches);
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    let mut monitor = match control::Control::new(input_format, output_format, io_tx, format!("{}, {} baud rate ", port_name, settings.baud_rate)) {
+    let mut monitor = match control::Control::new(input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string())) {
         Ok(monitor) => monitor,
         Err(e) => return Err(e.to_string())
     };

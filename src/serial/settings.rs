@@ -126,6 +126,28 @@ impl Settings {
             flow_control
         }
     }
+
+    pub fn to_short_string(&self) -> String {
+        let data_bits = match self.data_bits {
+            DataBits::Five => 5,
+            DataBits::Six => 6,
+            DataBits::Seven => 7,
+            DataBits::Eight => 8
+        };
+
+        let parity = match self.parity {
+            Parity::None => "N",
+            Parity::Even => "E",
+            Parity::Odd => "O"
+        };
+
+        let stop_bits = match self.stop_bits {
+            StopBits::One => 1,
+            StopBits::Two => 2
+        };
+
+        format!("{} {}{}{}", self.baud_rate, data_bits, parity, stop_bits)
+    }
 }
 
 impl Default for Settings {
