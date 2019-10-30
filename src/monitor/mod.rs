@@ -83,7 +83,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
                 match io_rx.try_recv() {
                     Ok((data, format)) => {
-                        if let Err(_err) = serial.write_format(data.as_str(), &format) {
+                        if let Err(_err) = serial.write_format(data.as_str(), format) {
                             show_error(&tx, "Unable to write to serial".to_string());
 
                             return;
