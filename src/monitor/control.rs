@@ -95,6 +95,10 @@ impl<'a> Control<'a> {
         self.add_control_key(5, "Newline");
         self.add_control_key(10, "Close");
 
+        self.ui.add_hot_key("F1", "Show help window");
+        self.ui.add_hot_key("Enter", "Send input to serial");
+        self.ui.add_hot_key("Shift + Enter", "Newline instead of sending input");
+
         self.ui.run()?;
 
         // TODO: Update in render call

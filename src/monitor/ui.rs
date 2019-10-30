@@ -29,6 +29,7 @@
 use std::io;
 use std::thread;
 use std::sync::mpsc::{self, Sender, Receiver};
+use std::iter::repeat;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
@@ -38,11 +39,27 @@ use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
 use super::enums::Event;
 use serial_unit_testing::utils::TextFormat;
 
+struct HelpEntry {
+    pub key: String,
+    pub text: String
+}
+
+impl HelpEntry {
+    pub fn get_entry(&self, length: usize) -> [Text; 3] {
+        [
+            Text::raw(repeat(" ").take(length - self.key.len()).collect::<String>()),
+            Text::styled(self.key.clone(), Style::default().bg(Color::Cyan)),
+            Text::raw(format!(" - {}\n\n", self.text))
+        ]
+    }
+}
+
 pub struct Monitor<'a> {
     terminal: Terminal<CrosstermBackend>,
 
     title: String,
     control_text: Vec<Text<'a>>,
+    help_entries: Vec<HelpEntry>,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     pub ui_rx: Receiver<Event<KeyEvent>>,
@@ -51,7 +68,6 @@ pub struct Monitor<'a> {
     // TODO: Add output manual scrolling and current line display in corner
     // TODO: Add multiline input -> shift-enter for sending or shift-enter for multi line?
     // TODO: Add input escaping
-    // TODO: Add help window on F1 with keyboard shortcuts
 }
 
 impl<'a> Monitor<'a> {
@@ -68,6 +84,7 @@ impl<'a> Monitor<'a> {
             terminal,
             title,
             control_text: vec!(),
+            help_entries: vec!(),
             ui_tx,
             ui_rx,
             io_tx
@@ -80,6 +97,13 @@ impl<'a> Monitor<'a> {
 
     pub fn add_control_text_with_color(&mut self, text: String, color: Color) {
         self.control_text.push(Text::styled(text, Style::default().bg(color)));
+    }
+
+    pub fn add_hot_key(&mut self, hot_key: &str, description: &str) {
+        self.help_entries.push(HelpEntry {
+            key: hot_key.to_string(),
+            text: description.to_string()
+        });
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
@@ -163,6 +187,8 @@ impl<'a> Monitor<'a> {
     }
 
     pub fn render_help(&mut self) -> Result<(), io::Error> {
+        let help_text = Monitor::get_help_text_entries(&self.help_entries);
+
         self.terminal.draw(|mut f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -172,13 +198,6 @@ impl<'a> Monitor<'a> {
                 ].as_ref())
                 .split(f.size());
 
-            let mut help_text = vec![];
-
-            Monitor::add_hot_key(&mut help_text, "F1", "Show help window");
-            Monitor::add_hot_key(&mut help_text, "Shift + Enter", "Newline instead of sending input");
-
-            help_text.insert(0, Text::styled("Key  Action\n\n", Style::default().modifier(Modifier::BOLD)));
-
             let exit_text = [Text::styled("Press ESC to exit help", Style::default().modifier(Modifier::ITALIC))];
 
             // draw widgets
@@ -187,7 +206,6 @@ impl<'a> Monitor<'a> {
                     .title("Help")
                     .title_style(Style::default().modifier(Modifier::BOLD))
                     .borders(Borders::ALL))
-                .wrap(true)
                 .render(&mut f, chunks[0]);
 
             Paragraph::new(exit_text.iter())
@@ -211,8 +229,24 @@ impl<'a> Monitor<'a> {
             })
     }
 
-    fn add_hot_key(arr: &mut Vec<Text>, hot_key: &str, description: &str) {
-        arr.push(Text::styled(hot_key.to_string(), Style::default().bg(Color::Cyan)));
-        arr.push(Text::raw(format!(" - {}\n\n", description)));
+    fn get_help_text_entries(help_entries: &Vec<HelpEntry>) -> Vec<Text> {
+        // get longest key
+        let mut length = 0;
+
+        for entry in help_entries {
+            if entry.key.len() > length {
+                length = entry.key.len();
+            }
+        }
+
+        // create text entries
+        let title_text = format!("Key{}Action\n\n", repeat(" ").take(length).collect::<String>());
+        let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
+
+        for entry in help_entries {
+            help_text.extend_from_slice(&entry.get_entry(length));
+        }
+
+        help_text
     }
 }
