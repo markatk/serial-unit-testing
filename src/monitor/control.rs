@@ -96,8 +96,16 @@ impl<'a> Control<'a> {
         self.add_control_key(10, "Close");
 
         self.ui.add_hot_key("F1", "Show help window");
+        self.ui.add_hot_key("F2", "Change input format");
+        self.ui.add_hot_key("F3", "Change output format");
+        self.ui.add_hot_key("F4", "Clear output text");
+        self.ui.add_hot_key("F5", "Change appended newline on send");
+        self.ui.add_hot_key("F10", "Close application");
         self.ui.add_hot_key("Enter", "Send input to serial");
-        self.ui.add_hot_key("Shift + Enter", "Newline instead of sending input");
+//        self.ui.add_hot_key("Shift + Enter", "Newline instead of sending input");
+        self.ui.add_hot_key("Up", "Go up in input history entries");
+        self.ui.add_hot_key("Down", "Go down in input history entries");
+        self.ui.add_hot_key("Ctrl + C", "Close application");
 
         self.ui.run()?;
 
