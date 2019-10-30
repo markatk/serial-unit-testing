@@ -41,6 +41,7 @@ mod monitor;
 mod check;
 mod run;
 mod verify;
+mod version;
 
 fn run(matches: ArgMatches) -> Result<(), String> {
     match matches.subcommand() {
@@ -50,6 +51,7 @@ fn run(matches: ArgMatches) -> Result<(), String> {
         ("check", Some(m)) => check::run(m),
         ("run", Some(m)) => run::run(m),
         ("verify", Some(m)) => verify::run(m),
+        ("version", Some(m)) => version::run(m),
         _ => Ok(())
     }
 }
@@ -67,6 +69,7 @@ fn main() {
         .subcommand(check::command())
         .subcommand(run::command())
         .subcommand(verify::command())
+        .subcommand(version::command())
         .get_matches();
 
     if let Err(e) = run(matches) {
