@@ -50,7 +50,6 @@ pub struct Monitor<'a> {
 
     // TODO: Add output manual scrolling and current line display in corner
     // TODO: Add multiline input -> shift-enter for sending or shift-enter for multi line?
-    // TODO: Support unicode?
     // TODO: Add input escaping
     // TODO: Add help window on F1 with keyboard shortcuts
 }

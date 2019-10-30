@@ -329,7 +329,7 @@ impl<'a> Control<'a> {
         }
 
         self.input = self.input_history[self.input_history_index as usize].clone();
-        self.cursor_position = self.input.len();
+        self.cursor_position = helpers::char_count(&self.input);
     }
 
     fn retreat_history(&mut self) {
@@ -349,7 +349,7 @@ impl<'a> Control<'a> {
             self.input = self.input_backup.clone();
         }
 
-        self.cursor_position = self.input.len();
+        self.cursor_position = helpers::char_count(&self.input);
     }
 
 
