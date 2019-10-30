@@ -63,6 +63,27 @@ pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>, String> 
     bytes_from_radix_string(&text, 2)
 }
 
+/// Convert a octal string into a vector of bytes
+///
+/// Leading 0 and whitespaces will be ignored.
+pub fn bytes_from_octal_string(original_text: &str) -> Result<Vec<u8>, String> {
+    let mut text = original_text.replace(" ", "");
+    if text.starts_with('0') {
+        text.remove(0);
+    }
+
+    bytes_from_radix_string(&text, 8)
+}
+
+/// Convert a decimal string into a vector of bytes
+///
+/// Whitespaces will be ignored
+pub fn bytes_from_decimal_string(original_text: &str) -> Result<Vec<u8>, String> {
+    let text = original_text.replace(" ", "");
+
+    bytes_from_radix_string(&text, 10)
+}
+
 /// Convert a radix string into a vector of bytes.
 ///
 /// Leading and trailing whitespaces will result in an error. Conversion happens by 2 characters per byte.
