@@ -126,13 +126,13 @@ impl Serial {
     ///
     /// fn main() -> Result<(), std::io::Error> {
     ///     let mut serial = Serial::open("/dev/ttyACM0")?;
-    ///     serial.write_format("0a5f", &TextFormat::Hex)?;
+    ///     serial.write_format("0a5f", TextFormat::Hex)?;
     ///
     ///     Ok(())
     /// }
     ///
     /// ```
-    pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), io::Error> {
+    pub fn write_format(&mut self, text: &str, text_format: utils::TextFormat) -> Result<(), io::Error> {
         let bytes = match text_format {
             utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
             utils::TextFormat::Octal => utils::bytes_from_octal_string(text).unwrap(),
@@ -330,7 +330,7 @@ impl Serial {
     ///
     /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
     pub fn check_with_settings(&mut self, text: &str, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
-        self.write_format(text, &settings.input_format)?;
+        self.write_format(text, settings.input_format)?;
 
         self.check_read_with_settings(desired_response, settings)
     }

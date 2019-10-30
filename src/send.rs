@@ -70,7 +70,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         text = utils::escape_text(text);
     }
 
-    match serial.write_format(&text, &input_text_format) {
+    match serial.write_format(&text, input_text_format) {
         Ok(_) => (),
         Err(ref e) if e.kind() == io::ErrorKind::TimedOut => return Err("Serial connection timed out".to_string()),
         Err(e) => return Err(format!("Error sending text {:?}", e))

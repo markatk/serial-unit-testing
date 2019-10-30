@@ -176,7 +176,7 @@ impl TestCase {
                 sleep(delay);
             }
 
-            match serial.write_format(&input, &self.input_format) {
+            match serial.write_format(&input, self.input_format) {
                 Ok(_) => (),
                 Err(e) => return self.exit_run_with_error(format!("Unable to write to serial port: {}", e))
             };

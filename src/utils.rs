@@ -43,6 +43,7 @@ pub enum TextFormat {
     Hex = 16
 }
 
+// TODO: Replace String error type with proper error
 /// Convert a hexadecimal string into a vector of bytes.
 ///
 /// Leading 0x and whitespaces will be ignored.
