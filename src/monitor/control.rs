@@ -34,15 +34,8 @@ use tui::style::Color;
 use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat};
 use super::ui::Monitor;
-use super::event::Event;
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-enum NewlineFormat {
-    None,
-    CarriageReturn,
-    LineFeed,
-    Both
-}
+use super::enums::{Event, NewlineFormat};
+use super::helpers;
 
 pub struct Control<'a> {
     ui: Monitor<'a>,
@@ -118,9 +111,9 @@ impl<'a> Control<'a> {
         loop {
             let input = self.get_input_render_text();
             let input_title = format!("Input - {}/Output - {}/Newline - {} ",
-                Control::get_format_name(&self.input_format),
-                Control::get_format_name(&self.output_format),
-                Control::get_newline_format_name(&self.newline_format));
+                                      helpers::get_format_name(&self.input_format),
+                                      helpers::get_format_name(&self.output_format),
+                                      helpers::get_newline_format_name(&self.newline_format));
 
             self.ui.render(input.as_str(), &self.output, input_title.as_str(), &self.error)?;
 
@@ -161,7 +154,7 @@ impl<'a> Control<'a> {
     }
 
     fn advance_cursor(&mut self) {
-        if self.cursor_position < self.input.len() {
+        if self.cursor_position < helpers::char_count(&self.input) {
             self.cursor_position += 1;
         }
     }
@@ -180,19 +173,20 @@ impl<'a> Control<'a> {
     fn handle_keys(&mut self, event: KeyEvent) -> bool {
         match event {
             KeyEvent::Char(c) => {
-                // TODO: Use enter key event?
                 if c == '\n' {
                     self.send_input();
-                } else {
-                    // add character to input
-                    if self.cursor_position < self.input.len() {
-                        self.input.insert(self.cursor_position, c);
-                    } else {
-                        self.input.push(c);
-                    }
 
-                    self.advance_cursor();
+                    return false;
                 }
+
+                // add character to input
+                if self.cursor_position < helpers::char_count(&self.input) {
+                    helpers::insert_char(&mut self.input, self.cursor_position, c);
+                } else {
+                    self.input.push(c);
+                }
+
+                self.advance_cursor();
             },
             KeyEvent::Ctrl(c) => {
                 if c == 'c' {
@@ -202,8 +196,8 @@ impl<'a> Control<'a> {
             },
             KeyEvent::Backspace => {
                 if self.input.is_empty() == false && self.cursor_position != 0 {
-                    if self.cursor_position < self.input.len() {
-                        self.input.remove(self.cursor_position - 1);
+                    if self.cursor_position < helpers::char_count(&self.input) {
+                        helpers::remove_char(&mut self.input, self.cursor_position - 1);
                     } else {
                         self.input.pop();
                     }
@@ -212,8 +206,8 @@ impl<'a> Control<'a> {
                 }
             },
             KeyEvent::Delete => {
-                if self.input.is_empty() == false && self.cursor_position < self.input.len() {
-                    self.input.remove(self.cursor_position);
+                if self.input.is_empty() == false && self.cursor_position < helpers::char_count(&self.input) {
+                    helpers::remove_char(&mut self.input, self.cursor_position);
                 }
             },
             KeyEvent::Left => {
@@ -234,16 +228,16 @@ impl<'a> Control<'a> {
             KeyEvent::F(num) => {
                 match num {
                     2 => {
-                        self.input_format = Control::get_next_format(&self.input_format);
+                        self.input_format = helpers::get_next_format(&self.input_format);
                     },
                     3 => {
-                        self.output_format = Control::get_next_format(&self.output_format);
+                        self.output_format = helpers::get_next_format(&self.output_format);
                     },
                     4 => {
                         self.output.clear();
                     },
                     5 => {
-                        self.newline_format = Control::get_next_newline_format(&self.newline_format);
+                        self.newline_format = helpers::get_next_newline_format(&self.newline_format);
                     },
                     10 => {
                         return true;
@@ -271,12 +265,12 @@ impl<'a> Control<'a> {
         let mut input = self.input.clone();
 
         // place cursor in input text
-        if self.input.is_empty() == false && self.cursor_position < self.input.len() {
-            input.remove(self.cursor_position);
+        if self.input.is_empty() == false && self.cursor_position < helpers::char_count(&input) {
+            helpers::remove_char(&mut input, self.cursor_position);
         }
 
-        if self.cursor_position < self.input.len() {
-            input.insert(self.cursor_position, '█');
+        if self.cursor_position < helpers::char_count(&input) {
+            helpers::insert_char(&mut input, self.cursor_position, '█');
         } else {
             input.push('█');
         }
@@ -288,7 +282,7 @@ impl<'a> Control<'a> {
         // send io event with text
         let mut text = self.input.clone();
 
-        Control::add_newline(&mut text, self.input_format, self.newline_format);
+        helpers::add_newline(&mut text, self.input_format, self.newline_format);
 
         if let Err(_err) = self.ui.io_tx.send((text, self.input_format.clone())) {
             self.error = Some("Unable to send event to I/O thread".to_string());
@@ -358,71 +352,5 @@ impl<'a> Control<'a> {
         self.cursor_position = self.input.len();
     }
 
-    fn add_newline(text: &mut String, text_format: TextFormat, newline_format: NewlineFormat) {
-        if newline_format == NewlineFormat::None {
-            return;
-        }
 
-        let cr = match text_format {
-            TextFormat::Text => "\r",
-            TextFormat::Binary => "00001101",
-            TextFormat::Octal => "015",
-            TextFormat::Decimal => "13",
-            TextFormat::Hex => "0D"
-        };
-
-        let lf = match text_format {
-            TextFormat::Text => "\n",
-            TextFormat::Binary => "00001010",
-            TextFormat::Octal => "012",
-            TextFormat::Decimal => "10",
-            TextFormat::Hex => "0A"
-        };
-
-        if newline_format == NewlineFormat::CarriageReturn || newline_format == NewlineFormat::Both {
-            text.push_str(cr);
-        }
-
-        if newline_format == NewlineFormat::LineFeed || newline_format == NewlineFormat::Both {
-            text.push_str(lf);
-        }
-    }
-
-    fn get_format_name(format: &TextFormat) -> &str {
-        match format {
-            TextFormat::Text => "Text",
-            TextFormat::Binary => "Binary",
-            TextFormat::Octal => "Octal",
-            TextFormat::Decimal => "Decimal",
-            TextFormat::Hex => "Hexadecimal"
-        }
-    }
-
-    fn get_next_format(format: &TextFormat) -> TextFormat {
-        match format {
-            TextFormat::Text => TextFormat::Binary,
-            TextFormat::Binary => TextFormat::Octal,
-            TextFormat::Octal => TextFormat::Decimal,
-            TextFormat::Decimal => TextFormat::Hex,
-            TextFormat::Hex => TextFormat::Text
-        }
-    }
-
-    fn get_newline_format_name(format: &NewlineFormat) -> &str {
-        match format {
-            NewlineFormat::None => "None",
-            NewlineFormat::CarriageReturn => "Carriage return",
-            NewlineFormat::LineFeed => "Line feed",
-            NewlineFormat::Both => "Both"
-        }
-    }
-
-    fn get_next_newline_format(format: &NewlineFormat) -> NewlineFormat {
-        match format {
-            NewlineFormat::None => NewlineFormat::CarriageReturn,
-            NewlineFormat::CarriageReturn => NewlineFormat::LineFeed,
-            NewlineFormat::LineFeed => NewlineFormat::Both,
-            NewlineFormat::Both => NewlineFormat::None
-        }
-    }
 }

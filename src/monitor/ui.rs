@@ -35,7 +35,7 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
-use super::event::Event;
+use super::enums::Event;
 use serial_unit_testing::utils::TextFormat;
 
 pub struct Monitor<'a> {

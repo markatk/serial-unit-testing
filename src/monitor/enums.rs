@@ -1,5 +1,5 @@
 /*
- * File: src/monitor/event.rs
+ * File: src/monitor/enums.rs
  * Date: 21.08.2019
  * Author: MarkAtk
  *
@@ -31,4 +31,12 @@ pub enum Event<I> {
     CursorTick,
     Output(Vec<u8>),
     Error(String)
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum NewlineFormat {
+    None,
+    CarriageReturn,
+    LineFeed,
+    Both
 }

@@ -35,11 +35,12 @@ use crossterm::KeyEvent;
 use crate::commands;
 use serial_unit_testing::serial::Serial;
 
-mod event;
+mod enums;
 mod ui;
 mod control;
+mod helpers;
 
-use event::Event;
+use enums::Event;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
