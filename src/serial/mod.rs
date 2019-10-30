@@ -135,6 +135,8 @@ impl Serial {
     pub fn write_format(&mut self, text: &str, text_format: &utils::TextFormat) -> Result<(), io::Error> {
         let bytes = match text_format {
             utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
+            utils::TextFormat::Octal => utils::bytes_from_octal_string(text).unwrap(),
+            utils::TextFormat::Decimal => utils::bytes_from_decimal_string(text).unwrap(),
             utils::TextFormat::Hex => utils::bytes_from_hex_string(text).unwrap(),
             _ => {
                 let mut bytes = Vec::new();
