@@ -31,6 +31,8 @@ use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{Sender, Receiver};
 use tui::style::Color;
+use tui::Terminal;
+use tui::backend::CrosstermBackend;
 use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat};
 use super::ui::Monitor;
@@ -39,6 +41,7 @@ use super::helpers;
 
 pub struct Control<'a> {
     ui: Monitor<'a>,
+    terminal: &'a mut Terminal<CrosstermBackend>,
 
     input: String,
     input_format: TextFormat,
@@ -59,11 +62,12 @@ pub struct Control<'a> {
 }
 
 impl<'a> Control<'a> {
-    pub fn new(input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> Result<Control<'a>, io::Error> {
+    pub fn new(terminal: &'a mut Terminal<CrosstermBackend>, input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> Result<Control<'a>, io::Error> {
         let ui = Monitor::new(io_tx, title)?;
 
         Ok(Control {
             ui,
+            terminal,
             input: String::new(),
             input_format,
             input_history: vec!(),
@@ -95,17 +99,17 @@ impl<'a> Control<'a> {
         self.add_control_key(5, "Newline");
         self.add_control_key(10, "Close");
 
-        self.ui.add_hot_key("F1", "Show help window");
-        self.ui.add_hot_key("F2", "Change input format");
-        self.ui.add_hot_key("F3", "Change output format");
-        self.ui.add_hot_key("F4", "Clear output text");
-        self.ui.add_hot_key("F5", "Change appended newline on send");
-        self.ui.add_hot_key("F10", "Close application");
-        self.ui.add_hot_key("Enter", "Send input to serial");
-//        self.ui.add_hot_key("Shift + Enter", "Newline instead of sending input");
-        self.ui.add_hot_key("Up", "Go up in input history entries");
-        self.ui.add_hot_key("Down", "Go down in input history entries");
-        self.ui.add_hot_key("Ctrl + C", "Close application");
+        self.ui.help_window.add_hot_key("F1", "Show help window");
+        self.ui.help_window.add_hot_key("F2", "Change input format");
+        self.ui.help_window.add_hot_key("F3", "Change output format");
+        self.ui.help_window.add_hot_key("F4", "Clear output text");
+        self.ui.help_window.add_hot_key("F5", "Change appended newline on send");
+        self.ui.help_window.add_hot_key("F10", "Close application");
+        self.ui.help_window.add_hot_key("Enter", "Send input to serial");
+//        self.ui.help_window.add_hot_key("Shift + Enter", "Newline instead of sending input");
+        self.ui.help_window.add_hot_key("Up", "Go up in input history entries");
+        self.ui.help_window.add_hot_key("Down", "Go down in input history entries");
+        self.ui.help_window.add_hot_key("Ctrl + C", "Close application");
 
         self.ui.run()?;
 
@@ -124,7 +128,7 @@ impl<'a> Control<'a> {
         // main loop
         loop {
             if self.show_help {
-                self.ui.render_help()?;
+                self.ui.help_window.render(self.terminal)?;
             } else {
                 let input = self.get_input_render_text();
                 let input_title = format!("Input - {}/Output - {}/Newline - {} ",
@@ -132,7 +136,7 @@ impl<'a> Control<'a> {
                                           helpers::get_format_name(&self.output_format),
                                           helpers::get_newline_format_name(&self.newline_format));
 
-                self.ui.render(input.as_str(), &self.output, input_title.as_str(), &self.error)?;
+                self.ui.render(self.terminal, input.as_str(), &self.output, input_title.as_str(), &self.error)?;
             }
 
             match self.get_ui_rx().recv() {

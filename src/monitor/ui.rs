@@ -29,37 +29,21 @@
 use std::io;
 use std::thread;
 use std::sync::mpsc::{self, Sender, Receiver};
-use std::iter::repeat;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
-use crossterm::{input, InputEvent, KeyEvent, AlternateScreen};
+use crossterm::{input, InputEvent, KeyEvent};
 use super::enums::Event;
+use super::help_window::HelpWindow;
 use serial_unit_testing::utils::TextFormat;
 
-struct HelpEntry {
-    pub key: String,
-    pub text: String
-}
-
-impl HelpEntry {
-    pub fn get_entry(&self, length: usize) -> [Text; 3] {
-        [
-            Text::raw(repeat(" ").take(length - self.key.len()).collect::<String>()),
-            Text::styled(self.key.clone(), Style::default().bg(Color::Cyan)),
-            Text::raw(format!(" - {}\n\n", self.text))
-        ]
-    }
-}
-
 pub struct Monitor<'a> {
-    terminal: Terminal<CrosstermBackend>,
+    pub help_window: HelpWindow,
 
     title: String,
     control_text: Vec<Text<'a>>,
-    help_entries: Vec<HelpEntry>,
 
     pub ui_tx: Sender<Event<KeyEvent>>,
     pub ui_rx: Receiver<Event<KeyEvent>>,
@@ -72,19 +56,12 @@ pub struct Monitor<'a> {
 
 impl<'a> Monitor<'a> {
     pub fn new(io_tx: Sender<(String, TextFormat)>, title: String) -> Result<Monitor<'a>, io::Error> {
-        let screen = AlternateScreen::to_alternate(true)?;
-        let backend = CrosstermBackend::with_alternate_screen(screen)?;
-
-        let mut terminal = Terminal::new(backend)?;
-        terminal.hide_cursor()?;
-
         let (ui_tx, ui_rx) = mpsc::channel();
 
         Ok(Monitor {
-            terminal,
+            help_window: Default::default(),
             title,
             control_text: vec!(),
-            help_entries: vec!(),
             ui_tx,
             ui_rx,
             io_tx
@@ -97,13 +74,6 @@ impl<'a> Monitor<'a> {
 
     pub fn add_control_text_with_color(&mut self, text: String, color: Color) {
         self.control_text.push(Text::styled(text, Style::default().bg(color)));
-    }
-
-    pub fn add_hot_key(&mut self, hot_key: &str, description: &str) {
-        self.help_entries.push(HelpEntry {
-            key: hot_key.to_string(),
-            text: description.to_string()
-        });
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
@@ -130,11 +100,11 @@ impl<'a> Monitor<'a> {
         Ok(())
     }
 
-    pub fn render(&mut self, input: &str, output: &str, input_title: &str, error: &Option<String>) -> Result<(), io::Error> {
+    pub fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>, input: &str, output: &str, input_title: &str, error: &Option<String>) -> Result<(), io::Error> {
         let control_text = &self.control_text;
         let title = &self.title;
 
-        self.terminal.draw(|mut f| {
+        terminal.draw(|mut f| {
             // create constraints
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -186,35 +156,6 @@ impl<'a> Monitor<'a> {
         })
     }
 
-    pub fn render_help(&mut self) -> Result<(), io::Error> {
-        let help_text = Monitor::get_help_text_entries(&self.help_entries);
-
-        self.terminal.draw(|mut f| {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Min(0),
-                    Constraint::Length(2)
-                ].as_ref())
-                .split(f.size());
-
-            let exit_text = [Text::styled("Press ESC to exit help", Style::default().modifier(Modifier::ITALIC))];
-
-            // draw widgets
-            Paragraph::new(help_text.iter())
-                .block(Block::default()
-                    .title("Help")
-                    .title_style(Style::default().modifier(Modifier::BOLD))
-                    .borders(Borders::ALL))
-                .render(&mut f, chunks[0]);
-
-            Paragraph::new(exit_text.iter())
-                .block(Block::default())
-                .wrap(true)
-                .render(&mut f, chunks[1]);
-        })
-    }
-
     fn get_last_lines(text: &str, n: usize) -> String {
         text
             .lines()
@@ -227,26 +168,5 @@ impl<'a> Monitor<'a> {
 
                 result
             })
-    }
-
-    fn get_help_text_entries(help_entries: &Vec<HelpEntry>) -> Vec<Text> {
-        // get longest key
-        let mut length = 0;
-
-        for entry in help_entries {
-            if entry.key.len() > length {
-                length = entry.key.len();
-            }
-        }
-
-        // create text entries
-        let title_text = format!("Key{}Action\n\n", repeat(" ").take(length).collect::<String>());
-        let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
-
-        for entry in help_entries {
-            help_text.extend_from_slice(&entry.get_entry(length));
-        }
-
-        help_text
     }
 }

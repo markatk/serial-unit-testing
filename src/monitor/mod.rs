@@ -31,7 +31,9 @@ use std::thread;
 use std::sync::mpsc;
 use std::time::Duration;
 use clap::{ArgMatches, App, SubCommand};
-use crossterm::KeyEvent;
+use tui::Terminal;
+use tui::backend::CrosstermBackend;
+use crossterm::{KeyEvent, AlternateScreen};
 use crate::commands;
 use serial_unit_testing::serial::Serial;
 
@@ -39,6 +41,7 @@ mod enums;
 mod ui;
 mod control;
 mod helpers;
+mod help_window;
 
 use enums::Event;
 
@@ -48,7 +51,24 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let output_format = commands::get_text_output_format(matches);
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    let mut monitor = match control::Control::new(input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string())) {
+    let screen = match AlternateScreen::to_alternate(true) {
+        Ok(screen) => screen,
+        Err(e) => return Err(e.to_string())
+    };
+
+    let backend = match CrosstermBackend::with_alternate_screen(screen) {
+        Ok(backend) => backend,
+        Err(e) => return Err(e.to_string())
+    };
+
+    let mut terminal = match Terminal::new(backend) {
+        Ok(terminal) => terminal,
+        Err(e) => return Err(e.to_string())
+    };
+
+    terminal.hide_cursor().unwrap();
+
+    let mut monitor = match control::Control::new(&mut terminal, input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string())) {
         Ok(monitor) => monitor,
         Err(e) => return Err(e.to_string())
     };
