@@ -37,6 +37,7 @@ use crossterm::{KeyEvent, AlternateScreen};
 use crate::commands;
 use serial_unit_testing::serial::Serial;
 
+mod window;
 mod enums;
 mod ui;
 mod control;

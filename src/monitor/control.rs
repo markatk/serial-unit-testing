@@ -38,6 +38,7 @@ use serial_unit_testing::utils::{self, TextFormat};
 use super::ui::Monitor;
 use super::enums::{Event, NewlineFormat};
 use super::helpers;
+use super::window::Window;
 
 pub struct Control<'a> {
     ui: Monitor<'a>,
