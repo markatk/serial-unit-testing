@@ -31,6 +31,9 @@ use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
+use super::window::Window;
+use crossterm::KeyEvent;
+use std::io::Error;
 
 #[derive(Debug, Clone)]
 struct HelpEntry {
@@ -56,8 +59,9 @@ impl HelpEntry {
 }
 
 #[derive(Default)]
-pub struct HelpWindow{
-    help_entries: Vec<HelpEntry>
+pub struct HelpWindow {
+    help_entries: Vec<HelpEntry>,
+    should_close: bool
 }
 
 impl HelpWindow {
@@ -65,7 +69,34 @@ impl HelpWindow {
         self.help_entries.push(HelpEntry::new(hot_key.to_string(), description.to_string()));
     }
 
-    pub fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), std::io::Error> {
+    fn get_help_text_entries(help_entries: &Vec<HelpEntry>) -> Vec<Text> {
+        // get longest key
+        let mut length = 0;
+
+        for entry in help_entries {
+            if entry.key.len() > length {
+                length = entry.key.len();
+            }
+        }
+
+        // create text entries
+        let title_text = format!("Key{}Action\n\n", std::iter::repeat(" ").take(length).collect::<String>());
+        let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
+
+        for entry in help_entries {
+            help_text.extend_from_slice(&entry.get_entry(length));
+        }
+
+        help_text
+    }
+}
+
+impl Window for HelpWindow {
+    fn run(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), Error> {
         let help_text = HelpWindow::get_help_text_entries(&self.help_entries);
 
         terminal.draw(|mut f| {
@@ -94,24 +125,16 @@ impl HelpWindow {
         })
     }
 
-    fn get_help_text_entries(help_entries: &Vec<HelpEntry>) -> Vec<Text> {
-        // get longest key
-        let mut length = 0;
+    fn handle_key_event(&mut self, event: KeyEvent) {
+        match event {
+            KeyEvent::Esc => {
+                self.should_close = true;
+            },
+            _ => {}
+        };
+    }
 
-        for entry in help_entries {
-            if entry.key.len() > length {
-                length = entry.key.len();
-            }
-        }
-
-        // create text entries
-        let title_text = format!("Key{}Action\n\n", std::iter::repeat(" ").take(length).collect::<String>());
-        let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
-
-        for entry in help_entries {
-            help_text.extend_from_slice(&entry.get_entry(length));
-        }
-
-        help_text
+    fn should_close(&self) -> bool {
+        self.should_close
     }
 }
