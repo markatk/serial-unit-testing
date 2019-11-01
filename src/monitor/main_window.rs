@@ -36,8 +36,9 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat};
-use super::enums::{Event, NewlineFormat};
-use super::{Window, WindowManager, helpers};
+use super::enums::NewlineFormat;
+use super::helpers;
+use crate::windows::{Window, WindowManager, Event};
 
 pub struct MainWindow<'a> {
     should_close: bool,

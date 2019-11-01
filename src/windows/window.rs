@@ -1,6 +1,6 @@
 /*
- * File: src/monitor/enums.rs
- * Date: 21.08.2019
+ * File: src/windows/window.rs
+ * Date: 31.10.2019
  * Author: MarkAtk
  *
  * MIT License
@@ -26,10 +26,23 @@
  * SOFTWARE.
  */
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum NewlineFormat {
-    None,
-    CarriageReturn,
-    LineFeed,
-    Both
+use super::{WindowManager, Event};
+
+pub trait Window {
+    fn run(&mut self, _window_manager: &WindowManager) -> Result<(), std::io::Error> {
+        // do nothing
+        Ok(())
+    }
+
+    fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend>) -> Result<(), std::io::Error>;
+
+    fn handle_key_event(&mut self, _event: crossterm::KeyEvent) {
+        // do nothing
+    }
+
+    fn handle_event(&mut self, _event: Event<crossterm::KeyEvent>) {
+        // do nothing
+    }
+
+    fn should_close(&self) -> bool;
 }

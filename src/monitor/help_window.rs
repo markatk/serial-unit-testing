@@ -32,8 +32,7 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
-use super::{Window, WindowManager};
-use crate::monitor::enums::Event;
+use crate::windows::{Window, WindowManager, Event};
 
 #[derive(Debug, Clone)]
 struct HelpEntry {
