@@ -126,41 +126,6 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
     }
-
-//    loop {
-//        match main_window.get_rx().recv() {
-//            Ok(Event::Input(event)) => {
-//                // stop execution if true returned
-//                match event {
-//                    KeyEvent::Ctrl(c) => {
-//                        if c == 'c' {
-//                            // Exit application
-//                            return Err(e.to_string());
-//                        }
-//                    },
-//                    _ => {}
-//                };
-//
-//                main_window.handle_key_event(event);
-//            },
-//            Ok(Event::CursorTick) => {
-//                self.cursor_state = !self.cursor_state;
-//            },
-//            Ok(Event::Output(mut data)) => {
-//                // filter carriage return characters as they stop newline from working
-//                // TODO: Replace with lf if no line feed afterwards
-//                data.retain(|f| *f != 13);
-//
-//                let text = utils::radix_string(&data, &self.output_format);
-//
-//                self.output.push_str(&text);
-//            },
-//            Ok(Event::Error(text)) => {
-//                self.error = Some(text);
-//            },
-//            _ => {}
-//        }
-//    }
 }
 
 pub fn command<'a>() -> App<'a, 'a> {

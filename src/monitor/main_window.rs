@@ -35,7 +35,7 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
-use serial_unit_testing::utils::TextFormat;
+use serial_unit_testing::utils::{self, TextFormat};
 use super::enums::{Event, NewlineFormat};
 use super::{Window, WindowManager, helpers};
 
@@ -389,6 +389,27 @@ impl<'a> Window for MainWindow<'a> {
             },
             _ => {}
         };
+    }
+
+    fn handle_event(&mut self, event: Event<KeyEvent>) {
+        match event {
+            Event::CursorTick => {
+                self.cursor_state = !self.cursor_state;
+            },
+            Event::Output(mut data) => {
+                // filter carriage return characters as they stop newline from working
+                // TODO: Replace with lf if no line feed afterwards
+                data.retain(|f| *f != 13);
+
+                let text = utils::radix_string(&data, &self.output_format);
+
+                self.output.push_str(&text);
+            },
+            Event::Error(text) => {
+                self.error = Some(text);
+            },
+            _ => {}
+        }
     }
 
     fn should_close(&self) -> bool {

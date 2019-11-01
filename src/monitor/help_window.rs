@@ -33,6 +33,7 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
 use super::{Window, WindowManager};
+use crate::monitor::enums::Event;
 
 #[derive(Debug, Clone)]
 struct HelpEntry {
@@ -150,6 +151,8 @@ impl Window for HelpWindow {
             _ => {}
         };
     }
+
+    fn handle_event(&mut self, _: Event<KeyEvent>) {}
 
     fn should_close(&self) -> bool {
         self.should_close

@@ -26,7 +26,7 @@
  * SOFTWARE.
  */
 
-use super::WindowManager;
+use super::{WindowManager, Event};
 
 pub trait Window {
     fn run(&mut self, window_manager: &WindowManager) -> Result<(), std::io::Error>;
@@ -34,6 +34,8 @@ pub trait Window {
     fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend>) -> Result<(), std::io::Error>;
 
     fn handle_key_event(&mut self, event: crossterm::KeyEvent);
+
+    fn handle_event(&mut self, event: Event<crossterm::KeyEvent>);
 
     fn should_close(&self) -> bool;
 }

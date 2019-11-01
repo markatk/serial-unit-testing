@@ -109,7 +109,7 @@ impl<'a> WindowManager<'a> {
                             _ => window.handle_key_event(event)
                         };
                     },
-                    // TODO: Window handle custom events
+                    Ok(event) => window.handle_event(event),
                     _ => ()
                 }
             };
