@@ -34,6 +34,7 @@ extern crate serial_unit_testing;
 use clap::{App, ArgMatches, AppSettings};
 
 mod commands;
+mod windows;
 
 mod list;
 mod send;

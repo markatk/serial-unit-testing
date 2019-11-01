@@ -33,18 +33,14 @@ use std::time::Duration;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::KeyEvent;
 use crate::commands;
+use crate::windows::{WindowManager, Window, Event};
 use serial_unit_testing::serial::Serial;
 
-mod window;
-mod window_manager;
 mod enums;
 mod helpers;
 mod main_window;
 mod help_window;
 
-use enums::Event;
-use window::Window;
-use window_manager::WindowManager;
 use main_window::MainWindow;
 use help_window::HelpWindow;
 

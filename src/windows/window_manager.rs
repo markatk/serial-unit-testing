@@ -1,5 +1,5 @@
 /*
- * File: src/monitor/window_manager.rs
+ * File: src/windows/window_manager.rs
  * Date: 31.10.2019
  * Author: MarkAtk
  *

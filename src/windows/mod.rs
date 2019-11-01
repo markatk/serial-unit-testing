@@ -1,6 +1,6 @@
 /*
- * File: src/monitor/window.rs
- * Date: 31.10.2019
+ * File: src/windows/mod.rs
+ * Date: 01.11.2019
  * Author: MarkAtk
  *
  * MIT License
@@ -26,16 +26,15 @@
  * SOFTWARE.
  */
 
-use super::{WindowManager, Event};
+mod window;
+mod window_manager;
 
-pub trait Window {
-    fn run(&mut self, window_manager: &WindowManager) -> Result<(), std::io::Error>;
+pub use window::Window;
+pub use window_manager::WindowManager;
 
-    fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend>) -> Result<(), std::io::Error>;
-
-    fn handle_key_event(&mut self, event: crossterm::KeyEvent);
-
-    fn handle_event(&mut self, event: Event<crossterm::KeyEvent>);
-
-    fn should_close(&self) -> bool;
+pub enum Event<I> {
+    Input(I),
+    CursorTick,
+    Output(Vec<u8>),
+    Error(String)
 }
