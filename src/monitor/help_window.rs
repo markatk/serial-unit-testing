@@ -31,9 +31,8 @@ use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
-use super::window::Window;
 use crossterm::KeyEvent;
-use std::io::Error;
+use super::{Window, WindowManager};
 
 #[derive(Debug, Clone)]
 struct HelpEntry {
@@ -58,13 +57,19 @@ impl HelpEntry {
     }
 }
 
-#[derive(Default)]
 pub struct HelpWindow {
     help_entries: Vec<HelpEntry>,
     should_close: bool
 }
 
 impl HelpWindow {
+    pub fn new() -> HelpWindow {
+        HelpWindow {
+            help_entries: vec!(),
+            should_close: false
+        }
+    }
+
     pub fn add_hot_key(&mut self, hot_key: &str, description: &str) {
         self.help_entries.push(HelpEntry::new(hot_key.to_string(), description.to_string()));
     }
@@ -92,11 +97,23 @@ impl HelpWindow {
 }
 
 impl Window for HelpWindow {
-    fn run(&mut self) -> Result<(), Error> {
+    fn run(&mut self, _: &WindowManager) -> Result<(), std::io::Error> {
+        self.add_hot_key("F1", "Show help window");
+        self.add_hot_key("F2", "Change input format");
+        self.add_hot_key("F3", "Change output format");
+        self.add_hot_key("F4", "Clear output text");
+        self.add_hot_key("F5", "Change appended newline on send");
+        self.add_hot_key("F10", "Close application");
+        self.add_hot_key("Enter", "Send input to serial");
+//        self.add_hot_key("Shift + Enter", "Newline instead of sending input");
+        self.add_hot_key("Up", "Go up in input history entries");
+        self.add_hot_key("Down", "Go down in input history entries");
+        self.add_hot_key("Ctrl + C", "Close application");
+
         Ok(())
     }
 
-    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), Error> {
+    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), std::io::Error> {
         let help_text = HelpWindow::get_help_text_entries(&self.help_entries);
 
         terminal.draw(|mut f| {

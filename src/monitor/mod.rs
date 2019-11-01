@@ -31,20 +31,22 @@ use std::thread;
 use std::sync::mpsc;
 use std::time::Duration;
 use clap::{ArgMatches, App, SubCommand};
-use tui::Terminal;
-use tui::backend::CrosstermBackend;
-use crossterm::{KeyEvent, AlternateScreen};
+use crossterm::KeyEvent;
 use crate::commands;
 use serial_unit_testing::serial::Serial;
 
 mod window;
+mod window_manager;
 mod enums;
-mod ui;
-mod control;
 mod helpers;
+mod main_window;
 mod help_window;
 
 use enums::Event;
+use window::Window;
+use window_manager::WindowManager;
+use main_window::MainWindow;
+use help_window::HelpWindow;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
@@ -52,27 +54,26 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let output_format = commands::get_text_output_format(matches);
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
-    let screen = match AlternateScreen::to_alternate(true) {
-        Ok(screen) => screen,
+    // create windows
+    let mut window_manager = match WindowManager::new() {
+        Ok(window_manager) => window_manager,
         Err(e) => return Err(e.to_string())
     };
 
-    let backend = match CrosstermBackend::with_alternate_screen(screen) {
-        Ok(backend) => backend,
-        Err(e) => return Err(e.to_string())
+    let mut main_window = MainWindow::new(input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string()));
+    let mut help_window = HelpWindow::new();
+
+    match main_window.run(&window_manager) {
+        Err(e) => return Err(e.to_string()),
+        _ => ()
     };
 
-    let mut terminal = match Terminal::new(backend) {
-        Ok(terminal) => terminal,
-        Err(e) => return Err(e.to_string())
+    match help_window.run(&window_manager) {
+        Err(e) => return Err(e.to_string()),
+        _ => ()
     };
 
-    terminal.hide_cursor().unwrap();
-
-    let mut monitor = match control::Control::new(&mut terminal, input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string())) {
-        Ok(monitor) => monitor,
-        Err(e) => return Err(e.to_string())
-    };
+    window_manager.set_window(&mut main_window);
 
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
@@ -82,7 +83,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     // start thread for receiving from and sending to serial port
     {
-        let tx = monitor.get_ui_tx().clone();
+        let tx = window_manager.get_tx().clone();
 
         thread::spawn(move || {
             loop {
@@ -121,11 +122,45 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         });
     }
 
-    // run ui
-    match monitor.run() {
+    match window_manager.run() {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
     }
+
+//    loop {
+//        match main_window.get_rx().recv() {
+//            Ok(Event::Input(event)) => {
+//                // stop execution if true returned
+//                match event {
+//                    KeyEvent::Ctrl(c) => {
+//                        if c == 'c' {
+//                            // Exit application
+//                            return Err(e.to_string());
+//                        }
+//                    },
+//                    _ => {}
+//                };
+//
+//                main_window.handle_key_event(event);
+//            },
+//            Ok(Event::CursorTick) => {
+//                self.cursor_state = !self.cursor_state;
+//            },
+//            Ok(Event::Output(mut data)) => {
+//                // filter carriage return characters as they stop newline from working
+//                // TODO: Replace with lf if no line feed afterwards
+//                data.retain(|f| *f != 13);
+//
+//                let text = utils::radix_string(&data, &self.output_format);
+//
+//                self.output.push_str(&text);
+//            },
+//            Ok(Event::Error(text)) => {
+//                self.error = Some(text);
+//            },
+//            _ => {}
+//        }
+//    }
 }
 
 pub fn command<'a>() -> App<'a, 'a> {

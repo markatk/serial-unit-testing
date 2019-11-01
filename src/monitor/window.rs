@@ -26,8 +26,10 @@
  * SOFTWARE.
  */
 
+use super::WindowManager;
+
 pub trait Window {
-    fn run(&mut self) -> Result<(), std::io::Error>;
+    fn run(&mut self, window_manager: &WindowManager) -> Result<(), std::io::Error>;
 
     fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend>) -> Result<(), std::io::Error>;
 
