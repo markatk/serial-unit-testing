@@ -33,15 +33,16 @@ use tui::backend::CrosstermBackend;
 use crossterm::{KeyEvent, InputEvent, input, AlternateScreen};
 use super::{Event, Window};
 
-pub struct WindowManager<'a> {
-    active_window: Option<&'a mut dyn Window>,
+pub struct WindowManager<'a, 'b> {
+    active_window: Option<&'a mut dyn Window<'b>>,
     terminal: Terminal<CrosstermBackend>,
     tx: Sender<Event<KeyEvent>>,
     rx: Receiver<Event<KeyEvent>>,
+    should_close: bool
 }
 
-impl<'a> WindowManager<'a> {
-    pub fn new() -> Result<WindowManager<'a>, std::io::Error> {
+impl<'a, 'b> WindowManager<'a, 'b> {
+    pub fn new() -> Result<WindowManager<'a, 'b>, std::io::Error> {
         let (tx, rx) = mpsc::channel();
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
@@ -53,11 +54,16 @@ impl<'a> WindowManager<'a> {
             active_window: None,
             terminal,
             tx,
-            rx
+            rx,
+            should_close: false
         })
     }
 
-    pub fn set_window(&mut self, window: &'a mut dyn Window) {
+    pub fn should_close(&mut self) {
+        self.should_close = true;
+    }
+
+    pub fn set_window(&mut self, window: &'a mut dyn Window<'b>) {
         self.active_window = Some(window);
     }
 
@@ -65,7 +71,9 @@ impl<'a> WindowManager<'a> {
         &self.tx
     }
 
-    pub fn run(&mut self) -> Result<(), std::io::Error> {
+    pub fn run(&mut self, initial_window: &'a mut dyn Window<'b>) -> Result<(), std::io::Error> {
+        self.active_window = Some(initial_window);
+
         {
             let tx = self.tx.clone();
             thread::spawn(move || {
@@ -86,7 +94,7 @@ impl<'a> WindowManager<'a> {
         }
 
         // main loop
-        loop {
+        while self.should_close == false {
             if let Some(ref mut window) = self.active_window {
                 if window.should_close() {
                     self.active_window = None;
@@ -114,6 +122,7 @@ impl<'a> WindowManager<'a> {
                 }
             };
         }
+
+        Ok(())
     }
 }
-

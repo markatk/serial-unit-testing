@@ -28,8 +28,8 @@
 
 use super::{WindowManager, Event};
 
-pub trait Window {
-    fn run(&mut self, _window_manager: &WindowManager) -> Result<(), std::io::Error> {
+pub trait Window<'a> {
+    fn setup(&mut self, _window_manager: &WindowManager) -> Result<(), std::io::Error> {
         // do nothing
         Ok(())
     }
@@ -45,4 +45,6 @@ pub trait Window {
     }
 
     fn should_close(&self) -> bool;
+
+    fn set_on_close(&mut self, callback: Box<dyn FnMut() + 'a>);
 }
