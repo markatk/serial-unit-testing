@@ -59,17 +59,19 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let mut main_window = MainWindow::new(input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string()));
     let mut help_window = HelpWindow::new();
 
-    match main_window.run(&window_manager) {
+    main_window.set_on_close(Box::new(|| {
+//        window_manager.should_close();
+    }));
+
+    match main_window.setup(&window_manager) {
         Err(e) => return Err(e.to_string()),
         _ => ()
     };
 
-    match help_window.run(&window_manager) {
+    match help_window.setup(&window_manager) {
         Err(e) => return Err(e.to_string()),
         _ => ()
     };
-
-    window_manager.set_window(&mut main_window);
 
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
@@ -118,7 +120,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         });
     }
 
-    match window_manager.run() {
+    match window_manager.run(&mut main_window) {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
     }

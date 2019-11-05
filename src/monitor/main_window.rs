@@ -40,8 +40,9 @@ use super::enums::NewlineFormat;
 use super::helpers;
 use crate::windows::{Window, WindowManager, Event};
 
-pub struct MainWindow<'a> {
+pub struct MainWindow<'a, 'b> {
     should_close: bool,
+    on_close: Option<Box<dyn FnMut() + 'b>>,
     title: String,
     control_text: Vec<Text<'a>>,
 
@@ -60,13 +61,14 @@ pub struct MainWindow<'a> {
     cursor_position: usize,
     cursor_state: bool,
 
-    pub io_tx: Sender<(String, TextFormat)>
+    io_tx: Sender<(String, TextFormat)>
 }
 
-impl<'a> MainWindow<'a> {
-    pub fn new(input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a> {
+impl<'a, 'b> MainWindow<'a, 'b> {
+    pub fn new(input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a, 'b> {
         MainWindow {
             should_close: false,
+            on_close: None,
             title,
             control_text: vec!(),
             input: String::new(),
@@ -230,8 +232,8 @@ impl<'a> MainWindow<'a> {
     }
 }
 
-impl<'a> Window for MainWindow<'a> {
-    fn run(&mut self, window_manager: &WindowManager) -> Result<(), io::Error> {
+impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
+    fn setup(&mut self, window_manager: &WindowManager) -> Result<(), io::Error> {
         self.add_control_key(1, "Help");
         self.add_control_key(2, "Input format");
         self.add_control_key(3, "Output format");
@@ -415,5 +417,9 @@ impl<'a> Window for MainWindow<'a> {
 
     fn should_close(&self) -> bool {
         self.should_close
+    }
+
+    fn set_on_close(&mut self, callback: Box<dyn FnMut() + 'b>) {
+        self.on_close = Some(callback);
     }
 }
