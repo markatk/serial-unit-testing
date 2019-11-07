@@ -32,7 +32,7 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
-use crate::windows::{Window, WindowManager, Event};
+use crate::windows::Window;
 
 #[derive(Debug, Clone)]
 struct HelpEntry {
@@ -99,7 +99,7 @@ impl<'a> HelpWindow<'a> {
 }
 
 impl<'a> Window<'a> for HelpWindow<'a> {
-    fn setup(&mut self, _: &WindowManager) -> Result<(), std::io::Error> {
+    fn setup(&mut self) -> Result<(), std::io::Error> {
         self.add_hot_key("F1", "Show help window");
         self.add_hot_key("F2", "Change input format");
         self.add_hot_key("F3", "Change output format");
@@ -152,8 +152,6 @@ impl<'a> Window<'a> for HelpWindow<'a> {
             _ => {}
         };
     }
-
-    fn handle_event(&mut self, _: Event<KeyEvent>) {}
 
     fn should_close(&self) -> bool {
         self.should_close

@@ -26,10 +26,10 @@
  * SOFTWARE.
  */
 
-use super::{WindowManager, Event};
+use super::Event;
 
 pub trait Window<'a> {
-    fn setup(&mut self, _window_manager: &WindowManager) -> Result<(), std::io::Error> {
+    fn setup(&mut self) -> Result<(), std::io::Error> {
         // do nothing
         Ok(())
     }

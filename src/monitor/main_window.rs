@@ -39,8 +39,10 @@ use serial_unit_testing::utils::{self, TextFormat};
 use super::enums::NewlineFormat;
 use super::helpers;
 use crate::windows::{Window, WindowManager, Event};
+use super::help_window::HelpWindow;
 
 pub struct MainWindow<'a, 'b> {
+    window_manager: &'a mut WindowManager<'a, 'a>,
     should_close: bool,
     on_close: Option<Box<dyn FnMut() + 'b>>,
     title: String,
@@ -61,12 +63,15 @@ pub struct MainWindow<'a, 'b> {
     cursor_position: usize,
     cursor_state: bool,
 
-    io_tx: Sender<(String, TextFormat)>
+    io_tx: Sender<(String, TextFormat)>,
+
+    help_window: HelpWindow<'a>
 }
 
 impl<'a, 'b> MainWindow<'a, 'b> {
-    pub fn new(input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a, 'b> {
+    pub fn new(window_manager: &'a mut WindowManager<'a, 'a>, input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a, 'b> {
         MainWindow {
+            window_manager,
             should_close: false,
             on_close: None,
             title,
@@ -82,7 +87,8 @@ impl<'a, 'b> MainWindow<'a, 'b> {
             error: None,
             cursor_position: 1,
             cursor_state: false,
-            io_tx
+            io_tx,
+            help_window: HelpWindow::new()
         }
     }
 
@@ -233,7 +239,7 @@ impl<'a, 'b> MainWindow<'a, 'b> {
 }
 
 impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
-    fn setup(&mut self, window_manager: &WindowManager) -> Result<(), io::Error> {
+    fn setup(&mut self) -> Result<(), io::Error> {
         self.add_control_key(1, "Help");
         self.add_control_key(2, "Input format");
         self.add_control_key(3, "Output format");
@@ -242,7 +248,7 @@ impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
         self.add_control_key(10, "Close");
 
         {
-            let tx = window_manager.get_tx().clone();
+            let tx = self.window_manager.get_tx().clone();
             thread::spawn(move || {
                 loop {
                     tx.send(Event::CursorTick).unwrap();
@@ -370,7 +376,7 @@ impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
             KeyEvent::F(num) => {
                 match num {
                     1 => {
-                        // TODO: Show help window
+//                        window_manager.push_window(&mut self.help_window);
                     },
                     2 => {
                         self.input_format = helpers::get_next_format(&self.input_format);

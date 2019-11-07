@@ -34,11 +34,10 @@ use crossterm::{KeyEvent, InputEvent, input, AlternateScreen};
 use super::{Event, Window};
 
 pub struct WindowManager<'a, 'b> {
-    active_window: Option<&'a mut dyn Window<'b>>,
+    windows: Vec<&'a mut dyn Window<'b>>,
     terminal: Terminal<CrosstermBackend>,
     tx: Sender<Event<KeyEvent>>,
-    rx: Receiver<Event<KeyEvent>>,
-    should_close: bool
+    rx: Receiver<Event<KeyEvent>>
 }
 
 impl<'a, 'b> WindowManager<'a, 'b> {
@@ -51,28 +50,23 @@ impl<'a, 'b> WindowManager<'a, 'b> {
         terminal.hide_cursor()?;
 
         Ok(WindowManager {
-            active_window: None,
+            windows: vec!(),
             terminal,
             tx,
-            rx,
-            should_close: false
+            rx
         })
-    }
-
-    pub fn should_close(&mut self) {
-        self.should_close = true;
-    }
-
-    pub fn set_window(&mut self, window: &'a mut dyn Window<'b>) {
-        self.active_window = Some(window);
     }
 
     pub fn get_tx(&self) -> &Sender<Event<KeyEvent>> {
         &self.tx
     }
 
+    pub fn push_window(&mut self, window: &'a mut dyn Window<'b>) {
+        self.windows.push(window);
+    }
+
     pub fn run(&mut self, initial_window: &'a mut dyn Window<'b>) -> Result<(), std::io::Error> {
-        self.active_window = Some(initial_window);
+        self.push_window(initial_window);
 
         {
             let tx = self.tx.clone();
@@ -94,10 +88,10 @@ impl<'a, 'b> WindowManager<'a, 'b> {
         }
 
         // main loop
-        while self.should_close == false {
-            if let Some(ref mut window) = self.active_window {
+        while self.windows.is_empty() == false {
+            if let Some(window) = self.windows.last_mut() {
                 if window.should_close() {
-                    self.active_window = None;
+                    self.windows.pop();
 
                     continue;
                 }

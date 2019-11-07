@@ -42,7 +42,6 @@ mod main_window;
 mod help_window;
 
 use main_window::MainWindow;
-use help_window::HelpWindow;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
@@ -56,19 +55,12 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         Err(e) => return Err(e.to_string())
     };
 
-    let mut main_window = MainWindow::new(input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string()));
-    let mut help_window = HelpWindow::new();
+    let tx = window_manager.get_tx().clone();
 
-    main_window.set_on_close(Box::new(|| {
-//        window_manager.should_close();
-    }));
+    // create main window
+    let mut main_window = MainWindow::new(&mut window_manager, input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string()));
 
-    match main_window.setup(&window_manager) {
-        Err(e) => return Err(e.to_string()),
-        _ => ()
-    };
-
-    match help_window.setup(&window_manager) {
+    match main_window.setup() {
         Err(e) => return Err(e.to_string()),
         _ => ()
     };
@@ -81,8 +73,6 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     // start thread for receiving from and sending to serial port
     {
-        let tx = window_manager.get_tx().clone();
-
         thread::spawn(move || {
             loop {
                 match serial.read_with_timeout(Duration::from_millis(10)) {
@@ -128,6 +118,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
 pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
+        // TODO: Change monitor about text
         .about("Continuously display serial port data")
         .args(commands::serial_arguments(false, true).as_slice())
 }
