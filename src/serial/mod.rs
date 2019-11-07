@@ -39,7 +39,7 @@ pub mod settings;
 ///
 /// This struct handles the complete communication with a serial device regardless of the platform.
 pub struct Serial {
-    port: Box<serialport::SerialPort>,
+    port: Box<dyn serialport::SerialPort>,
     read_buffer: Vec<u8>
 }
 

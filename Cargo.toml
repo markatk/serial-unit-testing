@@ -27,7 +27,7 @@ clap = "2.33.0"
 serialport = "3.3.0"
 colored = "1.8.0"
 regex = "1.2.1"
-crossterm = "0.10.2"
+crossterm = "0.9.6"
 
 [dependencies.tui]
 version = "0.6.2"
