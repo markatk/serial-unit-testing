@@ -27,13 +27,26 @@ addons:
       - libudev-dev
 
 script:
-  - cargo build --verbose --all
+  - cargo build --verbose --release --all
   - cargo test --verbose --lib
 
+before_deploy:
+  - if [[ -f target/release/sut ]]; then mv target/release/sut "target/release/watchdog-$TRAVIS_TAG-$TRAVIS_OS_NAME"; fi
+
 deploy:
-  provider: cargo
-  on:
-    tags: true
-    condition: "$TRAVIS_RUST_VERSION = stable && $TRAVIS_OS_NAME = linux"
-  token:
-    secure: bbB4Ev12FNo8bwaYh9lg+0jUwPaw06wy5LKh8HEywxaJQV3fCFvr40SKCUVtuwmL10uBOh+BoROlOdXb47kE4gyUV2qx7wdE0a8pQZRlIgZwKZ7gKrcPmWlsGvXv+dVemac3mxdYKB164zE+kt4tFxBfVlyxfpeK4iSekpBtISdTpzBM1esQluj7K6DZxJTNdpTenJ2oF7+Cd8pw+J5iB6Rs3u9Jf04JLCJZO+SpDWmTsJ7npqbYiexDb3LyiZBC87wNzugQ9C1t14puL3mFLmmiMbJAAU4o8RMDPGlD7DwJDxEdaSh2k3qg1/N74LmFHDCCondW0i+SXhRO1xp+pYpzNd9VVYCPEVVEQ9CSNHHUGX0OS9xLNhbpwj1iHbgUKx/JWl4aGNk9/fZHe8zJi3XglzsTln9WRXiQiqgxKM4/bWxhW8VI63TkDBdsVYvy/9/BEhpF+n8aDC10DSIk13zBVqGM7oqzLyM2HTWOBYnFLrOkrRVOzfYYLgaz4QYM0IttLXfPwa4auI59jUNs8jRkW/4nQZPaVBNyB+bYv8oMXTr3gGE3PD2cEHmFg8A7he4MJYRhuvhwOZYM0gKAsPLkEXLqsOqvR04s2hQ/2/Z4CFVQ+H7Km5YjOOz9nzo6yx1t/bMB+kWN5Wj7zFnf6wtKfhJNmz1MQ3Ps6jhyjsw=
+  - provider: cargo
+    on:
+      tags: true
+      condition: "$TRAVIS_RUST_VERSION = stable && $TRAVIS_OS_NAME = linux"
+    token:
+      secure: bbB4Ev12FNo8bwaYh9lg+0jUwPaw06wy5LKh8HEywxaJQV3fCFvr40SKCUVtuwmL10uBOh+BoROlOdXb47kE4gyUV2qx7wdE0a8pQZRlIgZwKZ7gKrcPmWlsGvXv+dVemac3mxdYKB164zE+kt4tFxBfVlyxfpeK4iSekpBtISdTpzBM1esQluj7K6DZxJTNdpTenJ2oF7+Cd8pw+J5iB6Rs3u9Jf04JLCJZO+SpDWmTsJ7npqbYiexDb3LyiZBC87wNzugQ9C1t14puL3mFLmmiMbJAAU4o8RMDPGlD7DwJDxEdaSh2k3qg1/N74LmFHDCCondW0i+SXhRO1xp+pYpzNd9VVYCPEVVEQ9CSNHHUGX0OS9xLNhbpwj1iHbgUKx/JWl4aGNk9/fZHe8zJi3XglzsTln9WRXiQiqgxKM4/bWxhW8VI63TkDBdsVYvy/9/BEhpF+n8aDC10DSIk13zBVqGM7oqzLyM2HTWOBYnFLrOkrRVOzfYYLgaz4QYM0IttLXfPwa4auI59jUNs8jRkW/4nQZPaVBNyB+bYv8oMXTr3gGE3PD2cEHmFg8A7he4MJYRhuvhwOZYM0gKAsPLkEXLqsOqvR04s2hQ/2/Z4CFVQ+H7Km5YjOOz9nzo6yx1t/bMB+kWN5Wj7zFnf6wtKfhJNmz1MQ3Ps6jhyjsw=
+
+  - provider: releases
+    skip_cleanup: true
+    file: target/release/sut-*
+    file_glob: true
+    on:
+      tags: true
+      condition: "$TRAVIS_RUST_VERSION = stable"
+    token:
+      secure: mL4TUsta5kSZZ/rLPZdRaSMwRlyhQA4Om4k9Kfms5omBtZMhlG3s29Jh1V+1uA4X5ueLQVwcjt8YyZ5b/qLFld57N0E11mpRnj/K0uzSiUkAiv+kUTTOn6Iq2/2J3mxyS4YDJlk/jZbzak1kLZfWEmzFmXDWjCVAgQBh5wGUEJc26xx3nLq6I3YeLTA9G/IoEfZVvUHb0WdZgHKPwXaJ1nm3dDtoTwGs5iurI5bknYi9BCq/gFJ7o8Grjd2c2TU74l+z5yPcZl9I3JPTbTebTyiQYo+2AXLzYj7x0UHUYmDR89ojPplACbnJC65NIbw96sIIPQtNpcxjwFHeQ1X24gulKiGKGl+rni8fvjRcEZIF9cvPpIMVtYSUSE1s8wMobs1uf3D85g9PjY6j7cd3aHEhZSbygZHzixVDgSrCNDBPUyR5Nhb9ztl5bJo+VvnCNmkRTbEXtg+si5En1h6rFsWCltxoQrZ+bJ11/d11MD01su6RQ0Jhrjr1pWUl4yKOAhZj9T6hh8s/SWaRNq5jyCwmucOlEqGnNo1dxuwSYjGtcr4xHpvjnBMTLGftkXlFm6jlH/U09nuk9vtlG2uFKyNkuSonL4qBsx13O3FSD4ZdzQIFDdzBCwT8b6sDxXnicN4of7AVxeA59le2nEOhndOqf7T6wM4tOcQpXX1RmO4=
