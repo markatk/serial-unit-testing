@@ -68,16 +68,21 @@ impl HelpWindow {
 
         // TODO: Add paging when window is too small
         HelpWindow::add_hot_key(&mut help_entries, "F1", "Show help window");
-        HelpWindow::add_hot_key(&mut help_entries, "F2", "Change input format");
-        HelpWindow::add_hot_key(&mut help_entries, "F3", "Change output format");
-        HelpWindow::add_hot_key(&mut help_entries, "F4", "Clear output text");
+        HelpWindow::add_hot_key(&mut help_entries, "F2", "Change the input format");
+        HelpWindow::add_hot_key(&mut help_entries, "F3", "Change the output format");
+        HelpWindow::add_hot_key(&mut help_entries, "F4", "Clear the output text");
         HelpWindow::add_hot_key(&mut help_entries, "F5", "Change appended newline on send");
-        HelpWindow::add_hot_key(&mut help_entries, "F10", "Close application");
-        HelpWindow::add_hot_key(&mut help_entries, "Enter", "Send input to serial");
+        HelpWindow::add_hot_key(&mut help_entries, "F10", "Close the application");
+        HelpWindow::add_hot_key(&mut help_entries, "Enter", "Send the input to serial");
 //        HelpWindow::add_hot_key(&mut help_entries, "Shift + Enter", "Newline instead of sending input");
         HelpWindow::add_hot_key(&mut help_entries, "Up", "Go up in input history entries");
         HelpWindow::add_hot_key(&mut help_entries, "Down", "Go down in input history entries");
         HelpWindow::add_hot_key(&mut help_entries, "Ctrl + C", "Close application");
+        HelpWindow::add_hot_key(&mut help_entries, "Ctrl + A", "Goto the beginning of the input (same as home)");
+        HelpWindow::add_hot_key(&mut help_entries, "Ctrl + E", "Goto the end of the input (same as end)");
+        HelpWindow::add_hot_key(&mut help_entries, "Ctrl + D", "Delete the character under the cursor (same as delete)");
+        HelpWindow::add_hot_key(&mut help_entries, "Ctrl + H", "Delete the character in front of the cursor (same as backspace)");
+        HelpWindow::add_hot_key(&mut help_entries, "Ctrl + L", "Clear the output text");
 
         Box::new(HelpWindow {
             help_entries,
