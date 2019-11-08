@@ -27,10 +27,11 @@ The application is structured in the following sub commands:
 - `list`: List all available serial ports
 - `send`: Send data to a serial port
 - `check`: Send data to a serial port and check for correct response
-- `monitor`: Continuously display serial port data
+- `monitor`: Interactive serial communication monitor
 - `run`: Run a script on a serial port
 - `verify`: Verify a script can be parsed without failure
-- `help`: Print information about the application or a subcommand
+- `help`: Print information about the application or a sub command
+- `version`: Print version information
 
 # Example Script
 
