@@ -27,7 +27,6 @@
  */
 
 use std::io;
-use std::thread;
 use std::sync::mpsc::Sender;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
@@ -247,17 +246,6 @@ impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
         self.add_control_key(5, "Newline");
         self.add_control_key(10, "Close");
 
-        {
-            let tx = self.window_manager.get_tx().clone();
-            thread::spawn(move || {
-                loop {
-                    tx.send(Event::CursorTick).unwrap();
-
-                    thread::sleep(std::time::Duration::from_millis(500));
-                }
-            });
-        }
-
         Ok(())
     }
 
@@ -400,11 +388,12 @@ impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
         };
     }
 
+    fn handle_tick(&mut self, _tick_rate: u64) {
+        self.cursor_state = !self.cursor_state;
+    }
+
     fn handle_event(&mut self, event: Event<KeyEvent>) {
         match event {
-            Event::CursorTick => {
-                self.cursor_state = !self.cursor_state;
-            },
             Event::Output(mut data) => {
                 // filter carriage return characters as they stop newline from working
                 // TODO: Replace with lf if no line feed afterwards
