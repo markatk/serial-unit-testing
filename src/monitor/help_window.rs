@@ -32,7 +32,7 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
-use crate::windows::Window;
+use crate::windows::{Window, EventResult};
 
 #[derive(Debug, Clone)]
 struct HelpEntry {
@@ -63,15 +63,25 @@ pub struct HelpWindow {
 }
 
 impl HelpWindow {
-    pub fn new() -> HelpWindow {
-        HelpWindow {
-            help_entries: vec!(),
-            should_close: false
-        }
-    }
+    pub fn new() -> Box<HelpWindow> {
+        let mut help_entries= vec!();
 
-    pub fn add_hot_key(&mut self, hot_key: &str, description: &str) {
-        self.help_entries.push(HelpEntry::new(hot_key.to_string(), description.to_string()));
+        HelpWindow::add_hot_key(&mut help_entries, "F1", "Show help window");
+        HelpWindow::add_hot_key(&mut help_entries, "F2", "Change input format");
+        HelpWindow::add_hot_key(&mut help_entries, "F3", "Change output format");
+        HelpWindow::add_hot_key(&mut help_entries, "F4", "Clear output text");
+        HelpWindow::add_hot_key(&mut help_entries, "F5", "Change appended newline on send");
+        HelpWindow::add_hot_key(&mut help_entries, "F10", "Close application");
+        HelpWindow::add_hot_key(&mut help_entries, "Enter", "Send input to serial");
+//        HelpWindow::add_hot_key(&mut help_entries, "Shift + Enter", "Newline instead of sending input");
+        HelpWindow::add_hot_key(&mut help_entries, "Up", "Go up in input history entries");
+        HelpWindow::add_hot_key(&mut help_entries, "Down", "Go down in input history entries");
+        HelpWindow::add_hot_key(&mut help_entries, "Ctrl + C", "Close application");
+
+        Box::new(HelpWindow {
+            help_entries,
+            should_close: false
+        })
     }
 
     fn get_help_text_entries(help_entries: &Vec<HelpEntry>) -> Vec<Text> {
@@ -94,25 +104,13 @@ impl HelpWindow {
 
         help_text
     }
+
+    fn add_hot_key(entries: &mut Vec<HelpEntry>, hot_key: &str, description: &str) {
+        entries.push(HelpEntry::new(hot_key.to_string(), description.to_string()));
+    }
 }
 
 impl Window for HelpWindow {
-    fn setup(&mut self) -> Result<(), std::io::Error> {
-        self.add_hot_key("F1", "Show help window");
-        self.add_hot_key("F2", "Change input format");
-        self.add_hot_key("F3", "Change output format");
-        self.add_hot_key("F4", "Clear output text");
-        self.add_hot_key("F5", "Change appended newline on send");
-        self.add_hot_key("F10", "Close application");
-        self.add_hot_key("Enter", "Send input to serial");
-//        self.add_hot_key("Shift + Enter", "Newline instead of sending input");
-        self.add_hot_key("Up", "Go up in input history entries");
-        self.add_hot_key("Down", "Go down in input history entries");
-        self.add_hot_key("Ctrl + C", "Close application");
-
-        Ok(())
-    }
-
     fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), std::io::Error> {
         let help_text = HelpWindow::get_help_text_entries(&self.help_entries);
 
@@ -142,13 +140,15 @@ impl Window for HelpWindow {
         })
     }
 
-    fn handle_key_event(&mut self, event: KeyEvent) {
+    fn handle_key_event(&mut self, event: KeyEvent) -> EventResult {
         match event {
             KeyEvent::Esc => {
                 self.should_close = true;
             },
             _ => {}
         };
+
+        EventResult::new()
     }
 
     fn should_close(&self) -> bool {

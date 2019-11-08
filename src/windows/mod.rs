@@ -38,3 +38,17 @@ pub enum Event<I> {
     Output(Vec<u8>),
     Error(String)
 }
+
+pub struct EventResult {
+    pub remove: bool,
+    pub child: Option<Box<dyn Window>>
+}
+
+impl EventResult {
+    pub fn new() -> EventResult {
+        EventResult {
+            remove: false,
+            child: None
+        }
+    }
+}

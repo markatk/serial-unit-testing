@@ -33,7 +33,7 @@ use std::time::Duration;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::KeyEvent;
 use crate::commands;
-use crate::windows::{WindowManager, Window, Event};
+use crate::windows::{WindowManager, Event};
 use serial_unit_testing::serial::Serial;
 
 mod enums;
@@ -58,12 +58,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let ui_tx = window_manager.get_tx().clone();
 
     // create main window
-    let mut main_window = MainWindow::new(&mut window_manager, input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string()));
+    let mut main_window = MainWindow::new(io_tx);
 
-    match main_window.setup() {
-        Err(e) => return Err(e.to_string()),
-        _ => ()
-    };
+    main_window.input_format = input_format;
+    main_window.output_format = output_format;
+    main_window.title = format!("{}, {} ", port_name, settings.to_short_string());
 
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
@@ -110,7 +109,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         });
     }
 
-    match window_manager.run(&mut main_window) {
+    match window_manager.run(main_window) {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
     }
