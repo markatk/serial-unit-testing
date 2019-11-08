@@ -101,7 +101,7 @@ impl HelpWindow {
         }
 
         // create text entries
-        let title_text = format!("Key{}Action\n\n", std::iter::repeat(" ").take(length).collect::<String>());
+        let title_text = format!("{}Key   Action\n\n", std::iter::repeat(" ").take(length - 3).collect::<String>());
         let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
 
         for entry in help_entries {
