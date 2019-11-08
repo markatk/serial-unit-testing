@@ -55,7 +55,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         Err(e) => return Err(e.to_string())
     };
 
-    let tx = window_manager.get_tx().clone();
+    let ui_tx = window_manager.get_tx().clone();
 
     // create main window
     let mut main_window = MainWindow::new(&mut window_manager, input_format, output_format, io_tx, format!("{}, {} ", port_name, settings.to_short_string()));
@@ -77,7 +77,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             loop {
                 match serial.read_with_timeout(Duration::from_millis(10)) {
                     Ok(bytes) => {
-                        if let Err(_) = tx.send(Event::Output(bytes.to_vec())) {
+                        if let Err(_) = ui_tx.send(Event::Output(bytes.to_vec())) {
                             eprintln!("Unable to send to ui thread");
 
                             return;
@@ -85,7 +85,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                     },
                     Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
                     Err(_) => {
-                        show_error(&tx, "Unable to read from serial".to_string());
+                        show_error(&ui_tx, "Unable to read from serial".to_string());
 
                         return;
                     }
@@ -94,14 +94,14 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                 match io_rx.try_recv() {
                     Ok((data, format)) => {
                         if let Err(_err) = serial.write_format(data.as_str(), format) {
-                            show_error(&tx, "Unable to write to serial".to_string());
+                            show_error(&ui_tx, "Unable to write to serial".to_string());
 
                             return;
                         }
                     },
                     Err(e) if e == mpsc::TryRecvError::Empty => (),
                     Err(_) => {
-                        show_error(&tx, "I/O thread closed".to_string());
+                        show_error(&ui_tx, "I/O thread closed".to_string());
 
                         return;
                     }

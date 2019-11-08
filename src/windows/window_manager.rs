@@ -33,8 +33,8 @@ use tui::backend::CrosstermBackend;
 use crossterm::{KeyEvent, InputEvent, input, AlternateScreen};
 use super::{Event, Window};
 
-pub struct WindowManager<'a, 'b> {
-    windows: Vec<&'a mut dyn Window<'b>>,
+pub struct WindowManager<'a> {
+    windows: Vec<&'a mut dyn Window>,
     terminal: Terminal<CrosstermBackend>,
     tx: Sender<Event<KeyEvent>>,
     rx: Receiver<Event<KeyEvent>>,
@@ -42,8 +42,8 @@ pub struct WindowManager<'a, 'b> {
     pub tick_rate: u64
 }
 
-impl<'a, 'b> WindowManager<'a, 'b> {
-    pub fn new() -> Result<WindowManager<'a, 'b>, std::io::Error> {
+impl<'a> WindowManager<'a> {
+    pub fn new() -> Result<WindowManager<'a>, std::io::Error> {
         let (tx, rx) = mpsc::channel();
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
@@ -64,11 +64,11 @@ impl<'a, 'b> WindowManager<'a, 'b> {
         &self.tx
     }
 
-    pub fn push_window(&mut self, window: &'a mut dyn Window<'b>) {
+    pub fn push_window(&mut self, window: &'a mut dyn Window) {
         self.windows.push(window);
     }
 
-    pub fn run(&mut self, initial_window: &'a mut dyn Window<'b>) -> Result<(), std::io::Error> {
+    pub fn run(&mut self, initial_window: &'a mut dyn Window) -> Result<(), std::io::Error> {
         self.push_window(initial_window);
 
         // start input thread
