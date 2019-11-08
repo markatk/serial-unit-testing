@@ -40,10 +40,9 @@ use super::helpers;
 use crate::windows::{Window, WindowManager, Event};
 use super::help_window::HelpWindow;
 
-pub struct MainWindow<'a, 'b> {
-    window_manager: &'a mut WindowManager<'a, 'a>,
+pub struct MainWindow<'a> {
+    window_manager: &'a mut WindowManager<'a>,
     should_close: bool,
-    on_close: Option<Box<dyn FnMut() + 'b>>,
     title: String,
     control_text: Vec<Text<'a>>,
 
@@ -64,15 +63,14 @@ pub struct MainWindow<'a, 'b> {
 
     io_tx: Sender<(String, TextFormat)>,
 
-    help_window: HelpWindow<'a>
+    help_window: HelpWindow
 }
 
-impl<'a, 'b> MainWindow<'a, 'b> {
-    pub fn new(window_manager: &'a mut WindowManager<'a, 'a>, input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a, 'b> {
+impl<'a> MainWindow<'a> {
+    pub fn new(window_manager: &'a mut WindowManager<'a>, input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a> {
         MainWindow {
             window_manager,
             should_close: false,
-            on_close: None,
             title,
             control_text: vec!(),
             input: String::new(),
@@ -237,7 +235,7 @@ impl<'a, 'b> MainWindow<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
+impl<'a> Window for MainWindow<'a> {
     fn setup(&mut self) -> Result<(), io::Error> {
         self.add_control_key(1, "Help");
         self.add_control_key(2, "Input format");
@@ -412,9 +410,5 @@ impl<'a, 'b> Window<'b> for MainWindow<'a, 'b> {
 
     fn should_close(&self) -> bool {
         self.should_close
-    }
-
-    fn set_on_close(&mut self, callback: Box<dyn FnMut() + 'b>) {
-        self.on_close = Some(callback);
     }
 }

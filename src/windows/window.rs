@@ -28,7 +28,7 @@
 
 use super::Event;
 
-pub trait Window<'a> {
+pub trait Window {
     fn setup(&mut self) -> Result<(), std::io::Error> {
         // do nothing
         Ok(())
@@ -49,6 +49,4 @@ pub trait Window<'a> {
     }
 
     fn should_close(&self) -> bool;
-
-    fn set_on_close(&mut self, callback: Box<dyn FnMut() + 'a>);
 }

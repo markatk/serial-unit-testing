@@ -57,18 +57,16 @@ impl HelpEntry {
     }
 }
 
-pub struct HelpWindow<'a> {
+pub struct HelpWindow {
     help_entries: Vec<HelpEntry>,
-    should_close: bool,
-    on_close: Option<Box<dyn FnMut() + 'a>>
+    should_close: bool
 }
 
-impl<'a> HelpWindow<'a> {
-    pub fn new() -> HelpWindow<'a> {
+impl HelpWindow {
+    pub fn new() -> HelpWindow {
         HelpWindow {
             help_entries: vec!(),
-            should_close: false,
-            on_close: None
+            should_close: false
         }
     }
 
@@ -98,7 +96,7 @@ impl<'a> HelpWindow<'a> {
     }
 }
 
-impl<'a> Window<'a> for HelpWindow<'a> {
+impl Window for HelpWindow {
     fn setup(&mut self) -> Result<(), std::io::Error> {
         self.add_hot_key("F1", "Show help window");
         self.add_hot_key("F2", "Change input format");
@@ -155,9 +153,5 @@ impl<'a> Window<'a> for HelpWindow<'a> {
 
     fn should_close(&self) -> bool {
         self.should_close
-    }
-
-    fn set_on_close(&mut self, callback: Box<dyn FnMut() + 'a>) {
-        self.on_close = Some(callback);
     }
 }
