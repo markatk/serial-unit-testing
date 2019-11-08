@@ -40,6 +40,10 @@ pub trait Window<'a> {
         // do nothing
     }
 
+    fn handle_tick(&mut self, _tick_rate: u64) {
+        // do nothing
+    }
+
     fn handle_event(&mut self, _event: Event<crossterm::KeyEvent>) {
         // do nothing
     }

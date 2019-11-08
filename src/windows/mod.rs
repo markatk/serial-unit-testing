@@ -34,7 +34,7 @@ pub use window_manager::WindowManager;
 
 pub enum Event<I> {
     Input(I),
-    CursorTick,
+    Tick,
     Output(Vec<u8>),
     Error(String)
 }

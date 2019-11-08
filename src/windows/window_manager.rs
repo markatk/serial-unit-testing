@@ -37,7 +37,9 @@ pub struct WindowManager<'a, 'b> {
     windows: Vec<&'a mut dyn Window<'b>>,
     terminal: Terminal<CrosstermBackend>,
     tx: Sender<Event<KeyEvent>>,
-    rx: Receiver<Event<KeyEvent>>
+    rx: Receiver<Event<KeyEvent>>,
+
+    pub tick_rate: u64
 }
 
 impl<'a, 'b> WindowManager<'a, 'b> {
@@ -53,7 +55,8 @@ impl<'a, 'b> WindowManager<'a, 'b> {
             windows: vec!(),
             terminal,
             tx,
-            rx
+            rx,
+            tick_rate: 500
         })
     }
 
@@ -68,6 +71,7 @@ impl<'a, 'b> WindowManager<'a, 'b> {
     pub fn run(&mut self, initial_window: &'a mut dyn Window<'b>) -> Result<(), std::io::Error> {
         self.push_window(initial_window);
 
+        // start input thread
         {
             let tx = self.tx.clone();
             thread::spawn(move || {
@@ -83,6 +87,20 @@ impl<'a, 'b> WindowManager<'a, 'b> {
                         },
                         _ => {}
                     }
+                }
+            });
+        }
+
+        // start tick thread
+        {
+            let tx = self.tx.clone();
+            let tick_rate = self.tick_rate;
+
+            thread::spawn(move || {
+                loop {
+                    tx.send(Event::Tick).unwrap();
+
+                    thread::sleep(std::time::Duration::from_millis(tick_rate));
                 }
             });
         }
@@ -110,6 +128,9 @@ impl<'a, 'b> WindowManager<'a, 'b> {
                             },
                             _ => window.handle_key_event(event)
                         };
+                    },
+                    Ok(Event::Tick) => {
+                        window.handle_tick(self.tick_rate);
                     },
                     Ok(event) => window.handle_event(event),
                     _ => ()
