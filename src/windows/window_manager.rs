@@ -126,7 +126,7 @@ impl WindowManager {
                                     return Ok(());
                                 }
 
-                                None
+                                Some(window.handle_key_event(event))
                             },
                             _ => Some(window.handle_key_event(event))
                         }

@@ -98,6 +98,10 @@ impl<'a> MainWindow<'a> {
         self.cursor_position = 1;
     }
 
+    fn clear_output(&mut self) {
+        self.output.clear();
+    }
+
     fn advance_cursor(&mut self) {
         if self.cursor_position < helpers::char_count(&self.input) {
             self.cursor_position += 1;
@@ -107,6 +111,37 @@ impl<'a> MainWindow<'a> {
     fn retreat_cursor(&mut self) {
         if self.cursor_position > 0 {
             self.cursor_position -= 1;
+        }
+    }
+
+    fn cursor_at_beginning(&mut self) {
+        self.cursor_position = 0;
+    }
+
+    fn cursor_at_end(&mut self) {
+        self.cursor_position = helpers::char_count(&self.input);
+    }
+
+    fn remove_character(&mut self, advance_cursor: bool) {
+        let char_count = helpers::char_count(&self.input);
+
+        if self.input.is_empty() || (advance_cursor && self.cursor_position == 0) || (advance_cursor == false && self.cursor_position >= char_count) {
+            return;
+        }
+
+        let offset = match advance_cursor {
+            true => 1,
+            false => 0
+        };
+
+        if self.cursor_position < char_count {
+            helpers::remove_char(&mut self.input, self.cursor_position - offset);
+        } else {
+            self.input.pop();
+        }
+
+        if advance_cursor {
+            self.retreat_cursor();
         }
     }
 
@@ -214,7 +249,8 @@ impl<'a> MainWindow<'a> {
         }
 
         self.input = self.input_history[self.input_history_index as usize].clone();
-        self.cursor_position = helpers::char_count(&self.input);
+
+        self.cursor_at_end();
     }
 
     fn retreat_history(&mut self) {
@@ -234,7 +270,7 @@ impl<'a> MainWindow<'a> {
             self.input = self.input_backup.clone();
         }
 
-        self.cursor_position = helpers::char_count(&self.input);
+        self.cursor_at_end();
     }
 }
 
@@ -320,21 +356,20 @@ impl<'a> Window for MainWindow<'a> {
                     self.advance_cursor();
                 }
             },
-            KeyEvent::Backspace => {
-                if self.input.is_empty() == false && self.cursor_position != 0 {
-                    if self.cursor_position < helpers::char_count(&self.input) {
-                        helpers::remove_char(&mut self.input, self.cursor_position - 1);
-                    } else {
-                        self.input.pop();
-                    }
-
-                    self.retreat_cursor();
+            KeyEvent::Ctrl(c) => {
+                match c {
+                    'a' => self.cursor_at_beginning(),
+                    'd' => self.remove_character(false),
+                    'e' => self.cursor_at_end(),
+                    'l' => self.clear_output(),
+                    _ => ()
                 }
             },
+            KeyEvent::Backspace => {
+                self.remove_character(true);
+            },
             KeyEvent::Delete => {
-                if self.input.is_empty() == false && self.cursor_position < helpers::char_count(&self.input) {
-                    helpers::remove_char(&mut self.input, self.cursor_position);
-                }
+                self.remove_character(false);
             },
             KeyEvent::Left => {
                 self.retreat_cursor();
@@ -363,7 +398,7 @@ impl<'a> Window for MainWindow<'a> {
                         self.output_format = helpers::get_next_format(&self.output_format);
                     },
                     4 => {
-                        self.output.clear();
+                        self.clear_output();
                     },
                     5 => {
                         self.newline_format = helpers::get_next_newline_format(&self.newline_format);
