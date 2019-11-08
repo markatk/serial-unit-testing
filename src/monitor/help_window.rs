@@ -66,6 +66,7 @@ impl HelpWindow {
     pub fn new() -> Box<HelpWindow> {
         let mut help_entries= vec!();
 
+        // TODO: Add paging when window is too small
         HelpWindow::add_hot_key(&mut help_entries, "F1", "Show help window");
         HelpWindow::add_hot_key(&mut help_entries, "F2", "Change input format");
         HelpWindow::add_hot_key(&mut help_entries, "F3", "Change output format");
