@@ -117,8 +117,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
 pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
-        // TODO: Change monitor about text
-        .about("Continuously display serial port data")
+        .about("Interactive serial communication monitor")
         .args(commands::serial_arguments(false, true).as_slice())
 }
 
