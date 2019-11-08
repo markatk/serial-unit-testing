@@ -36,7 +36,6 @@ use crate::commands;
 use crate::windows::{WindowManager, Event};
 use serial_unit_testing::serial::Serial;
 
-mod enums;
 mod helpers;
 mod main_window;
 mod help_window;
@@ -45,8 +44,6 @@ use main_window::MainWindow;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (io_tx, io_rx) = mpsc::channel();
-    let input_format = commands::get_text_input_format(matches);
-    let output_format = commands::get_text_output_format(matches);
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
 
     // create windows
@@ -60,8 +57,9 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // create main window
     let mut main_window = MainWindow::new(io_tx);
 
-    main_window.input_format = input_format;
-    main_window.output_format = output_format;
+    main_window.input_format = commands::get_text_input_format(matches);
+    main_window.output_format = commands::get_text_output_format(matches);
+    main_window.newline_format = commands::get_newline_format(matches);
     main_window.title = format!("{}, {} ", port_name, settings.to_short_string());
 
     // open serial port
@@ -119,6 +117,8 @@ pub fn command<'a>() -> App<'a, 'a> {
     SubCommand::with_name("monitor")
         .about("Interactive serial communication monitor")
         .args(commands::serial_arguments(false, true).as_slice())
+        .args(commands::text_input_arguments().as_slice())
+        .args(commands::text_output_arguments().as_slice())
 }
 
 fn show_error(tx: &mpsc::Sender<Event<KeyEvent>>, text: String) {
