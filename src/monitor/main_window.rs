@@ -361,31 +361,20 @@ impl<'a> Window for MainWindow<'a> {
                     'a' => self.cursor_at_beginning(),
                     'd' => self.remove_character(false),
                     'e' => self.cursor_at_end(),
+                    'h' => self.remove_character(true),
                     'l' => self.clear_output(),
                     _ => ()
                 }
             },
-            KeyEvent::Backspace => {
-                self.remove_character(true);
-            },
-            KeyEvent::Delete => {
-                self.remove_character(false);
-            },
-            KeyEvent::Left => {
-                self.retreat_cursor();
-            },
-            KeyEvent::Right => {
-                self.advance_cursor();
-            },
-            KeyEvent::Up => {
-                self.advance_history();
-            },
-            KeyEvent::Down => {
-                self.retreat_history();
-            },
-            KeyEvent::Esc => {
-                self.should_close = true;
-            },
+            KeyEvent::Backspace => self.remove_character(true),
+            KeyEvent::Delete => self.remove_character(false),
+            KeyEvent::Left => self.retreat_cursor(),
+            KeyEvent::Right => self.advance_cursor(),
+            KeyEvent::Up => self.advance_history(),
+            KeyEvent::Down => self.retreat_history(),
+            KeyEvent::Esc => self.should_close = true,
+            KeyEvent::Home => self.cursor_at_beginning(),
+            KeyEvent::End => self.cursor_at_end(),
             KeyEvent::F(num) => {
                 match num {
                     1 => {
