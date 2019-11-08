@@ -43,6 +43,15 @@ pub enum TextFormat {
     Hex = 16
 }
 
+/// Newline format type
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum NewlineFormat {
+    None,
+    CarriageReturn,
+    LineFeed,
+    Both
+}
+
 // TODO: Replace String error type with proper error
 /// Convert a hexadecimal string into a vector of bytes.
 ///

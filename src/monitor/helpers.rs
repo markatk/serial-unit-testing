@@ -26,8 +26,7 @@
  * SOFTWARE.
  */
 
-use super::enums::NewlineFormat;
-use serial_unit_testing::utils::TextFormat;
+use serial_unit_testing::utils::{TextFormat, NewlineFormat};
 
 pub fn char_count(str: &String) -> usize {
     str.char_indices().count()

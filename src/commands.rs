@@ -236,3 +236,15 @@ pub fn get_text_output_format(matches: &ArgMatches) -> utils::TextFormat {
 
     get_text_format(matches)
 }
+
+pub fn get_newline_format(matches: &ArgMatches) -> utils::NewlineFormat {
+    if matches.is_present("carriagereturn") && matches.is_present("newline") {
+        utils::NewlineFormat::Both
+    } else if matches.is_present("carriagereturn") {
+        utils::NewlineFormat::CarriageReturn
+    } else if matches.is_present("newline") {
+        utils::NewlineFormat::LineFeed
+    } else {
+        utils::NewlineFormat::None
+    }
+}

@@ -34,11 +34,10 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
-use serial_unit_testing::utils::{self, TextFormat};
-use super::enums::NewlineFormat;
+use serial_unit_testing::utils::{self, TextFormat, NewlineFormat};
 use super::helpers;
-use crate::windows::{Window, Event, EventResult};
 use super::help_window::HelpWindow;
+use crate::windows::{Window, Event, EventResult};
 
 pub struct MainWindow<'a> {
     should_close: bool,
@@ -50,7 +49,7 @@ pub struct MainWindow<'a> {
     input_history: Vec<String>,
     input_history_index: i32,
     input_backup: String,
-    newline_format: NewlineFormat,
+    pub newline_format: NewlineFormat,
 
     output: String,
     pub output_format: TextFormat,
