@@ -37,64 +37,60 @@ use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat};
 use super::enums::NewlineFormat;
 use super::helpers;
-use crate::windows::{Window, WindowManager, Event};
+use crate::windows::{Window, Event, EventResult};
 use super::help_window::HelpWindow;
 
 pub struct MainWindow<'a> {
-    window_manager: &'a mut WindowManager<'a>,
     should_close: bool,
-    title: String,
+    pub title: String,
     control_text: Vec<Text<'a>>,
 
     input: String,
-    input_format: TextFormat,
+    pub input_format: TextFormat,
     input_history: Vec<String>,
     input_history_index: i32,
     input_backup: String,
     newline_format: NewlineFormat,
 
     output: String,
-    output_format: TextFormat,
+    pub output_format: TextFormat,
 
     error: Option<String>,
 
     cursor_position: usize,
     cursor_state: bool,
 
-    io_tx: Sender<(String, TextFormat)>,
-
-    help_window: HelpWindow
+    io_tx: Sender<(String, TextFormat)>
 }
 
 impl<'a> MainWindow<'a> {
-    pub fn new(window_manager: &'a mut WindowManager<'a>, input_format: TextFormat, output_format: TextFormat, io_tx: Sender<(String, TextFormat)>, title: String) -> MainWindow<'a> {
-        MainWindow {
-            window_manager,
+    pub fn new(io_tx: Sender<(String, TextFormat)>) -> Box<MainWindow<'a>> {
+        let mut control_text = vec!();
+
+        MainWindow::add_control_key(&mut control_text, 1, "Help");
+        MainWindow::add_control_key(&mut control_text, 2, "Input format");
+        MainWindow::add_control_key(&mut control_text, 3, "Output format");
+        MainWindow::add_control_key(&mut control_text, 4, "Clear");
+        MainWindow::add_control_key(&mut control_text, 5, "Newline");
+        MainWindow::add_control_key(&mut control_text, 10, "Close");
+
+        Box::new(MainWindow {
             should_close: false,
-            title,
-            control_text: vec!(),
+            title: String::new(),
+            control_text,
             input: String::new(),
-            input_format,
+            input_format: TextFormat::Text,
             input_history: vec!(),
             input_history_index: -1,
             input_backup: String::new(),
             newline_format: NewlineFormat::LineFeed,
             output: String::new(),
-            output_format,
+            output_format: TextFormat::Text,
             error: None,
             cursor_position: 1,
             cursor_state: false,
-            io_tx,
-            help_window: HelpWindow::new()
-        }
-    }
-
-    pub fn add_control_text(&mut self, text: String) {
-        self.control_text.push(Text::raw(text));
-    }
-
-    pub fn add_control_text_with_color(&mut self, text: String, color: Color) {
-        self.control_text.push(Text::styled(text, Style::default().bg(color)));
+            io_tx
+        })
     }
 
     fn reset_input(&mut self) {
@@ -115,9 +111,17 @@ impl<'a> MainWindow<'a> {
         }
     }
 
-    fn add_control_key(&mut self, num: u8, name: &str) {
-        self.add_control_text(format!("F{}", num));
-        self.add_control_text_with_color(format!("{} ", name), Color::Cyan);
+    fn add_control_text(entries: &mut Vec<Text<'a>>, text: String) {
+        entries.push(Text::raw(text));
+    }
+
+    fn add_control_text_with_color(entries: &mut Vec<Text<'a>>, text: String, color: Color) {
+        entries.push(Text::styled(text, Style::default().bg(color)));
+    }
+
+    fn add_control_key(entries: &mut Vec<Text<'a>>, num: u8, name: &str) {
+        MainWindow::add_control_text(entries, format!("F{}", num));
+        MainWindow::add_control_text_with_color(entries, format!("{} ", name), Color::Cyan);
     }
 
     fn get_last_lines(text: &str, n: usize) -> String {
@@ -236,17 +240,6 @@ impl<'a> MainWindow<'a> {
 }
 
 impl<'a> Window for MainWindow<'a> {
-    fn setup(&mut self) -> Result<(), io::Error> {
-        self.add_control_key(1, "Help");
-        self.add_control_key(2, "Input format");
-        self.add_control_key(3, "Output format");
-        self.add_control_key(4, "Clear");
-        self.add_control_key(5, "Newline");
-        self.add_control_key(10, "Close");
-
-        Ok(())
-    }
-
     fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), io::Error> {
         let input = self.get_input_render_text();
         let control_text = &self.control_text;
@@ -310,23 +303,23 @@ impl<'a> Window for MainWindow<'a> {
         })
     }
 
-    fn handle_key_event(&mut self, event: KeyEvent) {
+    fn handle_key_event<'b>(&mut self, event: KeyEvent) -> EventResult {
+        let mut result = EventResult::new();
+
         match event {
             KeyEvent::Char(c) => {
                 if c == '\n' {
                     self.send_input();
-
-                    return;
-                }
-
-                // add character to input
-                if self.cursor_position < helpers::char_count(&self.input) {
-                    helpers::insert_char(&mut self.input, self.cursor_position, c);
                 } else {
-                    self.input.push(c);
-                }
+                    // add character to input
+                    if self.cursor_position < helpers::char_count(&self.input) {
+                        helpers::insert_char(&mut self.input, self.cursor_position, c);
+                    } else {
+                        self.input.push(c);
+                    }
 
-                self.advance_cursor();
+                    self.advance_cursor();
+                }
             },
             KeyEvent::Backspace => {
                 if self.input.is_empty() == false && self.cursor_position != 0 {
@@ -362,7 +355,7 @@ impl<'a> Window for MainWindow<'a> {
             KeyEvent::F(num) => {
                 match num {
                     1 => {
-//                        window_manager.push_window(&mut self.help_window);
+                        result.child = Some(HelpWindow::new());
                     },
                     2 => {
                         self.input_format = helpers::get_next_format(&self.input_format);
@@ -384,13 +377,17 @@ impl<'a> Window for MainWindow<'a> {
             },
             _ => {}
         };
+
+        result
     }
 
-    fn handle_tick(&mut self, _tick_rate: u64) {
+    fn handle_tick(&mut self, _tick_rate: u64) -> EventResult {
         self.cursor_state = !self.cursor_state;
+
+        EventResult::new()
     }
 
-    fn handle_event(&mut self, event: Event<KeyEvent>) {
+    fn handle_event(&mut self, event: Event<KeyEvent>) -> EventResult {
         match event {
             Event::Output(mut data) => {
                 // filter carriage return characters as they stop newline from working
@@ -405,7 +402,9 @@ impl<'a> Window for MainWindow<'a> {
                 self.error = Some(text);
             },
             _ => {}
-        }
+        };
+
+        EventResult::new()
     }
 
     fn should_close(&self) -> bool {

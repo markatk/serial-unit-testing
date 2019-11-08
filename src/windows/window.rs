@@ -26,26 +26,21 @@
  * SOFTWARE.
  */
 
-use super::Event;
+use super::{Event, EventResult};
 
 pub trait Window {
-    fn setup(&mut self) -> Result<(), std::io::Error> {
-        // do nothing
-        Ok(())
-    }
-
     fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend>) -> Result<(), std::io::Error>;
 
-    fn handle_key_event(&mut self, _event: crossterm::KeyEvent) {
-        // do nothing
+    fn handle_key_event<'a>(&mut self, _event: crossterm::KeyEvent) -> EventResult {
+        EventResult::new()
     }
 
-    fn handle_tick(&mut self, _tick_rate: u64) {
-        // do nothing
+    fn handle_tick(&mut self, _tick_rate: u64) -> EventResult {
+        EventResult::new()
     }
 
-    fn handle_event(&mut self, _event: Event<crossterm::KeyEvent>) {
-        // do nothing
+    fn handle_event(&mut self, _event: Event<crossterm::KeyEvent>) -> EventResult {
+        EventResult::new()
     }
 
     fn should_close(&self) -> bool;

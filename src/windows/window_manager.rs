@@ -32,9 +32,10 @@ use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use crossterm::{KeyEvent, InputEvent, input, AlternateScreen};
 use super::{Event, Window};
+use crate::windows::EventResult;
 
-pub struct WindowManager<'a> {
-    windows: Vec<&'a mut dyn Window>,
+pub struct WindowManager {
+    windows: Vec<Box<dyn Window>>,
     terminal: Terminal<CrosstermBackend>,
     tx: Sender<Event<KeyEvent>>,
     rx: Receiver<Event<KeyEvent>>,
@@ -42,8 +43,8 @@ pub struct WindowManager<'a> {
     pub tick_rate: u64
 }
 
-impl<'a> WindowManager<'a> {
-    pub fn new() -> Result<WindowManager<'a>, std::io::Error> {
+impl WindowManager {
+    pub fn new() -> Result<WindowManager, std::io::Error> {
         let (tx, rx) = mpsc::channel();
         let screen = AlternateScreen::to_alternate(true)?;
         let backend = CrosstermBackend::with_alternate_screen(screen)?;
@@ -64,11 +65,11 @@ impl<'a> WindowManager<'a> {
         &self.tx
     }
 
-    pub fn push_window(&mut self, window: &'a mut dyn Window) {
+    pub fn push_window(&mut self, window: Box<dyn Window>) {
         self.windows.push(window);
     }
 
-    pub fn run(&mut self, initial_window: &'a mut dyn Window) -> Result<(), std::io::Error> {
+    pub fn run(&mut self, initial_window: Box<dyn Window>) -> Result<(), std::io::Error> {
         self.push_window(initial_window);
 
         // start input thread
@@ -116,28 +117,41 @@ impl<'a> WindowManager<'a> {
 
                 window.render(&mut self.terminal)?;
 
-                match self.rx.recv() {
+                let result = match self.rx.recv() {
                     Ok(Event::Input(event)) => {
-                        // stop execution if true returned
                         match event {
                             KeyEvent::Ctrl(c) => {
                                 if c == 'c' {
                                     // Exit application
                                     return Ok(());
                                 }
+
+                                None
                             },
-                            _ => window.handle_key_event(event)
-                        };
+                            _ => Some(window.handle_key_event(event))
+                        }
                     },
-                    Ok(Event::Tick) => {
-                        window.handle_tick(self.tick_rate);
-                    },
-                    Ok(event) => window.handle_event(event),
-                    _ => ()
+                    Ok(Event::Tick) => Some(window.handle_tick(self.tick_rate)),
+                    Ok(event) => Some(window.handle_event(event)),
+                    _ => None
+                };
+
+                if let Some(event_result) = result {
+                    self.apply_event_result(event_result);
                 }
             };
         }
 
         Ok(())
+    }
+
+    fn apply_event_result(&mut self, event_result: EventResult) {
+        if event_result.remove {
+            self.windows.pop();
+        }
+
+        if let Some(child) = event_result.child {
+            self.windows.push(child);
+        }
     }
 }
