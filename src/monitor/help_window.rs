@@ -59,7 +59,9 @@ impl HelpEntry {
 
 pub struct HelpWindow {
     help_entries: Vec<HelpEntry>,
-    should_close: bool
+    should_close: bool,
+    page: u32,
+    page_count: u32
 }
 
 impl HelpWindow {
@@ -86,15 +88,23 @@ impl HelpWindow {
 
         Box::new(HelpWindow {
             help_entries,
-            should_close: false
+            should_close: false,
+            page: 0,
+            page_count: 1
         })
     }
 
-    fn get_help_text_entries(help_entries: &Vec<HelpEntry>) -> Vec<Text> {
+    fn get_help_text_entries(help_entries: &Vec<HelpEntry>, skip: usize, count: usize) -> Vec<Text> {
+        let entries = help_entries
+            .iter()
+            .skip(skip)
+            .take(count)
+            .collect::<Vec<_>>();
+
         // get longest key
         let mut length = 0;
 
-        for entry in help_entries {
+        for entry in entries.iter() {
             if entry.key.len() > length {
                 length = entry.key.len();
             }
@@ -104,7 +114,7 @@ impl HelpWindow {
         let title_text = format!("{}Key   Action\n\n", std::iter::repeat(" ").take(length - 3).collect::<String>());
         let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
 
-        for entry in help_entries {
+        for entry in entries {
             help_text.extend_from_slice(&entry.get_entry(length));
         }
 
@@ -118,7 +128,9 @@ impl HelpWindow {
 
 impl Window for HelpWindow {
     fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), std::io::Error> {
-        let help_text = HelpWindow::get_help_text_entries(&self.help_entries);
+        let help_entries = &self.help_entries;
+        let page_count = &mut self.page_count;
+        let page = self.page;
 
         terminal.draw(|mut f| {
             let chunks = Layout::default()
@@ -129,12 +141,17 @@ impl Window for HelpWindow {
                 ].as_ref())
                 .split(f.size());
 
+            // calculate page metrics
+            *page_count = ((help_entries.len() + 1) * 2) as u32 / chunks[0].height as u32 + 1;
+            let entries_per_page = (chunks[0].height - 3) / 2;
+
+            let help_text = HelpWindow::get_help_text_entries(help_entries, entries_per_page as usize * page as usize, entries_per_page as usize);
             let exit_text = [Text::styled("Press ESC to exit help", Style::default().modifier(Modifier::ITALIC))];
 
             // draw widgets
             Paragraph::new(help_text.iter())
                 .block(Block::default()
-                    .title("Help")
+                    .title(format!("Help: {}/{}", page + 1, page_count).as_str())
                     .title_style(Style::default().modifier(Modifier::BOLD))
                     .borders(Borders::ALL))
                 .render(&mut f, chunks[0]);
@@ -150,6 +167,16 @@ impl Window for HelpWindow {
         match event {
             KeyEvent::Esc => {
                 self.should_close = true;
+            },
+            KeyEvent::Left => {
+                if self.page > 0 {
+                    self.page -= 1;
+                }
+            },
+            KeyEvent::Right => {
+                if self.page < self.page_count - 1 {
+                    self.page += 1;
+                }
             },
             _ => {}
         };
