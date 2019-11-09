@@ -143,10 +143,17 @@ impl Window for HelpWindow {
 
             // calculate page metrics
             *page_count = ((help_entries.len() + 1) * 2) as u32 / chunks[0].height as u32 + 1;
-            let entries_per_page = (chunks[0].height - 3) / 2;
+            let entries_per_page = ((chunks[0].height - 3) / 2) as usize;
 
-            let help_text = HelpWindow::get_help_text_entries(help_entries, entries_per_page as usize * page as usize, entries_per_page as usize);
-            let exit_text = [Text::styled("Press ESC to exit help", Style::default().modifier(Modifier::ITALIC))];
+            let help_text = HelpWindow::get_help_text_entries(help_entries, entries_per_page as usize * page as usize, entries_per_page);
+
+            let exit_str = if *page_count > 1 {
+                "Press left or right to change pages, ESC to exit help"
+            } else {
+                "Press ESC to exit help"
+            };
+
+            let exit_text = [Text::styled(exit_str, Style::default().modifier(Modifier::ITALIC))];
 
             // draw widgets
             Paragraph::new(help_text.iter())
