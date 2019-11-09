@@ -68,7 +68,6 @@ impl HelpWindow {
     pub fn new() -> Box<HelpWindow> {
         let mut help_entries= vec!();
 
-        // TODO: Add paging when window is too small
         HelpWindow::add_hot_key(&mut help_entries, "F1", "Show help window");
         HelpWindow::add_hot_key(&mut help_entries, "F2", "Change the input format");
         HelpWindow::add_hot_key(&mut help_entries, "F3", "Change the output format");
@@ -110,6 +109,10 @@ impl HelpWindow {
             }
         }
 
+        if length < 3 {
+            length = 3;
+        }
+
         // create text entries
         let title_text = format!("{}Key   Action\n\n", std::iter::repeat(" ").take(length - 3).collect::<String>());
         let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
@@ -130,7 +133,7 @@ impl Window for HelpWindow {
     fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), std::io::Error> {
         let help_entries = &self.help_entries;
         let page_count = &mut self.page_count;
-        let page = self.page;
+        let page = &mut self.page;
 
         terminal.draw(|mut f| {
             let chunks = Layout::default()
@@ -142,10 +145,14 @@ impl Window for HelpWindow {
                 .split(f.size());
 
             // calculate page metrics
-            *page_count = ((help_entries.len() + 1) * 2) as u32 / chunks[0].height as u32 + 1;
-            let entries_per_page = ((chunks[0].height - 3) / 2) as usize;
+            let entries_per_page = (chunks[0].height - 3) / 2;
 
-            let help_text = HelpWindow::get_help_text_entries(help_entries, entries_per_page as usize * page as usize, entries_per_page);
+            *page_count = help_entries.len() as u32 / entries_per_page as u32 + 1;
+            if *page > *page_count {
+                *page = *page_count - 1;
+            }
+
+            let help_text = HelpWindow::get_help_text_entries(help_entries, entries_per_page as usize * *page as usize, entries_per_page as usize);
 
             let exit_str = if *page_count > 1 {
                 "Press left or right to change pages, ESC to exit help"
@@ -158,7 +165,7 @@ impl Window for HelpWindow {
             // draw widgets
             Paragraph::new(help_text.iter())
                 .block(Block::default()
-                    .title(format!("Help: {}/{}", page + 1, page_count).as_str())
+                    .title(format!("Help: {}/{}", *page + 1, page_count).as_str())
                     .title_style(Style::default().modifier(Modifier::BOLD))
                     .borders(Borders::ALL))
                 .render(&mut f, chunks[0]);
