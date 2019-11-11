@@ -33,8 +33,9 @@ use std::error::Error;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::KeyEvent;
 use crate::commands;
-use crate::windows::{WindowManager, Event};
+use crate::windows::{WindowManager, Event, WindowError};
 use serial_unit_testing::serial::Serial;
+use serial_unit_testing::error::Error as SerialError;
 
 mod helpers;
 mod main_window;
@@ -82,7 +83,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                     },
                     Err(e) if e.is_timeout() => (),
                     Err(_) => {
-                        show_error(&ui_tx, "Unable to read from serial".to_string());
+                        show_error(&ui_tx, "Unable to read from serial".to_string(), false);
 
                         return;
                     }
@@ -90,15 +91,20 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
                 match io_rx.try_recv() {
                     Ok((data, format)) => {
-                        if let Err(_err) = serial.write_format(data.as_str(), format) {
-                            show_error(&ui_tx, "Unable to write to serial".to_string());
+                        if let Err(err) = serial.write_format(data.as_str(), format) {
+                            match err {
+                                SerialError::Num(_) => show_error(&ui_tx, "Unable to parse input".to_string(), true),
+                                _ => {
+                                    show_error(&ui_tx, "Unable to write to serial".to_string(), false);
 
-                            return;
+                                    return;
+                                }
+                            };
                         }
                     },
                     Err(e) if e == mpsc::TryRecvError::Empty => (),
                     Err(_) => {
-                        show_error(&ui_tx, "I/O thread closed".to_string());
+                        show_error(&ui_tx, "I/O thread closed".to_string(), false);
 
                         return;
                     }
@@ -121,8 +127,8 @@ pub fn command<'a>() -> App<'a, 'a> {
         .args(commands::text_output_arguments().as_slice())
 }
 
-fn show_error(tx: &mpsc::Sender<Event<KeyEvent>>, text: String) {
-    if let Err(_err) = tx.send(Event::Error(text)) {
+fn show_error(tx: &mpsc::Sender<Event<KeyEvent>>, text: String, recoverable: bool) {
+    if let Err(_err) = tx.send(Event::Error(WindowError::new(text, recoverable))) {
         eprintln!("Unable to send to ui thread");
     }
 }

@@ -103,6 +103,7 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>> {
     let mut chars = text.chars().peekable();
 
     while chars.peek().is_some() {
+        // TODO: Fix single char radix (when count is odd)
         let chunk: String = chars.by_ref().take(2).collect();
 
         match u8::from_str_radix(&chunk, radix) {

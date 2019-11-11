@@ -28,6 +28,7 @@
 
 use serial_unit_testing::utils::{TextFormat, NewlineFormat};
 
+// TODO: Move all of this into utils
 pub fn char_count(str: &String) -> usize {
     str.char_indices().count()
 }

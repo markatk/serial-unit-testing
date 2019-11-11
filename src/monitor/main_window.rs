@@ -37,7 +37,7 @@ use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat, NewlineFormat};
 use super::helpers;
 use super::help_window::HelpWindow;
-use crate::windows::{Window, Event, EventResult};
+use crate::windows::{Window, Event, EventResult, WindowError};
 
 pub struct MainWindow<'a> {
     should_close: bool,
@@ -54,7 +54,7 @@ pub struct MainWindow<'a> {
     output: String,
     pub output_format: TextFormat,
 
-    error: Option<String>,
+    error: Option<WindowError>,
 
     cursor_position: usize,
     cursor_state: bool,
@@ -175,7 +175,13 @@ impl<'a> MainWindow<'a> {
     fn get_input_render_text(&mut self) -> String {
         // do not show input when an error is detected
         if let Some(error) = &self.error {
-            return format!("Error: {}. Press ESC to close", error);
+            let close_message = if error.recoverable {
+                "Press ESC to continue"
+            } else {
+                "Press ESC to close"
+            };
+
+            return format!("Error: {}. {}", error.description, close_message);
         }
 
         if self.cursor_state == false {
@@ -205,7 +211,7 @@ impl<'a> MainWindow<'a> {
         helpers::add_newline(&mut text, self.input_format, self.newline_format);
 
         if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
-            self.error = Some("Unable to send event to I/O thread".to_string());
+            self.set_error("Unable to send event to I/O thread".to_string(), false);
 
             // TODO: early return?
         }
@@ -271,6 +277,10 @@ impl<'a> MainWindow<'a> {
         }
 
         self.cursor_at_end();
+    }
+
+    fn set_error(&mut self, message: String, recoverable: bool) {
+        self.error = Some(WindowError::new(message, recoverable));
     }
 }
 
@@ -368,7 +378,18 @@ impl<'a> Window for MainWindow<'a> {
             KeyEvent::Right => self.advance_cursor(),
             KeyEvent::Up => self.advance_history(),
             KeyEvent::Down => self.retreat_history(),
-            KeyEvent::Esc => self.should_close = true,
+            KeyEvent::Esc => {
+                if let Some(ref err) = self.error {
+                    if err.recoverable {
+                        self.error = None;
+                        self.advance_history();
+
+                        return result;
+                    }
+                }
+
+                self.should_close = true
+            },
             KeyEvent::Home => self.cursor_at_beginning(),
             KeyEvent::End => self.cursor_at_end(),
             KeyEvent::F(num) => {
@@ -418,8 +439,8 @@ impl<'a> Window for MainWindow<'a> {
 
                 self.output.push_str(&text);
             },
-            Event::Error(text) => {
-                self.error = Some(text);
+            Event::Error(error) => {
+                self.set_error(error.description, error.recoverable);
             },
             _ => {}
         };
