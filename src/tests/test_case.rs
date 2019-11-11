@@ -26,7 +26,6 @@
  * SOFTWARE.
  */
 
-use std::io;
 use std::str;
 use std::time::Duration;
 use std::thread::sleep;
@@ -235,7 +234,10 @@ impl TestCase {
                 Ok(bytes) => {
                     let mut new_text = match self.output_format {
                         utils::TextFormat::Text => str::from_utf8(bytes).unwrap().to_string(),
-                        _ => utils::radix_string(bytes, &self.output_format)
+                        _ => match utils::radix_string(bytes, &self.output_format) {
+                            Ok(text) => text,
+                            Err(e) => return Err(format!("Error converting response {}", e))
+                        }
                     };
 
                     if self.settings.ignore_case.unwrap_or(false) {
@@ -252,7 +254,7 @@ impl TestCase {
                         break;
                     }
                 },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                Err(e) if e.is_timeout() => {
                     if response.len() == 0 {
                         return Err("Connection timed out".to_string());
                     }
@@ -267,7 +269,7 @@ impl TestCase {
     }
 
     fn title(&self) -> String {
-        if self.name != "" {
+        if self.name.is_empty() == false {
             format!("{} \"{}\"", self.name, self.input)
         } else {
             self.input.clone()

@@ -27,11 +27,11 @@
  */
 
 use std::boxed::Box;
-use std::io;
 use std::str;
 use std::time::Duration;
 use serialport;
 use crate::utils;
+use crate::error::{Result, Error};
 
 pub mod settings;
 
@@ -60,8 +60,9 @@ impl Serial {
     ///
     /// ```
     /// use serial_unit_testing::serial::Serial;
+    /// use serial_unit_testing::error::Result;
     ///
-    /// fn main() -> Result<(), std::io::Error> {
+    /// fn main() -> Result<()> {
     ///     let mut serial = Serial::open("/dev/ttyACM0")?;
     ///     serial.write("Hello World!")?;
     ///
@@ -69,7 +70,7 @@ impl Serial {
     /// }
     ///
     /// ```
-    pub fn open(port_name: &str) -> Result<Serial, io::Error> {
+    pub fn open(port_name: &str) -> Result<Serial> {
         let settings: settings::Settings = Default::default();
 
         Serial::open_with_settings(port_name, &settings)
@@ -84,8 +85,9 @@ impl Serial {
     /// ```
     /// use serial_unit_testing::serial::Serial;
     /// use serial_unit_testing::serial::settings::Settings;
+    /// use serial_unit_testing::error::Result;
     ///
-    /// fn main() -> Result<(), std::io::Error> {
+    /// fn main() -> Result<()> {
     ///     let mut settings = Settings::default();
     ///     settings.baud_rate = 115200;
     ///
@@ -96,19 +98,19 @@ impl Serial {
     /// }
     ///
     /// ```
-    pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial, io::Error> {
+    pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial> {
         match serialport::open_with_settings(&port_name, &settings.to_serial_port_settings()) {
             Ok(port) => {
                 Ok(Serial { port, read_buffer: vec![0; 1000] })
             },
-            Err(e) => Err(io::Error::new(io::ErrorKind::Other, e))
+            Err(e) => Err(Error::from(e))
         }
     }
 
     /// Write text to the serial port.
     ///
     /// This is the same as using `Serial::write_format` with `TextFormat::Text` as format specifier.
-    pub fn write(&mut self, text: &str) -> Result<(), io::Error> {
+    pub fn write(&mut self, text: &str) -> Result<()> {
         self.port.write(text.as_bytes())?;
 
         Ok(())
@@ -123,8 +125,9 @@ impl Serial {
     /// ```
     /// use serial_unit_testing::serial::Serial;
     /// use serial_unit_testing::utils::TextFormat;
+    /// use serial_unit_testing::error::Result;
     ///
-    /// fn main() -> Result<(), std::io::Error> {
+    /// fn main() -> Result<()> {
     ///     let mut serial = Serial::open("/dev/ttyACM0")?;
     ///     serial.write_format("0a5f", TextFormat::Hex)?;
     ///
@@ -132,12 +135,12 @@ impl Serial {
     /// }
     ///
     /// ```
-    pub fn write_format(&mut self, text: &str, text_format: utils::TextFormat) -> Result<(), io::Error> {
+    pub fn write_format(&mut self, text: &str, text_format: utils::TextFormat) -> Result<()> {
         let bytes = match text_format {
-            utils::TextFormat::Binary => utils::bytes_from_binary_string(text).unwrap(),
-            utils::TextFormat::Octal => utils::bytes_from_octal_string(text).unwrap(),
-            utils::TextFormat::Decimal => utils::bytes_from_decimal_string(text).unwrap(),
-            utils::TextFormat::Hex => utils::bytes_from_hex_string(text).unwrap(),
+            utils::TextFormat::Binary => utils::bytes_from_binary_string(text)?,
+            utils::TextFormat::Octal => utils::bytes_from_octal_string(text)?,
+            utils::TextFormat::Decimal => utils::bytes_from_decimal_string(text)?,
+            utils::TextFormat::Hex => utils::bytes_from_hex_string(text)?,
             _ => {
                 let mut bytes = Vec::new();
                 bytes.extend_from_slice(text.as_bytes());
@@ -159,15 +162,16 @@ impl Serial {
     ///
     /// ```
     /// use serial_unit_testing::serial::Serial;
+    /// use serial_unit_testing::error::Result;
     ///
-    /// fn main() -> Result<(), std::io::Error> {
+    /// fn main() -> Result<()> {
     ///     let mut serial = Serial::open("/dev/ttyACM0")?;
     ///     let data = serial.read().unwrap();
     ///
     ///     Ok(())
     /// }
     /// ```
-    pub fn read(&mut self) -> Result<&[u8], io::Error> {
+    pub fn read(&mut self) -> Result<&[u8]> {
         let length = self.port.read(&mut self.read_buffer)?;
 
         Ok(&self.read_buffer[..length])
@@ -176,14 +180,14 @@ impl Serial {
     /// Read a string.
     ///
     /// At least one character must be read to return successfully. The method fails when no characters could be read in the timeout duration.
-    pub fn read_str(&mut self) -> Result<String, io::Error> {
+    pub fn read_str(&mut self) -> Result<String> {
         self.read_str_with_format(utils::TextFormat::Text)
     }
 
     /// Read a string with minimum length.
     ///
     /// At least the amount of characters given by `min_length` must be read to return successfully. The method fails when no characters could be read in the timeout duration.
-    pub fn read_min_str(&mut self, min_length: usize) -> Result<String, io::Error> {
+    pub fn read_min_str(&mut self, min_length: usize) -> Result<String> {
         self.read_min_str_with_format(min_length, utils::TextFormat::Text)
     }
 
@@ -192,12 +196,10 @@ impl Serial {
     /// The bytes received will be formatted into the given string format.
     ///
     /// At least one character must be read to return successfully. The method fails when no characters could be read in the timeout duration.
-    pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String, io::Error> {
+    pub fn read_str_with_format(&mut self, format: utils::TextFormat) -> Result<String> {
         let data = self.read()?;
 
-        let result = utils::radix_string(data, &format);
-
-        Ok(result)
+        utils::radix_string(data, &format)
     }
 
     /// Read a string as given format.
@@ -206,13 +208,13 @@ impl Serial {
     ///
     /// At least the amount of characters (not bytes) given by `min_length` must be read to return successfully.
     /// The method fails when no characters could be read in the timeout duration.
-    pub fn read_min_str_with_format(&mut self, min_length: usize, format: utils::TextFormat) -> Result<String, io::Error> {
+    pub fn read_min_str_with_format(&mut self, min_length: usize, format: utils::TextFormat) -> Result<String> {
         let mut response = String::new();
 
         loop {
             match self.read() {
                 Ok(bytes) => {
-                    let new_text = utils::radix_string(bytes, &format);
+                    let new_text = utils::radix_string(bytes, &format)?;
 
                     response.push_str(new_text.as_str());
 
@@ -220,9 +222,9 @@ impl Serial {
                         break;
                     }
                 },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                Err(e) if e.is_timeout() => {
                     if response.len() == 0 {
-                        return Err(io::Error::new(io::ErrorKind::TimedOut, "Connection timed out"));
+                        return Err(e);
                     }
 
                     break;
@@ -239,7 +241,7 @@ impl Serial {
     /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
     ///
     /// At least one byte of data must be read to return data. The method fails when no data could be read in the timeout duration.
-    pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8], io::Error> {
+    pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8]> {
         // remember old timeout
         let old_timeout = self.port.timeout();
         self.port.set_timeout(timeout)?;
@@ -256,7 +258,7 @@ impl Serial {
     /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
     ///
     /// At least one character must be read to return successfully. The method fails when no data could be read in the timeout duration.
-    pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<String, io::Error> {
+    pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<String> {
         // remember old timeout
         let old_timeout = self.port.timeout();
         self.port.set_timeout(timeout)?;
@@ -274,7 +276,7 @@ impl Serial {
     /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
     ///
     /// At least one character must be read to return successfully. The method fails when no characters could be read in the timeout duration.
-    pub fn read_str_with_format_and_timeout(&mut self, format: utils::TextFormat, timeout: Duration) -> Result<String, io::Error> {
+    pub fn read_str_with_format_and_timeout(&mut self, format: utils::TextFormat, timeout: Duration) -> Result<String> {
         // remember old timeout
         let old_timeout = self.port.timeout();
         self.port.set_timeout(timeout)?;
@@ -284,9 +286,7 @@ impl Serial {
 
         self.port.set_timeout(old_timeout)?;
 
-        let result = utils::radix_string(data, &format);
-
-        Ok(result)
+        utils::radix_string(data, &format)
     }
 
     /// Send text to the serial and check if the response matches the desired response.
@@ -299,15 +299,16 @@ impl Serial {
     ///
     /// ```
     /// use serial_unit_testing::serial::Serial;
+    /// use serial_unit_testing::error::Result;
     ///
-    /// fn main() -> Result<(), std::io::Error> {
+    /// fn main() -> Result<()> {
     ///     let mut serial = Serial::open("/dev/ttyACM0")?;
     ///     let (result, actual_response) = serial.check("hello", "world")?;
     ///
     ///     Ok(())
     /// }
     /// ```
-    pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String), io::Error> {
+    pub fn check(&mut self, text: &str, desired_response: &str) -> Result<(bool, String)> {
         let settings: CheckSettings = Default::default();
 
         self.check_with_settings(text, desired_response, &settings)
@@ -318,7 +319,7 @@ impl Serial {
     /// The check will return early if the beginning of the responses does not match.
     ///
     /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
-    pub fn check_read(&mut self, desired_response: &str) -> Result<(bool, String), io::Error> {
+    pub fn check_read(&mut self, desired_response: &str) -> Result<(bool, String)> {
         let settings: CheckSettings = Default::default();
 
         self.check_read_with_settings(desired_response, &settings)
@@ -329,7 +330,7 @@ impl Serial {
     /// The check will return early if the beginning of the responses does not match.
     ///
     /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
-    pub fn check_with_settings(&mut self, text: &str, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
+    pub fn check_with_settings(&mut self, text: &str, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String)> {
         self.write_format(text, settings.input_format)?;
 
         self.check_read_with_settings(desired_response, settings)
@@ -340,13 +341,13 @@ impl Serial {
     /// The check will return early if the beginning of the responses does not match.
     ///
     /// Returns whether the actual response matches the desired response and the actual response. Fails with an timeout error or internal serial error.
-    pub fn check_read_with_settings(&mut self, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String), io::Error> {
+    pub fn check_read_with_settings(&mut self, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String)> {
         let mut response = String::new();
 
         loop {
             match self.read() {
                 Ok(bytes) => {
-                    let mut new_text = utils::radix_string(bytes, &settings.output_format);
+                    let mut new_text = utils::radix_string(bytes, &settings.output_format)?;
 
                     if settings.ignore_case {
                         new_text = new_text.to_lowercase();
@@ -362,9 +363,9 @@ impl Serial {
                         break;
                     }
                 },
-                Err(ref e) if e.kind() == io::ErrorKind::TimedOut => {
+                Err(e) if e.is_timeout() => {
                     if response.len() == 0 {
-                        return Err(io::Error::new(io::ErrorKind::TimedOut, "Connection timed out"));
+                        return Err(e);
                     }
 
                     break;

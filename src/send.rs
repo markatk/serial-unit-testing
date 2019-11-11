@@ -72,7 +72,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     match serial.write_format(&text, input_text_format) {
         Ok(_) => (),
-        Err(ref e) if e.kind() == io::ErrorKind::TimedOut => return Err("Serial connection timed out".to_string()),
+        Err(e) if e.is_timeout() => return Err("Serial connection timed out".to_string()),
         Err(e) => return Err(format!("Error sending text {:?}", e))
     };
 
@@ -120,7 +120,7 @@ fn read_response(serial: &mut Serial, text_format: &utils::TextFormat) -> Result
 
                 io::stdout().flush().unwrap();
             },
-            Err(ref e) if e.kind() == io::ErrorKind::TimedOut => break,
+            Err(e) if e.is_timeout() => break,
             Err(e) => return Err(format!("{:?}", e))
         };
     }

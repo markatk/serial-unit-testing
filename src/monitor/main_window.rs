@@ -417,7 +417,8 @@ impl<'a> Window for MainWindow<'a> {
                 // TODO: Replace with lf if no line feed afterwards
                 data.retain(|f| *f != 13);
 
-                let text = utils::radix_string(&data, &self.output_format);
+                // TODO: Handle error
+                let text = utils::radix_string(&data, &self.output_format).unwrap();
 
                 self.output.push_str(&text);
             },
