@@ -174,8 +174,8 @@ impl<'a> MainWindow<'a> {
 
     fn get_input_render_text(&mut self) -> String {
         // do not show input when an error is detected
-        if self.error.is_some() {
-            return "Press ESC key to close".to_string();
+        if let Some(error) = &self.error {
+            return format!("Error: {}. Press ESC to close", error);
         }
 
         if self.cursor_state == false {
@@ -301,16 +301,12 @@ impl<'a> Window for MainWindow<'a> {
             let input_text = if error.is_none() {
                 [Text::raw(input)]
             } else {
-                [Text::styled(input, Style::default().modifier(Modifier::BOLD))]
+                [Text::styled(input, Style::default().modifier(Modifier::BOLD).bg(Color::Red))]
             };
 
-            let mut output_text = vec![
+            let output_text = vec![
                 Text::raw(MainWindow::get_last_lines(output, chunks[0].height as usize))
             ];
-
-            if let Some(err) = error {
-                output_text.push(Text::styled(format!("\nERROR: {}", err), Style::default().modifier(Modifier::BOLD)))
-            }
 
             // draw widgets into constraints
             Paragraph::new(output_text.iter())
