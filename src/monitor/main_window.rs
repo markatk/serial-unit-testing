@@ -35,7 +35,6 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
 use serial_unit_testing::utils::{self, TextFormat, NewlineFormat};
-use super::helpers;
 use super::help_window::HelpWindow;
 use crate::windows::{Window, Event, EventResult, WindowError};
 
@@ -106,7 +105,7 @@ impl<'a> MainWindow<'a> {
     }
 
     fn advance_cursor(&mut self) {
-        if self.cursor_position < helpers::char_count(&self.input) {
+        if self.cursor_position < utils::char_count(&self.input) {
             self.cursor_position += 1;
         }
     }
@@ -122,11 +121,11 @@ impl<'a> MainWindow<'a> {
     }
 
     fn cursor_at_end(&mut self) {
-        self.cursor_position = helpers::char_count(&self.input);
+        self.cursor_position = utils::char_count(&self.input);
     }
 
     fn remove_character(&mut self, advance_cursor: bool) {
-        let char_count = helpers::char_count(&self.input);
+        let char_count = utils::char_count(&self.input);
 
         if self.input.is_empty() || (advance_cursor && self.cursor_position == 0) || (advance_cursor == false && self.cursor_position >= char_count) {
             return;
@@ -138,7 +137,7 @@ impl<'a> MainWindow<'a> {
         };
 
         if self.cursor_position < char_count {
-            helpers::remove_char(&mut self.input, self.cursor_position - offset);
+            utils::remove_char(&mut self.input, self.cursor_position - offset);
         } else {
             self.input.pop();
         }
@@ -194,12 +193,12 @@ impl<'a> MainWindow<'a> {
         let mut input = self.input.clone();
 
         // place cursor in input text
-        if self.input.is_empty() == false && self.cursor_position < helpers::char_count(&input) {
-            helpers::remove_char(&mut input, self.cursor_position);
+        if self.input.is_empty() == false && self.cursor_position < utils::char_count(&input) {
+            utils::remove_char(&mut input, self.cursor_position);
         }
 
-        if self.cursor_position < helpers::char_count(&input) {
-            helpers::insert_char(&mut input, self.cursor_position, '█');
+        if self.cursor_position < utils::char_count(&input) {
+            utils::insert_char(&mut input, self.cursor_position, '█');
         } else {
             input.push('█');
         }
@@ -211,7 +210,7 @@ impl<'a> MainWindow<'a> {
         // send io event with text
         let mut text = self.input.clone();
 
-        helpers::add_newline(&mut text, self.input_format, self.newline_format);
+        utils::add_newline(&mut text, self.input_format, self.newline_format);
 
         if self.escape_input {
             text = utils::escape_text(text);
@@ -289,6 +288,13 @@ impl<'a> MainWindow<'a> {
     fn set_error(&mut self, message: String, recoverable: bool) {
         self.error = Some(WindowError::new(message, recoverable));
     }
+
+    fn get_bool(value: bool) -> &'static str {
+        match value {
+            true => "Yes",
+            false => "No"
+        }
+    }
 }
 
 impl<'a> Window for MainWindow<'a> {
@@ -298,10 +304,10 @@ impl<'a> Window for MainWindow<'a> {
         let title = &self.title;
         let error = &self.error;
         let input_title = format!("Input - {}/Output - {}/Newline - {}/Escape input - {} ",
-                                  helpers::get_format_name(&self.input_format),
-                                  helpers::get_format_name(&self.output_format),
-                                  helpers::get_newline_format_name(&self.newline_format),
-                                  helpers::get_bool(self.escape_input));
+                                  utils::get_format_name(&self.input_format),
+                                  utils::get_format_name(&self.output_format),
+                                  utils::get_newline_format_name(&self.newline_format),
+                                  MainWindow::get_bool(self.escape_input));
         let output = &self.output;
 
         terminal.draw(|mut f| {
@@ -333,7 +339,7 @@ impl<'a> Window for MainWindow<'a> {
                         .title(title)
                         .title_style(Style::default().modifier(Modifier::BOLD))
                         .borders(Borders::TOP))
-                .wrap(false)
+                .wrap(true)
                 .render(&mut f, chunks[0]);
 
             Paragraph::new(input_text.iter())
@@ -361,8 +367,8 @@ impl<'a> Window for MainWindow<'a> {
                     self.send_input();
                 } else {
                     // add character to input
-                    if self.cursor_position < helpers::char_count(&self.input) {
-                        helpers::insert_char(&mut self.input, self.cursor_position, c);
+                    if self.cursor_position < utils::char_count(&self.input) {
+                        utils::insert_char(&mut self.input, self.cursor_position, c);
                     } else {
                         self.input.push(c);
                     }
@@ -403,10 +409,10 @@ impl<'a> Window for MainWindow<'a> {
             KeyEvent::F(num) => {
                 match num {
                     1 => result.child = Some(HelpWindow::new()),
-                    2 => self.input_format = helpers::get_next_format(&self.input_format),
-                    3 => self.output_format = helpers::get_next_format(&self.output_format),
+                    2 => self.input_format = utils::get_next_format(&self.input_format),
+                    3 => self.output_format = utils::get_next_format(&self.output_format),
                     4 => self.clear_output(),
-                    5 => self.newline_format = helpers::get_next_newline_format(&self.newline_format),
+                    5 => self.newline_format = utils::get_next_newline_format(&self.newline_format),
                     6 => self.escape_input = !self.escape_input,
                     10 => self.should_close = true,
                     _ => ()

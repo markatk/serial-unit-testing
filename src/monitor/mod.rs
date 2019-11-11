@@ -37,7 +37,6 @@ use crate::windows::{WindowManager, Event, WindowError};
 use serial_unit_testing::serial::Serial;
 use serial_unit_testing::error::Error as SerialError;
 
-mod helpers;
 mod main_window;
 mod help_window;
 
