@@ -30,6 +30,7 @@ use clap::{ArgMatches, SubCommand, Arg, App};
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::{Serial, CheckSettings};
 use crate::commands;
+use serial_unit_testing::utils::TextFormat;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
@@ -47,16 +48,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     let input_format = commands::get_text_input_format(matches);
     let output_format = commands::get_text_output_format(matches);
+    let newline_format = commands::get_newline_format(matches);
 
-    if matches.is_present("newline") {
-        text.push_str("\n");
-    }
+    utils::add_newline(&mut text, input_format, newline_format);
 
-    if matches.is_present("carriagereturn") {
-        text.push_str("\r");
-    }
-
-    if matches.is_present("escape") {
+    if matches.is_present("escape") && input_format == TextFormat::Text {
         text = utils::escape_text(text);
     }
 
