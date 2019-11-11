@@ -49,6 +49,7 @@ pub struct MainWindow<'a> {
     input_history: Vec<String>,
     input_history_index: i32,
     input_backup: String,
+    pub escape_input: bool,
     pub newline_format: NewlineFormat,
 
     output: String,
@@ -71,6 +72,7 @@ impl<'a> MainWindow<'a> {
         MainWindow::add_control_key(&mut control_text, 3, "Output format");
         MainWindow::add_control_key(&mut control_text, 4, "Clear");
         MainWindow::add_control_key(&mut control_text, 5, "Newline");
+        MainWindow::add_control_key(&mut control_text, 6, "Input escape");
         MainWindow::add_control_key(&mut control_text, 10, "Close");
 
         Box::new(MainWindow {
@@ -82,6 +84,7 @@ impl<'a> MainWindow<'a> {
             input_history: vec!(),
             input_history_index: -1,
             input_backup: String::new(),
+            escape_input: false,
             newline_format: NewlineFormat::LineFeed,
             output: String::new(),
             output_format: TextFormat::Text,
@@ -210,6 +213,10 @@ impl<'a> MainWindow<'a> {
 
         helpers::add_newline(&mut text, self.input_format, self.newline_format);
 
+        if self.escape_input {
+            text = utils::escape_text(text);
+        }
+
         if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
             self.set_error("Unable to send event to I/O thread".to_string(), false);
 
@@ -290,10 +297,11 @@ impl<'a> Window for MainWindow<'a> {
         let control_text = &self.control_text;
         let title = &self.title;
         let error = &self.error;
-        let input_title = format!("Input - {}/Output - {}/Newline - {} ",
+        let input_title = format!("Input - {}/Output - {}/Newline - {}/Escape input - {} ",
                                   helpers::get_format_name(&self.input_format),
                                   helpers::get_format_name(&self.output_format),
-                                  helpers::get_newline_format_name(&self.newline_format));
+                                  helpers::get_newline_format_name(&self.newline_format),
+                                  helpers::get_bool(self.escape_input));
         let output = &self.output;
 
         terminal.draw(|mut f| {
@@ -325,7 +333,7 @@ impl<'a> Window for MainWindow<'a> {
                         .title(title)
                         .title_style(Style::default().modifier(Modifier::BOLD))
                         .borders(Borders::TOP))
-                .wrap(true)
+                .wrap(false)
                 .render(&mut f, chunks[0]);
 
             Paragraph::new(input_text.iter())
@@ -394,24 +402,13 @@ impl<'a> Window for MainWindow<'a> {
             KeyEvent::End => self.cursor_at_end(),
             KeyEvent::F(num) => {
                 match num {
-                    1 => {
-                        result.child = Some(HelpWindow::new());
-                    },
-                    2 => {
-                        self.input_format = helpers::get_next_format(&self.input_format);
-                    },
-                    3 => {
-                        self.output_format = helpers::get_next_format(&self.output_format);
-                    },
-                    4 => {
-                        self.clear_output();
-                    },
-                    5 => {
-                        self.newline_format = helpers::get_next_newline_format(&self.newline_format);
-                    },
-                    10 => {
-                        self.should_close = true;
-                    },
+                    1 => result.child = Some(HelpWindow::new()),
+                    2 => self.input_format = helpers::get_next_format(&self.input_format),
+                    3 => self.output_format = helpers::get_next_format(&self.output_format),
+                    4 => self.clear_output(),
+                    5 => self.newline_format = helpers::get_next_newline_format(&self.newline_format),
+                    6 => self.escape_input = !self.escape_input,
+                    10 => self.should_close = true,
                     _ => ()
                 };
             },

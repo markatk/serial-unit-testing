@@ -119,3 +119,10 @@ pub fn add_newline(text: &mut String, text_format: TextFormat, newline_format: N
         text.push_str(lf);
     }
 }
+
+pub fn get_bool(value: bool) -> &'static str {
+    match value {
+        true => "Yes",
+        false => "No"
+    }
+}
