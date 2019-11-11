@@ -26,6 +26,7 @@
  * SOFTWARE.
  */
 
+pub mod error;
 pub mod utils;
 pub mod tests;
 pub mod serial;
