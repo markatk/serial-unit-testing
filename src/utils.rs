@@ -44,6 +44,30 @@ pub enum TextFormat {
     Hex = 16
 }
 
+/// Get a text representation of the text format.
+pub fn get_format_name(format: &TextFormat) -> &str {
+    match format {
+        TextFormat::Text => "Text",
+        TextFormat::Binary => "Binary",
+        TextFormat::Octal => "Octal",
+        TextFormat::Decimal => "Decimal",
+        TextFormat::Hex => "Hexadecimal"
+    }
+}
+
+/// Get the next cyclic text format.
+///
+/// If the last value is passed into this, the first value will be returned.
+pub fn get_next_format(format: &TextFormat) -> TextFormat {
+    match format {
+        TextFormat::Text => TextFormat::Binary,
+        TextFormat::Binary => TextFormat::Octal,
+        TextFormat::Octal => TextFormat::Decimal,
+        TextFormat::Decimal => TextFormat::Hex,
+        TextFormat::Hex => TextFormat::Text
+    }
+}
+
 /// Newline format type
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NewlineFormat {
@@ -51,6 +75,28 @@ pub enum NewlineFormat {
     CarriageReturn,
     LineFeed,
     Both
+}
+
+/// Get a text representation of the newline format.
+pub fn get_newline_format_name(format: &NewlineFormat) -> &str {
+    match format {
+        NewlineFormat::None => "None",
+        NewlineFormat::CarriageReturn => "Carriage return",
+        NewlineFormat::LineFeed => "Line feed",
+        NewlineFormat::Both => "Both"
+    }
+}
+
+/// Get the next cyclic newline format.
+///
+/// If the last value is passed into this, the first value will be returned.
+pub fn get_next_newline_format(format: &NewlineFormat) -> NewlineFormat {
+    match format {
+        NewlineFormat::None => NewlineFormat::CarriageReturn,
+        NewlineFormat::CarriageReturn => NewlineFormat::LineFeed,
+        NewlineFormat::LineFeed => NewlineFormat::Both,
+        NewlineFormat::Both => NewlineFormat::None
+    }
 }
 
 /// Convert a hexadecimal string into a vector of bytes.
@@ -174,7 +220,7 @@ pub fn print_radix_string(buffer: &[u8], text_format: &TextFormat, row_entries: 
     }
 }
 
-/// Escape given string
+/// Escape given string.
 ///
 /// Characters escaped are: \r, \n, \t
 pub fn escape_text(text: String) -> String {
@@ -183,4 +229,67 @@ pub fn escape_text(text: String) -> String {
     text = text.replace("\\t", "\t");
 
     text
+}
+
+/// Get actual character count (instead of byte count).
+pub fn char_count(str: &String) -> usize {
+    str.char_indices().count()
+}
+
+/// Get the starting position of a character in a string.
+///
+/// When working with unicode characters a character can span multiple bytes and thus
+/// the offset of characters is not the same as the number of bytes.
+pub fn byte_position_of_char(str: &String, index: usize) -> Option<usize> {
+    match str.char_indices().nth(index) {
+        Some((pos, _)) => Some(pos),
+        None => None
+    }
+}
+
+/// Remove a character by given character index (instead of byte position).
+pub fn remove_char(str: &mut String, index: usize) {
+    if let Some(pos) = byte_position_of_char(str, index) {
+        str.remove(pos);
+    };
+}
+
+/// Insert a character by given character index (instead of byte position).
+pub fn insert_char(str: &mut String, index: usize, c: char) {
+    if let Some(pos) = byte_position_of_char(str, index) {
+        str.insert(pos, c);
+    }
+}
+
+/// Add newline characters to the end of the string.
+///
+/// The newline characters will be added in the given text format.
+pub fn add_newline(text: &mut String, text_format: TextFormat, newline_format: NewlineFormat) {
+    if newline_format == NewlineFormat::None {
+        return;
+    }
+
+    let cr = match text_format {
+        TextFormat::Text => "\r",
+        TextFormat::Binary => "00001101",
+        TextFormat::Octal => "015",
+        TextFormat::Decimal => "13",
+        TextFormat::Hex => "0D"
+    };
+
+    let lf = match text_format {
+        TextFormat::Text => "\n",
+        TextFormat::Binary => "00001010",
+        TextFormat::Octal => "012",
+        TextFormat::Decimal => "10",
+        TextFormat::Hex => "0A"
+    };
+
+    if newline_format == NewlineFormat::CarriageReturn || newline_format == NewlineFormat::Both {
+        text.push_str(cr);
+    }
+
+    if newline_format == NewlineFormat::LineFeed || newline_format == NewlineFormat::Both {
+        text.push_str(lf);
+    }
 }
