@@ -18,7 +18,7 @@ cargo install serial-unit-testing
 
 If you don't have rust installed:
 
-**TODO**
+You can download the compiled binaries from the [releases](https://github.com/markatk/serial-unit-testing/releases). Downloads are available for Windows, macOS and Linux.
 
 # Application
 
