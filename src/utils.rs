@@ -27,7 +27,7 @@
  */
 
 use std::str;
-use std::num::ParseIntError;
+use super::error::{Error, Result};
 
 /// Text format type for radix string conversion.
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -56,7 +56,7 @@ pub enum NewlineFormat {
 /// Convert a hexadecimal string into a vector of bytes.
 ///
 /// Leading 0x and whitespaces will be ignored.
-pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, ParseIntError> {
+pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>> {
     let mut text = original_text.replace("0x", "");
     text = text.replace(" ", "");
 
@@ -66,7 +66,7 @@ pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>, ParseIntErr
 /// Convert a binary string into a vector of bytes.
 ///
 /// Leading 0b and whitespaces will be ignored.
-pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>, ParseIntError> {
+pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>> {
     let mut text = original_text.replace("0b", "");
     text = text.replace(" ", "");
 
@@ -76,7 +76,7 @@ pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>, ParseInt
 /// Convert a octal string into a vector of bytes
 ///
 /// Leading 0 and whitespaces will be ignored.
-pub fn bytes_from_octal_string(original_text: &str) -> Result<Vec<u8>, ParseIntError> {
+pub fn bytes_from_octal_string(original_text: &str) -> Result<Vec<u8>> {
     let mut text = original_text.replace(" ", "");
     if text.starts_with('0') {
         text.remove(0);
@@ -88,7 +88,7 @@ pub fn bytes_from_octal_string(original_text: &str) -> Result<Vec<u8>, ParseIntE
 /// Convert a decimal string into a vector of bytes
 ///
 /// Whitespaces will be ignored
-pub fn bytes_from_decimal_string(original_text: &str) -> Result<Vec<u8>, ParseIntError> {
+pub fn bytes_from_decimal_string(original_text: &str) -> Result<Vec<u8>> {
     let text = original_text.replace(" ", "");
 
     bytes_from_radix_string(&text, 10)
@@ -97,7 +97,7 @@ pub fn bytes_from_decimal_string(original_text: &str) -> Result<Vec<u8>, ParseIn
 /// Convert a radix string into a vector of bytes.
 ///
 /// Leading and trailing whitespaces will result in an error. Conversion happens by 2 characters per byte.
-pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, ParseIntError> {
+pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>> {
     let mut bytes: Vec<u8> = Vec::new();
 
     let mut chars = text.chars().peekable();
@@ -107,7 +107,7 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, ParseI
 
         match u8::from_str_radix(&chunk, radix) {
             Ok(value) => bytes.push(value),
-            Err(e) => return Err(e)
+            Err(e) => return Err(Error::from(e))
         };
     }
 
@@ -115,12 +115,11 @@ pub fn bytes_from_radix_string(text: &str, radix: u32) -> Result<Vec<u8>, ParseI
 }
 
 /// Convert a vector of bytes into a radix string with given text format.
-pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> String {
+pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> Result<String> {
     if *text_format == TextFormat::Text {
-        // TODO: Handle error state
         return match str::from_utf8(buffer) {
-            Ok(text) => text.to_string(),
-            Err(_) => String::new()
+            Ok(text) => Ok(text.to_string()),
+            Err(e) => Err(Error::from(e))
         };
     }
 
@@ -136,7 +135,7 @@ pub fn radix_string(buffer: &[u8], text_format: &TextFormat) -> String {
         };
     }
 
-    text
+    Ok(text)
 }
 
 /// Print a vector of bytes in given format.

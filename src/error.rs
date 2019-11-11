@@ -32,21 +32,33 @@ use std::io;
 use std::num;
 use std::str;
 use std::convert::From;
+use serialport;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
     Io(io::Error),
+    Serial(serialport::Error),
     Num(num::ParseIntError),
     Utf8(str::Utf8Error),
     Other
+}
+
+impl Error {
+    pub fn is_timeout(&self) -> bool {
+        match *self {
+            Error::Io(ref e) if e.kind() == io::ErrorKind::TimedOut => true,
+            _ => false
+        }
+    }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::Io(ref cause) => write!(f, "I/O Error: {}", cause),
+            Error::Serial(ref cause) => write!(f, "Serial Error: {}", cause),
             Error::Num(ref cause) => write!(f, "Byte Parse Error: {}", cause),
             Error::Utf8(ref cause) => write!(f, "String Parse Error: {}", cause),
             Error::Other => write!(f, "Unknown error")
@@ -58,6 +70,7 @@ impl error::Error for Error {
     fn description(&self) -> &str {
         match *self {
             Error::Io(ref cause) => cause.description(),
+            Error::Serial(ref cause) => cause.description(),
             Error::Num(ref cause) => cause.description(),
             Error::Utf8(ref cause) => cause.description(),
             Error::Other => "Unknown error"
@@ -67,6 +80,7 @@ impl error::Error for Error {
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::Io(ref cause) => Some(cause),
+            Error::Serial(ref cause) => Some(cause),
             Error::Num(ref cause) => Some(cause),
             Error::Utf8(ref cause) => Some(cause),
             Error::Other => None
@@ -77,6 +91,15 @@ impl error::Error for Error {
 impl From<io::Error> for Error {
     fn from(cause: io::Error) -> Error {
         Error::Io(cause)
+    }
+}
+
+impl From<serialport::Error> for Error {
+    fn from(cause: serialport::Error) -> Error {
+        match cause.kind() {
+            serialport::ErrorKind::Io(_) => Error::Io(io::Error::from(cause)),
+            _ => Error::Serial(cause)
+        }
     }
 }
 

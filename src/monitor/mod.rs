@@ -26,10 +26,10 @@
  * SOFTWARE.
  */
 
-use std::io;
 use std::thread;
 use std::sync::mpsc;
 use std::time::Duration;
+use std::error::Error;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::KeyEvent;
 use crate::commands;
@@ -65,7 +65,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
         Ok(serial) => serial,
-        Err(e) => return Err(format!("Unable to connect to port: {:?}", e.into_inner().unwrap().description()))
+        Err(e) => return Err(format!("Unable to connect to port: {:?}", e.description()))
     };
 
     // start thread for receiving from and sending to serial port
@@ -80,7 +80,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
                             return;
                         }
                     },
-                    Err(ref e) if e.kind() == io::ErrorKind::TimedOut => (),
+                    Err(e) if e.is_timeout() => (),
                     Err(_) => {
                         show_error(&ui_tx, "Unable to read from serial".to_string());
 
