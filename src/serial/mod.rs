@@ -110,10 +110,11 @@ impl Serial {
     /// Write text to the serial port.
     ///
     /// This is the same as using `Serial::write_format` with `TextFormat::Text` as format specifier.
-    pub fn write(&mut self, text: &str) -> Result<()> {
-        self.port.write(text.as_bytes())?;
-
-        Ok(())
+    pub fn write(&mut self, text: &str) -> Result<usize> {
+        match self.port.write(text.as_bytes()) {
+            Ok(count) => Ok(count),
+            Err(e) => Err(Error::from(e))
+        }
     }
 
     /// Write data in the given format.
@@ -173,7 +174,10 @@ impl Serial {
     /// }
     /// ```
     pub fn read(&mut self) -> Result<&[u8]> {
-        let length = self.port.read(&mut self.read_buffer)?;
+        let length = match self.port.read(&mut self.read_buffer) {
+            Ok(length) => length,
+            Err(e) => return Err(Error::from(e))
+        };
 
         Ok(&self.read_buffer[..length])
     }
@@ -245,11 +249,15 @@ impl Serial {
     pub fn read_with_timeout(&mut self, timeout: Duration) -> Result<&[u8]> {
         // remember old timeout
         let old_timeout = self.port.timeout();
-        self.port.set_timeout(timeout)?;
+        if let Err(e) = self.port.set_timeout(timeout) {
+            return Err(Error::from(e));
+        }
 
         let length = self.port.read(&mut self.read_buffer)?;
 
-        self.port.set_timeout(old_timeout)?;
+        if let Err(e) = self.port.set_timeout(old_timeout) {
+            return Err(Error::from(e));
+        }
 
         Ok(&self.read_buffer[..length])
     }
@@ -262,13 +270,20 @@ impl Serial {
     pub fn read_str_with_timeout(&mut self, timeout: Duration) -> Result<String> {
         // remember old timeout
         let old_timeout = self.port.timeout();
-        self.port.set_timeout(timeout)?;
+        if let Err(e) = self.port.set_timeout(timeout) {
+            return Err(Error::from(e));
+        }
 
         let length = self.port.read(&mut self.read_buffer)?;
 
-        self.port.set_timeout(old_timeout)?;
+        if let Err(e) = self.port.set_timeout(old_timeout) {
+            return Err(Error::from(e));
+        }
 
-        Ok(str::from_utf8(&self.read_buffer[..length]).unwrap().to_string())
+        match str::from_utf8(&self.read_buffer[..length]) {
+            Ok(text) => Ok(text.to_string()),
+            Err(e) => Err(Error::from(e))
+        }
     }
 
     /// Read a string as given format in given timeout duration.
@@ -280,12 +295,16 @@ impl Serial {
     pub fn read_str_with_format_and_timeout(&mut self, format: utils::TextFormat, timeout: Duration) -> Result<String> {
         // remember old timeout
         let old_timeout = self.port.timeout();
-        self.port.set_timeout(timeout)?;
+        if let Err(e) = self.port.set_timeout(timeout) {
+            return Err(Error::from(e));
+        }
 
         let length = self.port.read(&mut self.read_buffer)?;
         let data = &self.read_buffer[..length];
 
-        self.port.set_timeout(old_timeout)?;
+        if let Err(e) = self.port.set_timeout(old_timeout) {
+            return Err(Error::from(e));
+        }
 
         utils::radix_string(data, &format)
     }
