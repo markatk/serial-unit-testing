@@ -135,7 +135,7 @@ impl Serial {
     /// }
     ///
     /// ```
-    pub fn write_format(&mut self, text: &str, text_format: utils::TextFormat) -> Result<()> {
+    pub fn write_format(&mut self, text: &str, text_format: utils::TextFormat) -> Result<usize> {
         let bytes = match text_format {
             utils::TextFormat::Binary => utils::bytes_from_binary_string(text)?,
             utils::TextFormat::Octal => utils::bytes_from_octal_string(text)?,
@@ -149,9 +149,10 @@ impl Serial {
             }
         };
 
-        self.port.write(bytes.as_slice())?;
-
-        Ok(())
+        match self.port.write(bytes.as_slice()) {
+            Ok(count) => Ok(count),
+            Err(e) => Err(Error::from(e))
+        }
     }
 
     /// Read any amount of data.

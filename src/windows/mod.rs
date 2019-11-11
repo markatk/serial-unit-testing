@@ -32,11 +32,26 @@ mod window_manager;
 pub use window::Window;
 pub use window_manager::WindowManager;
 
+#[derive(Debug, Clone)]
+pub struct WindowError {
+    pub description: String,
+    pub recoverable: bool
+}
+
+impl WindowError {
+    pub fn new(description: String, recoverable: bool) -> WindowError {
+        WindowError {
+            description,
+            recoverable
+        }
+    }
+}
+
 pub enum Event<I> {
     Input(I),
     Tick,
     Output(Vec<u8>),
-    Error(String)
+    Error(WindowError)
 }
 
 pub struct EventResult {
