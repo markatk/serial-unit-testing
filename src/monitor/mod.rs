@@ -62,6 +62,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     main_window.output_format = commands::get_text_output_format(matches);
     main_window.newline_format = commands::get_newline_format(matches);
     main_window.title = format!("{}, {} ", port_name, settings.to_short_string());
+    main_window.escape_input = matches.is_present("escape");
 
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, &settings) {
