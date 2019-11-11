@@ -26,9 +26,14 @@ addons:
     packages:
       - libudev-dev
 
+before_script:
+  - cargo install --force cargo-audit
+  - cargo generate-lockfile
+
 script:
   - cargo build --verbose --release --all
   - cargo test --verbose --lib
+  - cargo audit
 
 before_deploy:
   - if [[ -f target/release/sut ]]; then mv target/release/sut "target/release/watchdog-$TRAVIS_TAG-$TRAVIS_OS_NAME"; fi
