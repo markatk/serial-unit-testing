@@ -31,6 +31,7 @@ use clap::{ArgMatches, SubCommand, Arg, App};
 use serial_unit_testing::utils;
 use serial_unit_testing::serial::Serial;
 use crate::commands;
+use serial_unit_testing::utils::TextFormat;
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let (settings, port_name) = commands::get_serial_settings(matches).unwrap();
@@ -45,28 +46,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
 
     let input_text_format = commands::get_text_input_format(matches);
     let output_text_format = commands::get_text_output_format(matches);
+    let newline_format = commands::get_newline_format(matches);
 
-    if matches.is_present("newline") {
-        match input_text_format {
-            utils::TextFormat::Binary => text.push_str("00001010"),
-            utils::TextFormat::Octal => text.push_str("012"),
-            utils::TextFormat::Decimal => text.push_str("010"),
-            utils::TextFormat::Hex => text.push_str("0A"),
-            _ => text.push_str("\n")
-        }
-    }
+    utils::add_newline(&mut text, input_text_format, newline_format);
 
-    if matches.is_present("carriagereturn") {
-        match input_text_format {
-            utils::TextFormat::Binary => text.push_str("00001101"),
-            utils::TextFormat::Octal => text.push_str("015"),
-            utils::TextFormat::Decimal => text.push_str("013"),
-            utils::TextFormat::Hex => text.push_str("0D"),
-            _ => text.push_str("\r")
-        }
-    }
-
-    if matches.is_present("escape") {
+    if matches.is_present("escape") && input_text_format == TextFormat::Text {
         text = utils::escape_text(text);
     }
 
