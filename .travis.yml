@@ -52,5 +52,5 @@ deploy:
     on:
       tags: true
       condition: "$TRAVIS_RUST_VERSION = stable"
-    token:
+    api_key:
       secure: mL4TUsta5kSZZ/rLPZdRaSMwRlyhQA4Om4k9Kfms5omBtZMhlG3s29Jh1V+1uA4X5ueLQVwcjt8YyZ5b/qLFld57N0E11mpRnj/K0uzSiUkAiv+kUTTOn6Iq2/2J3mxyS4YDJlk/jZbzak1kLZfWEmzFmXDWjCVAgQBh5wGUEJc26xx3nLq6I3YeLTA9G/IoEfZVvUHb0WdZgHKPwXaJ1nm3dDtoTwGs5iurI5bknYi9BCq/gFJ7o8Grjd2c2TU74l+z5yPcZl9I3JPTbTebTyiQYo+2AXLzYj7x0UHUYmDR89ojPplACbnJC65NIbw96sIIPQtNpcxjwFHeQ1X24gulKiGKGl+rni8fvjRcEZIF9cvPpIMVtYSUSE1s8wMobs1uf3D85g9PjY6j7cd3aHEhZSbygZHzixVDgSrCNDBPUyR5Nhb9ztl5bJo+VvnCNmkRTbEXtg+si5En1h6rFsWCltxoQrZ+bJ11/d11MD01su6RQ0Jhrjr1pWUl4yKOAhZj9T6hh8s/SWaRNq5jyCwmucOlEqGnNo1dxuwSYjGtcr4xHpvjnBMTLGftkXlFm6jlH/U09nuk9vtlG2uFKyNkuSonL4qBsx13O3FSD4ZdzQIFDdzBCwT8b6sDxXnicN4of7AVxeA59le2nEOhndOqf7T6wM4tOcQpXX1RmO4=
