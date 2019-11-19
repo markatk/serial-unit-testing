@@ -34,7 +34,9 @@ use crate::utils;
 use crate::error::{Result, Error};
 
 pub mod settings;
-pub mod loopback;
+mod loopback;
+
+use loopback::Loopback;
 
 /// A serial port connection.
 ///
@@ -100,6 +102,15 @@ impl Serial {
     ///
     /// ```
     pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial> {
+        if port_name == "loopback" {
+            let port = Loopback::open(&settings.to_serial_port_settings());
+
+            return Ok(Serial {
+                port,
+                read_buffer: vec![0; 1000]
+            });
+        }
+
         match serialport::open_with_settings(&port_name, &settings.to_serial_port_settings()) {
             Ok(port) => {
                 Ok(Serial { port, read_buffer: vec![0; 1000] })

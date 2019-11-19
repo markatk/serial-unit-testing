@@ -28,16 +28,17 @@
 
 use std::time::Duration;
 use std::io;
+use std::thread;
 use serialport::{self, SerialPort, StopBits, ClearBuffer, FlowControl, DataBits, Error, SerialPortSettings, Parity};
 
-struct Loopback {
+pub struct Loopback {
     settings: SerialPortSettings,
     buffer: Vec<u8>
 }
 
 impl Loopback {
-    pub fn open(settings: &SerialPortSettings) -> serialport::Result<Loopback> {
-        Ok(Loopback {
+    pub fn open(settings: &SerialPortSettings) -> Box<Loopback> {
+        Box::new(Loopback {
             settings: settings.clone(),
             buffer: vec!()
         })
@@ -187,6 +188,12 @@ impl io::Write for Loopback {
 
 impl io::Read for Loopback {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
+        if self.buffer.is_empty() {
+            thread::sleep(self.settings.timeout);
+
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "Timed out"));
+        }
+
         let len = self.buffer.len();
 
         for x in 0..len {
