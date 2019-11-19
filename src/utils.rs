@@ -227,6 +227,7 @@ pub fn escape_text(text: String) -> String {
     let mut text = text.replace("\\r", "\r");
     text = text.replace("\\n", "\n");
     text = text.replace("\\t", "\t");
+    text = text.replace("\\\"", "\"");
 
     text
 }
