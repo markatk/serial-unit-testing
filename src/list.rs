@@ -35,11 +35,18 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let ports = serialport::available_ports().unwrap();
 
     for port in ports {
-        println!("{}", port.port_name);
-
         if verbose == false {
+            match port.port_type {
+                SerialPortType::UsbPort(ref info) if info.product.is_some() => {
+                    println!("{} ({})", port.port_name, info.product.as_ref().unwrap())
+                },
+                _ => println!("{}", port.port_name)
+            }
+
             continue;
         }
+
+        println!("{}", port.port_name);
         
         match port.port_type {
             SerialPortType::UsbPort(info) => {
@@ -61,7 +68,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             }
         }
 
-        println!("");
+        println!();
     }
 
     Ok(())
