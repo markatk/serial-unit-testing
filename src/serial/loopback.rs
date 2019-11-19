@@ -31,13 +31,15 @@ use std::io;
 use serialport::{self, SerialPort, StopBits, ClearBuffer, FlowControl, DataBits, Error, SerialPortSettings, Parity};
 
 struct Loopback {
-    settings: SerialPortSettings
+    settings: SerialPortSettings,
+    buffer: Vec<u8>
 }
 
 impl Loopback {
     pub fn open(settings: &SerialPortSettings) -> serialport::Result<Loopback> {
         Ok(Loopback {
-            settings: settings.clone()
+            settings: settings.clone(),
+            buffer: vec!()
         })
     }
 }
@@ -117,59 +119,82 @@ impl SerialPort for Loopback {
         Ok(())
     }
 
-    fn write_request_to_send(&mut self, level: bool) -> Result<(), Error> {
-        unimplemented!()
+    fn write_request_to_send(&mut self, _level: bool) -> Result<(), Error> {
+        // do nothing
+
+        Ok(())
     }
 
-    fn write_data_terminal_ready(&mut self, level: bool) -> Result<(), Error> {
-        unimplemented!()
+    fn write_data_terminal_ready(&mut self, _level: bool) -> Result<(), Error> {
+        // do nothing
+
+        Ok(())
     }
 
     fn read_clear_to_send(&mut self) -> Result<bool, Error> {
-        unimplemented!()
+        Ok(true)
     }
 
     fn read_data_set_ready(&mut self) -> Result<bool, Error> {
-        unimplemented!()
+        Ok(true)
     }
 
     fn read_ring_indicator(&mut self) -> Result<bool, Error> {
-        unimplemented!()
+        Ok(false)
     }
 
     fn read_carrier_detect(&mut self) -> Result<bool, Error> {
-        unimplemented!()
+        Ok(false)
     }
 
     fn bytes_to_read(&self) -> Result<u32, Error> {
-        unimplemented!()
+        Ok(self.buffer.len() as u32)
     }
 
     fn bytes_to_write(&self) -> Result<u32, Error> {
-        unimplemented!()
+        // always return 0 because of loopback
+
+        Ok(0)
     }
 
-    fn clear(&self, buffer_to_clear: ClearBuffer) -> Result<(), Error> {
-        unimplemented!()
+    fn clear(&self, _buffer_to_clear: ClearBuffer) -> Result<(), Error> {
+        // do nothing (as buffer cannot be cleared without self being mutable)
+
+        Ok(())
     }
 
     fn try_clone(&self) -> Result<Box<dyn SerialPort>, Error> {
-        unimplemented!()
+        Ok(Box::new(Loopback {
+            settings: self.settings.clone(),
+            buffer: self.buffer.clone()
+        }))
     }
 }
 
 impl io::Write for Loopback {
     fn write(&mut self, buf: &[u8]) -> Result<usize, io::Error> {
-        unimplemented!()
+        self.buffer.extend_from_slice(buf);
+
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> Result<(), io::Error> {
-        unimplemented!()
+        // do nothing
+
+        Ok(())
     }
 }
 
 impl io::Read for Loopback {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, io::Error> {
-        unimplemented!()
+        let len = self.buffer.len();
+
+        for x in 0..len {
+            buf[x] = self.buffer[x];
+        }
+
+        self.buffer.clear();
+
+        Ok(len)
     }
 }
