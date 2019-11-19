@@ -31,13 +31,14 @@ use serialport::{self, SerialPortType};
 
 pub fn run(matches: &ArgMatches) -> Result<(), String> {
     let verbose = matches.is_present("verbose");
+    let raw = matches.is_present("raw");
 
     let ports = serialport::available_ports().unwrap();
 
     for port in ports {
         if verbose == false {
             match port.port_type {
-                SerialPortType::UsbPort(ref info) if info.product.is_some() => {
+                SerialPortType::UsbPort(ref info) if info.product.is_some() && raw == false => {
                     println!("{} ({})", port.port_name, info.product.as_ref().unwrap())
                 },
                 _ => println!("{}", port.port_name)
@@ -81,4 +82,8 @@ pub fn command<'a>() -> App<'a, 'a> {
             .long("verbose")
             .short("v")
             .help("Print detailed information about each serial port"))
+        .arg(Arg::with_name("raw")
+            .long("raw")
+            .short("r")
+            .help("Print raw information (without product name after port)"))
 }
