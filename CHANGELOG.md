@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.1] - 19.11.2019
+
+### Added
+- Add usb product name to list (can be disabled with raw option)
 
 ### Changes
 - Improved script language documentation
