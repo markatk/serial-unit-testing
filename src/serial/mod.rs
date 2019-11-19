@@ -34,6 +34,7 @@ use crate::utils;
 use crate::error::{Result, Error};
 
 pub mod settings;
+pub mod loopback;
 
 /// A serial port connection.
 ///
