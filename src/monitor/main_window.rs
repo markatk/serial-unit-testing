@@ -329,7 +329,7 @@ impl<'a> Window for MainWindow<'a> {
             };
 
             let output_text = vec![
-                Text::raw(MainWindow::get_last_lines(output, chunks[0].height as usize))
+                Text::raw(MainWindow::get_last_lines(output, (chunks[0].height - 1) as usize))
             ];
 
             // draw widgets into constraints
