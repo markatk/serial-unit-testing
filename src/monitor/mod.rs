@@ -37,6 +37,7 @@ use crate::windows::{WindowManager, Event, WindowError};
 use serial_unit_testing::serial::Serial;
 use serial_unit_testing::error::Error as SerialError;
 
+mod text_storage;
 mod main_window;
 mod help_window;
 
@@ -57,11 +58,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // create main window
     let mut main_window = MainWindow::new(io_tx);
 
-    main_window.input_format = commands::get_text_input_format(matches);
-    main_window.output_format = commands::get_text_output_format(matches);
-    main_window.newline_format = commands::get_newline_format(matches);
+    main_window.text_storage.input_format = commands::get_text_input_format(matches);
+    main_window.text_storage.output_format = commands::get_text_output_format(matches);
+    main_window.text_storage.newline_format = commands::get_newline_format(matches);
+    main_window.text_storage.escape_input = matches.is_present("escape");
     main_window.title = format!("{}, {} ", port_name, settings.to_short_string());
-    main_window.escape_input = matches.is_present("escape");
 
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, &settings) {

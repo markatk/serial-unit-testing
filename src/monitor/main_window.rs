@@ -34,32 +34,19 @@ use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::KeyEvent;
-use serial_unit_testing::utils::{self, TextFormat, NewlineFormat};
+use serial_unit_testing::utils::{self, TextFormat};
 use super::help_window::HelpWindow;
+use super::text_storage::TextStorage;
 use crate::windows::{Window, Event, EventResult, WindowError};
 
 pub struct MainWindow<'a> {
     should_close: bool,
     pub title: String,
     control_text: Vec<Text<'a>>,
-
-    input: String,
-    pub input_format: TextFormat,
-    input_history: Vec<String>,
-    input_history_index: i32,
-    input_backup: String,
-    pub escape_input: bool,
-    pub newline_format: NewlineFormat,
-
-    output: String,
-    pub output_format: TextFormat,
-
+    pub text_storage: TextStorage,
     error: Option<WindowError>,
-
-    cursor_position: usize,
-    cursor_state: bool,
-
-    io_tx: Sender<(String, TextFormat)>
+    io_tx: Sender<(String, TextFormat)>,
+    cursor_state: bool
 }
 
 impl<'a> MainWindow<'a> {
@@ -78,73 +65,11 @@ impl<'a> MainWindow<'a> {
             should_close: false,
             title: String::new(),
             control_text,
-            input: String::new(),
-            input_format: TextFormat::Text,
-            input_history: vec!(),
-            input_history_index: -1,
-            input_backup: String::new(),
-            escape_input: false,
-            newline_format: NewlineFormat::LineFeed,
-            output: String::new(),
-            output_format: TextFormat::Text,
+            text_storage: Default::default(),
             error: None,
-            cursor_position: 1,
-            cursor_state: false,
-            io_tx
+            io_tx,
+            cursor_state: false
         })
-    }
-
-    fn reset_input(&mut self) {
-        self.input.clear();
-
-        self.cursor_position = 1;
-    }
-
-    fn clear_output(&mut self) {
-        self.output.clear();
-    }
-
-    fn advance_cursor(&mut self) {
-        if self.cursor_position < utils::char_count(&self.input) {
-            self.cursor_position += 1;
-        }
-    }
-
-    fn retreat_cursor(&mut self) {
-        if self.cursor_position > 0 {
-            self.cursor_position -= 1;
-        }
-    }
-
-    fn cursor_at_beginning(&mut self) {
-        self.cursor_position = 0;
-    }
-
-    fn cursor_at_end(&mut self) {
-        self.cursor_position = utils::char_count(&self.input);
-    }
-
-    fn remove_character(&mut self, advance_cursor: bool) {
-        let char_count = utils::char_count(&self.input);
-
-        if self.input.is_empty() || (advance_cursor && self.cursor_position == 0) || (advance_cursor == false && self.cursor_position >= char_count) {
-            return;
-        }
-
-        let offset = match advance_cursor {
-            true => 1,
-            false => 0
-        };
-
-        if self.cursor_position < char_count {
-            utils::remove_char(&mut self.input, self.cursor_position - offset);
-        } else {
-            self.input.pop();
-        }
-
-        if advance_cursor {
-            self.retreat_cursor();
-        }
     }
 
     fn add_control_text(entries: &mut Vec<Text<'a>>, text: String) {
@@ -160,20 +85,6 @@ impl<'a> MainWindow<'a> {
         MainWindow::add_control_text_with_color(entries, format!("{} ", name), Color::Cyan);
     }
 
-    fn get_last_lines(text: &str, n: usize) -> String {
-        text
-            .lines()
-            .rev()
-            .take(n)
-            .fold("".to_string(), |current, line| {
-                let mut result = line.to_string();
-                result.push('\n');
-                result.push_str(&current);
-
-                result
-            })
-    }
-
     fn get_input_render_text(&mut self) -> String {
         // do not show input when an error is detected
         if let Some(error) = &self.error {
@@ -187,18 +98,19 @@ impl<'a> MainWindow<'a> {
         }
 
         if self.cursor_state == false {
-            return self.input.clone();
+            return self.text_storage.get_input();
         }
 
-        let mut input = self.input.clone();
+        let mut input = self.text_storage.get_input();
+        let cursor_position = self.text_storage.get_cursor_position();
 
         // place cursor in input text
-        if self.input.is_empty() == false && self.cursor_position < utils::char_count(&input) {
-            utils::remove_char(&mut input, self.cursor_position);
+        if input.is_empty() == false && cursor_position < utils::char_count(&input) {
+            utils::remove_char(&mut input, cursor_position);
         }
 
-        if self.cursor_position < utils::char_count(&input) {
-            utils::insert_char(&mut input, self.cursor_position, '█');
+        if cursor_position < utils::char_count(&input) {
+            utils::insert_char(&mut input, cursor_position, '█');
         } else {
             input.push('█');
         }
@@ -208,81 +120,25 @@ impl<'a> MainWindow<'a> {
 
     fn send_input(&mut self) {
         // send io event with text
-        let mut text = self.input.clone();
+        let mut text = self.text_storage.get_input();
 
-        utils::add_newline(&mut text, self.input_format, self.newline_format);
+        utils::add_newline(&mut text, self.text_storage.input_format, self.text_storage.newline_format);
 
-        if self.escape_input {
+        if self.text_storage.escape_input {
             text = utils::escape_text(text);
         }
 
-        if let Err(_err) = self.io_tx.send((text, self.input_format.clone())) {
+        if let Err(_err) = self.io_tx.send((text, self.text_storage.input_format)) {
             self.set_error("Unable to send event to I/O thread".to_string(), false);
 
             // TODO: early return?
         }
 
         // add history entry if input has changed
-        if self.input.is_empty() == false {
-            self.add_history_entry(self.input.clone());
+        if self.text_storage.is_input_empty() == false {
+            self.text_storage.add_history_entry();
         }
-
-        // reset input and history
-        self.input_history_index = -1;
-        self.input_backup.clear();
-
-        self.reset_input();
-    }
-
-    fn add_history_entry(&mut self, text: String) {
-        if let Some(last_input) = self.input_history.first() {
-            if *last_input != self.input {
-                self.input_history.insert(0, text);
-            }
-        } else {
-            self.input_history.insert(0, text);
-        }
-    }
-
-    fn advance_history(&mut self) {
-        if self.input_history.is_empty() {
-            return;
-        }
-
-        if self.input_history_index == -1 {
-            self.input_backup = self.input.clone();
-        }
-
-        self.input_history_index += 1;
-        let max_index = self.input_history.len() as i32;
-
-        if self.input_history_index >= max_index {
-            self.input_history_index = max_index - 1;
-        }
-
-        self.input = self.input_history[self.input_history_index as usize].clone();
-
-        self.cursor_at_end();
-    }
-
-    fn retreat_history(&mut self) {
-        if self.input_history_index == -1 {
-            return;
-        }
-
-        self.input_history_index -= 1;
-        if self.input_history_index < 0 {
-            self.input_history_index = -1;
-        }
-
-        // update input with history or input backup
-        if self.input_history_index >= 0 {
-            self.input = self.input_history[self.input_history_index as usize].clone();
-        } else {
-            self.input = self.input_backup.clone();
-        }
-
-        self.cursor_at_end();
+        self.text_storage.reset_input();
     }
 
     fn set_error(&mut self, message: String, recoverable: bool) {
@@ -304,11 +160,11 @@ impl<'a> Window for MainWindow<'a> {
         let title = &self.title;
         let error = &self.error;
         let input_title = format!("Input - {}/Output - {}/Newline - {}/Escape input - {} ",
-                                  utils::get_format_name(&self.input_format),
-                                  utils::get_format_name(&self.output_format),
-                                  utils::get_newline_format_name(&self.newline_format),
-                                  MainWindow::get_bool(self.escape_input));
-        let output = &self.output;
+                                  utils::get_format_name(&self.text_storage.input_format),
+                                  utils::get_format_name(&self.text_storage.output_format),
+                                  utils::get_newline_format_name(&self.text_storage.newline_format),
+                                  MainWindow::get_bool(self.text_storage.escape_input));
+        let output = &self.text_storage.get_output();
 
         terminal.draw(|mut f| {
             // create constraints
@@ -332,7 +188,7 @@ impl<'a> Window for MainWindow<'a> {
             let visible_lines = chunks[0].height as usize - 1;
 
             let output_text = vec![
-                Text::raw(MainWindow::get_last_lines(output, visible_lines))
+                Text::raw(TextStorage::get_last_lines(output, visible_lines))
             ];
 
             // get line counter display
@@ -380,37 +236,30 @@ impl<'a> Window for MainWindow<'a> {
                 if c == '\n' {
                     self.send_input();
                 } else {
-                    // add character to input
-                    if self.cursor_position < utils::char_count(&self.input) {
-                        utils::insert_char(&mut self.input, self.cursor_position, c);
-                    } else {
-                        self.input.push(c);
-                    }
-
-                    self.advance_cursor();
+                    self.text_storage.input_add(c);
                 }
             },
             KeyEvent::Ctrl(c) => {
                 match c {
-                    'a' => self.cursor_at_beginning(),
-                    'd' => self.remove_character(false),
-                    'e' => self.cursor_at_end(),
-                    'h' => self.remove_character(true),
-                    'l' => self.clear_output(),
+                    'a' => self.text_storage.cursor_at_beginning(),
+                    'd' => self.text_storage.remove_character(false),
+                    'e' => self.text_storage.cursor_at_end(),
+                    'h' => self.text_storage.remove_character(true),
+                    'l' => self.text_storage.reset_output(),
                     _ => ()
                 }
             },
-            KeyEvent::Backspace => self.remove_character(true),
-            KeyEvent::Delete => self.remove_character(false),
-            KeyEvent::Left => self.retreat_cursor(),
-            KeyEvent::Right => self.advance_cursor(),
-            KeyEvent::Up => self.advance_history(),
-            KeyEvent::Down => self.retreat_history(),
+            KeyEvent::Backspace => self.text_storage.remove_character(true),
+            KeyEvent::Delete => self.text_storage.remove_character(false),
+            KeyEvent::Left => self.text_storage.retreat_cursor(),
+            KeyEvent::Right => self.text_storage.advance_cursor(),
+            KeyEvent::Up => self.text_storage.advance_history(),
+            KeyEvent::Down => self.text_storage.retreat_history(),
             KeyEvent::Esc => {
                 if let Some(ref err) = self.error {
                     if err.recoverable {
                         self.error = None;
-                        self.advance_history();
+                        self.text_storage.advance_history();
 
                         return result;
                     }
@@ -418,16 +267,16 @@ impl<'a> Window for MainWindow<'a> {
 
                 self.should_close = true
             },
-            KeyEvent::Home => self.cursor_at_beginning(),
-            KeyEvent::End => self.cursor_at_end(),
+            KeyEvent::Home => self.text_storage.cursor_at_beginning(),
+            KeyEvent::End => self.text_storage.cursor_at_end(),
             KeyEvent::F(num) => {
                 match num {
                     1 => result.child = Some(HelpWindow::new()),
-                    2 => self.input_format = utils::get_next_format(&self.input_format),
-                    3 => self.output_format = utils::get_next_format(&self.output_format),
-                    4 => self.clear_output(),
-                    5 => self.newline_format = utils::get_next_newline_format(&self.newline_format),
-                    6 => self.escape_input = !self.escape_input,
+                    2 => self.text_storage.input_format = utils::get_next_format(&self.text_storage.input_format),
+                    3 => self.text_storage.output_format = utils::get_next_format(&self.text_storage.output_format),
+                    4 => self.text_storage.reset_output(),
+                    5 => self.text_storage.newline_format = utils::get_next_newline_format(&self.text_storage.newline_format),
+                    6 => self.text_storage.escape_input = !self.text_storage.escape_input,
                     10 => self.should_close = true,
                     _ => ()
                 };
@@ -452,9 +301,9 @@ impl<'a> Window for MainWindow<'a> {
                 data.retain(|f| *f != 13);
 
                 // TODO: Handle error
-                let text = utils::radix_string(&data, &self.output_format).unwrap();
+                let text = utils::radix_string(&data, &self.text_storage.output_format).unwrap();
 
-                self.output.push_str(&text);
+                self.text_storage.output_add_str(&text);
             },
             Event::Error(error) => {
                 self.set_error(error.description, error.recoverable);
