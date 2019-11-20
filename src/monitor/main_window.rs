@@ -329,14 +329,21 @@ impl<'a> Window for MainWindow<'a> {
                 [Text::styled(input, Style::default().modifier(Modifier::BOLD).bg(Color::Red))]
             };
 
+            let visible_lines = chunks[0].height as usize - 1;
+
             let output_text = vec![
-                Text::raw(MainWindow::get_last_lines(output, chunks[0].height as usize - 1))
+                Text::raw(MainWindow::get_last_lines(output, visible_lines))
             ];
 
-            let line_space = chunks[1].width as usize - 6;
+            // get line counter display
+            let total_lines = output.lines().into_iter().count();
+            let output_line = total_lines;
+
+            let line_number_str = format!("({}/{})", output_line, total_lines);
+            let line_spaces = chunks[1].width as usize - line_number_str.len() - 1;
 
             let line_text = vec![
-                Text::raw(format!("{}(1/1)", std::iter::repeat(" ").take(line_space).collect::<String>()))
+                Text::raw(format!("{}{}", std::iter::repeat(" ").take(line_spaces).collect::<String>(), line_number_str))
             ];
 
             // draw widgets into constraints
