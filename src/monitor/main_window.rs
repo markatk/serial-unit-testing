@@ -316,8 +316,9 @@ impl<'a> Window for MainWindow<'a> {
                 .direction(Direction::Vertical)
                 .constraints([
                     Constraint::Min(0),
+                    Constraint::Length(1),
                     Constraint::Length(4),
-                    Constraint::Length(2)
+                    Constraint::Length(1)
                 ].as_ref())
                 .split(f.size());
 
@@ -329,7 +330,13 @@ impl<'a> Window for MainWindow<'a> {
             };
 
             let output_text = vec![
-                Text::raw(MainWindow::get_last_lines(output, (chunks[0].height - 1) as usize))
+                Text::raw(MainWindow::get_last_lines(output, chunks[0].height as usize - 1))
+            ];
+
+            let line_space = chunks[1].width as usize - 6;
+
+            let line_text = vec![
+                Text::raw(format!("{}(1/1)", std::iter::repeat(" ").take(line_space).collect::<String>()))
             ];
 
             // draw widgets into constraints
@@ -342,19 +349,19 @@ impl<'a> Window for MainWindow<'a> {
                 .wrap(true)
                 .render(&mut f, chunks[0]);
 
+            Paragraph::new(line_text.iter())
+                .render(&mut f, chunks[1]);
+
             Paragraph::new(input_text.iter())
                 .block(
                     Block::default()
                         .title(input_title.as_str())
                         .borders(Borders::TOP))
                 .wrap(true)
-                .render(&mut f, chunks[1]);
+                .render(&mut f, chunks[2]);
 
             Paragraph::new(control_text.iter())
-                .block(
-                    Block::default())
-                .wrap(true)
-                .render(&mut f, chunks[2]);
+                .render(&mut f, chunks[3]);
         })
     }
 
