@@ -41,6 +41,7 @@ pub struct TextStorage {
 
     output: String,
     pub output_format: TextFormat,
+    output_line: usize
 }
 
 impl TextStorage {
@@ -67,7 +68,10 @@ impl TextStorage {
     }
 
     pub fn output_add_str(&mut self, str: &str) {
+        let newline_count = str.chars().filter(|c| *c == '\n').count();
+
         self.output.push_str(str);
+        self.output_line += newline_count;
     }
 
     pub fn get_cursor_position(&self) -> usize {
@@ -84,6 +88,8 @@ impl TextStorage {
 
     pub fn reset_output(&mut self) {
         self.output.clear();
+
+        self.output_line = 0;
     }
 
     pub fn advance_cursor(&mut self) {
@@ -93,7 +99,7 @@ impl TextStorage {
     }
 
     pub fn retreat_cursor(&mut self) {
-        if self.cursor_position > 0 {
+        if self.cursor_position > 1 {
             self.cursor_position -= 1;
         }
     }
@@ -104,6 +110,22 @@ impl TextStorage {
 
     pub fn cursor_at_end(&mut self) {
         self.cursor_position = utils::char_count(&self.input);
+    }
+
+    pub fn get_output_line(&self) -> usize {
+        self.output_line
+    }
+
+    pub fn advance_output(&mut self) {
+        if self.output_line < self.output.lines().into_iter().count() {
+            self.output_line += 1;
+        }
+    }
+
+    pub fn retreat_output(&mut self) {
+        if self.output_line > 0 {
+            self.output_line -= 1;
+        }
     }
 
     pub fn remove_character(&mut self, advance_cursor: bool) {
@@ -180,11 +202,11 @@ impl TextStorage {
         self.cursor_at_end();
     }
 
-    pub fn get_last_lines(text: &str, n: usize) -> String {
+    pub fn get_last_lines(text: &str, skip: usize, take: usize) -> String {
         text
             .lines()
             .rev()
-            .take(n)
+            .take(take)
             .fold("".to_string(), |current, line| {
                 let mut result = line.to_string();
                 result.push('\n');
@@ -207,7 +229,8 @@ impl Default for TextStorage {
             escape_input: false,
             newline_format: NewlineFormat::LineFeed,
             output: String::new(),
-            output_format: TextFormat::Text
+            output_format: TextFormat::Text,
+            output_line: 0
         }
     }
 }
