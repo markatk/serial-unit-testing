@@ -165,6 +165,7 @@ impl<'a> Window for MainWindow<'a> {
                                   utils::get_newline_format_name(&self.text_storage.newline_format),
                                   MainWindow::get_bool(self.text_storage.escape_input));
         let output = &self.text_storage.get_output();
+        let output_line = self.text_storage.get_output_line();
 
         terminal.draw(|mut f| {
             // create constraints
@@ -188,12 +189,11 @@ impl<'a> Window for MainWindow<'a> {
             let visible_lines = chunks[0].height as usize - 1;
 
             let output_text = vec![
-                Text::raw(TextStorage::get_last_lines(output, visible_lines))
+                Text::raw(TextStorage::get_last_lines(output, output_line, visible_lines))
             ];
 
             // get line counter display
             let total_lines = output.lines().into_iter().count();
-            let output_line = total_lines;
 
             let line_number_str = format!("({}/{})", output_line, total_lines);
             let line_spaces = chunks[1].width as usize - line_number_str.len() - 1;
@@ -255,6 +255,8 @@ impl<'a> Window for MainWindow<'a> {
             KeyEvent::Right => self.text_storage.advance_cursor(),
             KeyEvent::Up => self.text_storage.advance_history(),
             KeyEvent::Down => self.text_storage.retreat_history(),
+            KeyEvent::ShiftUp => self.text_storage.retreat_output(),
+            KeyEvent::ShiftDown => self.text_storage.advance_output(),
             KeyEvent::Esc => {
                 if let Some(ref err) = self.error {
                     if err.recoverable {
