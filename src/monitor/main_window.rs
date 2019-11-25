@@ -165,7 +165,7 @@ impl<'a> Window for MainWindow<'a> {
                                   utils::get_newline_format_name(&self.text_storage.newline_format),
                                   MainWindow::get_bool(self.text_storage.escape_input));
         let output = &self.text_storage.get_output();
-        let output_line = self.text_storage.get_output_line();
+        let mut output_line = self.text_storage.get_output_line();
 
         terminal.draw(|mut f| {
             // create constraints
@@ -187,6 +187,10 @@ impl<'a> Window for MainWindow<'a> {
             };
 
             let visible_lines = chunks[0].height as usize - 1;
+
+            if output_line < visible_lines {
+                output_line = visible_lines;
+            }
 
             let output_text = vec![
                 Text::raw(TextStorage::get_last_lines(output, output_line, visible_lines))
