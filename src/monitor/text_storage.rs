@@ -203,9 +203,15 @@ impl TextStorage {
     }
 
     pub fn get_last_lines(text: &str, skip: usize, take: usize) -> String {
+        let mut len = text.lines().count();
+        if len < skip {
+            len = skip;
+        }
+
         text
             .lines()
             .rev()
+            .skip(len - skip)
             .take(take)
             .fold("".to_string(), |current, line| {
                 let mut result = line.to_string();
