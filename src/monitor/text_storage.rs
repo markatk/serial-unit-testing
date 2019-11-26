@@ -71,6 +71,7 @@ impl TextStorage {
         let newline_count = str.chars().filter(|c| *c == '\n').count();
 
         self.output.push_str(str);
+        // TODO: Only auto scroll if output is at the end
         self.output_line += newline_count;
     }
 

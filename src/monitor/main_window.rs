@@ -28,6 +28,7 @@
 
 use std::io;
 use std::sync::mpsc::Sender;
+use std::cmp::min;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
@@ -187,19 +188,27 @@ impl<'a> Window for MainWindow<'a> {
             };
 
             let visible_lines = chunks[0].height as usize - 1;
-
             if output_line < visible_lines {
                 output_line = visible_lines;
             }
+
+            let output_start_line = output_line - visible_lines;
 
             let output_text = vec![
                 Text::raw(TextStorage::get_last_lines(output, output_line, visible_lines))
             ];
 
             // get line counter display
-            let total_lines = output.lines().into_iter().count();
+            let total_lines = output.lines().count();
 
-            let line_number_str = format!("({}/{})", output_line, total_lines);
+            let line_number_str = if total_lines > 0 {
+                let visible_output_line = min(output_line, total_lines);
+
+                format!("({}-{}/{})", output_start_line + 1, visible_output_line, total_lines)
+            } else {
+                "(0-0/0)".to_string()
+            };
+
             let line_spaces = chunks[1].width as usize - line_number_str.len() - 1;
 
             let line_text = vec![
