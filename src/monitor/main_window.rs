@@ -28,7 +28,6 @@
 
 use std::io;
 use std::sync::mpsc::Sender;
-use std::cmp::min;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
@@ -165,8 +164,7 @@ impl<'a> Window for MainWindow<'a> {
                                   utils::get_format_name(&self.text_storage.output_format),
                                   utils::get_newline_format_name(&self.text_storage.newline_format),
                                   MainWindow::get_bool(self.text_storage.escape_input));
-        let output = &self.text_storage.get_output();
-        let mut output_line = self.text_storage.get_output_line();
+        let text_storage = &mut self.text_storage;
 
         terminal.draw(|mut f| {
             // create constraints
@@ -187,32 +185,15 @@ impl<'a> Window for MainWindow<'a> {
                 [Text::styled(input, Style::default().modifier(Modifier::BOLD).bg(Color::Red))]
             };
 
-            let visible_lines = chunks[0].height as usize - 1;
-            if output_line < visible_lines {
-                output_line = visible_lines;
-            }
-
-            let output_start_line = output_line - visible_lines;
+            let (output, line_counter) = text_storage.get_output_lines(chunks[0].height as usize - 1);
+            let line_spaces = chunks[1].width as usize - line_counter.len() - 1;
 
             let output_text = vec![
-                Text::raw(TextStorage::get_last_lines(output, output_line, visible_lines))
+                Text::raw(output)
             ];
 
-            // get line counter display
-            let total_lines = output.lines().count();
-
-            let line_number_str = if total_lines > 0 {
-                let visible_output_line = min(output_line, total_lines);
-
-                format!("({}-{}/{})", output_start_line + 1, visible_output_line, total_lines)
-            } else {
-                "(0-0/0)".to_string()
-            };
-
-            let line_spaces = chunks[1].width as usize - line_number_str.len() - 1;
-
             let line_text = vec![
-                Text::raw(format!("{}{}", std::iter::repeat(" ").take(line_spaces).collect::<String>(), line_number_str))
+                Text::raw(format!("{}{}", std::iter::repeat(" ").take(line_spaces).collect::<String>(), line_counter))
             ];
 
             // draw widgets into constraints

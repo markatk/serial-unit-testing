@@ -26,6 +26,7 @@
  * SOFTWARE.
  */
 
+use std::cmp::min;
 use serial_unit_testing::utils::{self, TextFormat, NewlineFormat};
 
 #[derive(Debug, Clone)]
@@ -41,7 +42,7 @@ pub struct TextStorage {
 
     output: String,
     pub output_format: TextFormat,
-    output_line: usize
+    pub output_line: usize
 }
 
 impl TextStorage {
@@ -63,16 +64,13 @@ impl TextStorage {
         self.advance_cursor();
     }
 
-    pub fn get_output(&self) -> String {
-        self.output.clone()
-    }
-
     pub fn output_add_str(&mut self, str: &str) {
         let newline_count = str.chars().filter(|c| *c == '\n').count();
+        if self.output_line == self.output.lines().count() {
+            self.output_line += newline_count;
+        }
 
         self.output.push_str(str);
-        // TODO: Only auto scroll if output is at the end
-        self.output_line += newline_count;
     }
 
     pub fn get_cursor_position(&self) -> usize {
@@ -113,10 +111,6 @@ impl TextStorage {
         self.cursor_position = utils::char_count(&self.input);
     }
 
-    pub fn get_output_line(&self) -> usize {
-        self.output_line
-    }
-
     pub fn advance_output(&mut self) {
         if self.output_line < self.output.lines().into_iter().count() {
             self.output_line += 1;
@@ -124,7 +118,7 @@ impl TextStorage {
     }
 
     pub fn retreat_output(&mut self) {
-        if self.output_line > 0 {
+        if self.output_line > 1 {
             self.output_line -= 1;
         }
     }
@@ -203,24 +197,39 @@ impl TextStorage {
         self.cursor_at_end();
     }
 
-    pub fn get_last_lines(text: &str, skip: usize, take: usize) -> String {
-        let mut len = text.lines().count();
-        if len < skip {
-            len = skip;
+    pub fn get_output_lines(&mut self, visible_lines: usize) -> (String, String) {
+        let total_count = self.output.lines().count();
+
+        if self.output_line < visible_lines {
+            self.output_line = min(visible_lines, total_count);
         }
 
-        text
+        let text = self.output
             .lines()
             .rev()
-            .skip(len - skip)
-            .take(take)
+            .skip(total_count - self.output_line)
+            .take(visible_lines)
             .fold("".to_string(), |current, line| {
                 let mut result = line.to_string();
                 result.push('\n');
                 result.push_str(&current);
 
                 result
-            })
+            });
+
+        let counter = if total_count > 0 {
+            let start_line = if self.output_line > visible_lines {
+                self.output_line - visible_lines + 1
+            } else {
+                1
+            };
+
+            format!("({}-{}/{})", start_line, self.output_line, total_count)
+        } else {
+            "(0-0/0)".to_string()
+        };
+
+        (text, counter)
     }
 }
 
@@ -237,7 +246,7 @@ impl Default for TextStorage {
             newline_format: NewlineFormat::LineFeed,
             output: String::new(),
             output_format: TextFormat::Text,
-            output_line: 0
+            output_line: 1
         }
     }
 }
