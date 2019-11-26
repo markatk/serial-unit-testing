@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Add loopback serial port device. Can be used in every place a serial port is required (by opening device named "loopback")
+- Add manual output scrolling in monitor command with shift + up/down keys. Current position and total lines will be displayed in bottom right corner
+
+### Changes
+- Fix newest output line not visible when scrolling
+- Fix hexadecimal lower case response comparison in tests and check command
+
 ## [0.2.1] - 19.11.2019
 
 ### Added
