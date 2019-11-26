@@ -376,6 +376,13 @@ impl Serial {
     pub fn check_read_with_settings(&mut self, desired_response: &str, settings: &CheckSettings) -> Result<(bool, String)> {
         let mut response = String::new();
 
+        // convert hex to upper case because actual hex output is returned in upper case letters
+        let compare = if settings.output_format == utils::TextFormat::Hex {
+            desired_response.to_uppercase()
+        } else {
+            desired_response.to_string()
+        };
+
         loop {
             match self.read() {
                 Ok(bytes) => {
@@ -387,11 +394,11 @@ impl Serial {
 
                     response.push_str(new_text.as_str());
 
-                    if desired_response == response {
+                    if compare == response {
                         break;
                     }
 
-                    if desired_response.starts_with(response.as_str()) == false {
+                    if compare.starts_with(response.as_str()) == false {
                         break;
                     }
                 },
@@ -406,7 +413,7 @@ impl Serial {
             }
         }
 
-        Ok((desired_response == response, response))
+        Ok((compare == response, response))
     }
 }
 

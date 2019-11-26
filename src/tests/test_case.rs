@@ -154,6 +154,8 @@ impl TestCase {
 
         if self.settings.ignore_case.unwrap_or(false) {
             output = output.to_lowercase();
+        } else if self.output_format == utils::TextFormat::Hex {
+            output = output.to_uppercase();
         }
 
         let regex = match Regex::new(&output) {
@@ -180,7 +182,7 @@ impl TestCase {
                 Err(e) => return self.exit_run_with_error(format!("Unable to write to serial port: {}", e))
             };
 
-            let response = match self.read_response(serial) {
+            let response = match self.read_response(serial, &regex) {
                 Ok(res) => res,
                 Err(err) => return self.exit_run_with_error(err)
             };
@@ -218,7 +220,7 @@ impl TestCase {
         self.error.clone()
     }
 
-    fn read_response(&mut self, serial: &mut Serial) -> Result<String, String> {
+    fn read_response(&mut self, serial: &mut Serial, regex: &Regex) -> Result<String, String> {
         let mut response = String::new();
 
         loop {
@@ -246,11 +248,7 @@ impl TestCase {
 
                     response.push_str(new_text.as_str());
 
-                    if self.output == response {
-                        break;
-                    }
-
-                    if self.output.starts_with(response.as_str()) == false {
+                    if regex.find(&response).is_some() {
                         break;
                     }
                 },
