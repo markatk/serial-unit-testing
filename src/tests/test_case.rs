@@ -29,6 +29,7 @@
 use std::str;
 use std::time::Duration;
 use std::thread::sleep;
+#[cfg(feature = "colored-tests")]
 use colored::*;
 use regex::Regex;
 use crate::serial::Serial;
@@ -304,20 +305,50 @@ impl TestCase {
 
         Err(err)
     }
+
+    #[cfg(feature = "colored-tests")]
+    fn red_text(text: &str) -> ColoredString {
+        text.red()
+    }
+
+    #[cfg(not(feature = "colored-tests"))]
+    fn red_text(text: &str) -> String {
+        text.to_string()
+    }
+
+    #[cfg(feature = "colored-tests")]
+    fn green_text(text: &str) -> ColoredString {
+        text.green()
+    }
+
+    #[cfg(not(feature = "colored-tests"))]
+    fn green_text(text: &str) -> String {
+        text.to_string()
+    }
+
+    #[cfg(feature = "colored-tests")]
+    fn yellow_text(text: &str) -> ColoredString {
+        text.yellow()
+    }
+
+    #[cfg(not(feature = "colored-tests"))]
+    fn yellow_text(text: &str) -> String {
+        text.to_string()
+    }
 }
 
 impl ToString for TestCase {
     fn to_string(&self) -> String {
         if let Some(err) = &self.error {
-            return format!("{}...{} {}", self.title(), "Error:".red(), err);
+            return format!("{}...{} {}", self.title(), TestCase::red_text("Error:"), err);
         }
 
         if let Some(successful) = self.successful {
             if successful == false && self.settings.allow_failure.unwrap_or(false) == false {
                 return if let Some(ref response) = self.response {
-                    format!("{}...{}, expected '{}' but received '{}'", self.title(), "Failed".red(), self.output, response)
+                    format!("{}...{}, expected '{}' but received '{}'", self.title(), TestCase::red_text("Failed"), self.output, response)
                 } else {
-                    format!("{}...{}, expected '{}' but received nothing", self.title(), "Failed".red(), self.output)
+                    format!("{}...{}, expected '{}' but received nothing", self.title(), TestCase::red_text("Failed"), self.output)
                 };
             }
 
@@ -339,9 +370,9 @@ impl ToString for TestCase {
             };
 
             let result = if successful {
-                format!("{}", "OK".green())
+                format!("{}", TestCase::green_text("OK"))
             } else {
-                format!("{} (failed)", "OK".yellow())
+                format!("{} (failed)", TestCase::yellow_text("OK"))
             };
 
             format!("{}...{}{}{}", self.title(), result, repeat, verbose)
