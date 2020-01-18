@@ -32,10 +32,10 @@ pub mod tests;
 pub mod serial;
 pub mod parser;
 
-#[cfg(test)]
-mod library_tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
+pub mod prelude {
+    pub use crate::error::*;
+    pub use crate::utils::{TextFormat, NewlineFormat};
+    pub use crate::tests::*;
+    pub use crate::serial::{Serial, CheckSettings};
+    pub use crate::serial::settings::Settings;
 }
