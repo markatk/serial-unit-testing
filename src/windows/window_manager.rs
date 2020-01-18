@@ -28,9 +28,11 @@
 
 use std::thread;
 use std::sync::mpsc::{self, Sender, Receiver};
-use std::io::{stdout, Stdout};
+use std::io::{self, stdout, Stdout, Write};
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
+use crossterm::execute;
+use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen, enable_raw_mode, disable_raw_mode};
 use crossterm::event::{self, KeyEvent, KeyCode, KeyModifiers, read};
 use super::{Event, Window};
 use crate::windows::EventResult;
@@ -45,11 +47,18 @@ pub struct WindowManager {
 }
 
 impl WindowManager {
-    pub fn new() -> Result<WindowManager, std::io::Error> {
+    pub fn new() -> Result<WindowManager, io::Error> {
         let (tx, rx) = mpsc::channel();
 
-        let stdout = stdout();
-        //execute!(stdout, EnterAlternateScreen)?;
+        if let Err(err) = enable_raw_mode() {
+            return Err(io::Error::new(io::ErrorKind::Other, err));
+        }
+
+        let mut stdout = stdout();
+        if let Err(err) = execute!(stdout, EnterAlternateScreen) {
+            return Err(io::Error::new(io::ErrorKind::Other, err));
+        }
+
         let backend = CrosstermBackend::new(stdout);
 
         let mut terminal = Terminal::new(backend)?;
@@ -72,7 +81,7 @@ impl WindowManager {
         self.windows.push(window);
     }
 
-    pub fn run(&mut self, initial_window: Box<dyn Window>) -> Result<(), std::io::Error> {
+    pub fn run(&mut self, initial_window: Box<dyn Window>) -> Result<(), io::Error> {
         self.push_window(initial_window);
 
         // start input thread
@@ -162,5 +171,13 @@ impl WindowManager {
         if let Some(child) = event_result.child {
             self.windows.push(child);
         }
+    }
+}
+
+impl Drop for WindowManager {
+    fn drop(&mut self) {
+        disable_raw_mode().unwrap();
+        execute!(self.terminal.backend_mut(), LeaveAlternateScreen).unwrap();
+        self.terminal.show_cursor().unwrap();
     }
 }
