@@ -237,13 +237,8 @@ impl<'a> Window for MainWindow<'a> {
                     _ => ()
                 }
             },
-            KeyEvent { code: KeyCode::Char(c), modifiers: _ } => {
-                if c == '\n' {
-                    self.send_input();
-                } else {
-                    self.text_storage.input_add(c);
-                }
-            },
+            KeyEvent { code: KeyCode::Char(c), modifiers: _ } => self.text_storage.input_add(c),
+            KeyEvent { code: KeyCode::Enter, modifiers: _ } => self.send_input(),
             KeyEvent { code: KeyCode::Backspace, modifiers: _ } => self.text_storage.remove_character(true),
             KeyEvent { code: KeyCode::Delete, modifiers: _ } => self.text_storage.remove_character(false),
             KeyEvent { code: KeyCode::Left, modifiers: _ } => self.text_storage.retreat_cursor(),
