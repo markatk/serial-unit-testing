@@ -31,7 +31,7 @@ use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
-use crossterm::KeyEvent;
+use crossterm::event::{KeyEvent, KeyCode};
 use crate::windows::{Window, EventResult};
 
 #[derive(Debug, Clone)]
@@ -130,7 +130,7 @@ impl HelpWindow {
 }
 
 impl Window for HelpWindow {
-    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), std::io::Error> {
+    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) -> Result<(), std::io::Error> {
         let help_entries = &self.help_entries;
         let page_count = &mut self.page_count;
         let page = &mut self.page;
@@ -179,15 +179,15 @@ impl Window for HelpWindow {
 
     fn handle_key_event(&mut self, event: KeyEvent) -> EventResult {
         match event {
-            KeyEvent::Esc => {
+            KeyEvent { code: KeyCode::Esc, modifiers: _ } => {
                 self.should_close = true;
             },
-            KeyEvent::Left => {
+            KeyEvent { code: KeyCode::Left, modifiers: _ }  => {
                 if self.page > 0 {
                     self.page -= 1;
                 }
             },
-            KeyEvent::Right => {
+            KeyEvent { code: KeyCode::Right, modifiers: _ } => {
                 if self.page < self.page_count - 1 {
                     self.page += 1;
                 }

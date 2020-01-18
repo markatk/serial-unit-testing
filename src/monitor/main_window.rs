@@ -33,7 +33,7 @@ use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
-use crossterm::KeyEvent;
+use crossterm::event::{KeyEvent, KeyCode, KeyModifiers};
 use serial_unit_testing::utils::{self, TextFormat};
 use super::help_window::HelpWindow;
 use super::text_storage::TextStorage;
@@ -154,7 +154,7 @@ impl<'a> MainWindow<'a> {
 }
 
 impl<'a> Window for MainWindow<'a> {
-    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend>) -> Result<(), io::Error> {
+    fn render(&mut self, terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>) -> Result<(), io::Error> {
         let input = self.get_input_render_text();
         let control_text = &self.control_text;
         let title = &self.title;
@@ -226,14 +226,7 @@ impl<'a> Window for MainWindow<'a> {
         let mut result = EventResult::new();
 
         match event {
-            KeyEvent::Char(c) => {
-                if c == '\n' {
-                    self.send_input();
-                } else {
-                    self.text_storage.input_add(c);
-                }
-            },
-            KeyEvent::Ctrl(c) => {
+            KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::CONTROL } => {
                 match c {
                     'a' => self.text_storage.cursor_at_beginning(),
                     'd' => self.text_storage.remove_character(false),
@@ -243,15 +236,22 @@ impl<'a> Window for MainWindow<'a> {
                     _ => ()
                 }
             },
-            KeyEvent::Backspace => self.text_storage.remove_character(true),
-            KeyEvent::Delete => self.text_storage.remove_character(false),
-            KeyEvent::Left => self.text_storage.retreat_cursor(),
-            KeyEvent::Right => self.text_storage.advance_cursor(),
-            KeyEvent::Up => self.text_storage.advance_history(),
-            KeyEvent::Down => self.text_storage.retreat_history(),
-            KeyEvent::ShiftUp => self.text_storage.retreat_output(),
-            KeyEvent::ShiftDown => self.text_storage.advance_output(),
-            KeyEvent::Esc => {
+            KeyEvent { code: KeyCode::Char(c), modifiers: _ } => {
+                if c == '\n' {
+                    self.send_input();
+                } else {
+                    self.text_storage.input_add(c);
+                }
+            },
+            KeyEvent { code: KeyCode::Backspace, modifiers: _ } => self.text_storage.remove_character(true),
+            KeyEvent { code: KeyCode::Delete, modifiers: _ } => self.text_storage.remove_character(false),
+            KeyEvent { code: KeyCode::Left, modifiers: _ } => self.text_storage.retreat_cursor(),
+            KeyEvent { code: KeyCode::Right, modifiers: _ } => self.text_storage.advance_cursor(),
+            KeyEvent { code: KeyCode::Up, modifiers: KeyModifiers::SHIFT } => self.text_storage.retreat_output(),
+            KeyEvent { code: KeyCode::Down, modifiers: KeyModifiers::SHIFT } => self.text_storage.advance_output(),
+            KeyEvent { code: KeyCode::Up, modifiers: _ } => self.text_storage.advance_history(),
+            KeyEvent { code: KeyCode::Down, modifiers: _ } => self.text_storage.retreat_history(),
+            KeyEvent { code: KeyCode::Esc, modifiers: _ } => {
                 if let Some(ref err) = self.error {
                     if err.recoverable {
                         self.error = None;
@@ -263,9 +263,9 @@ impl<'a> Window for MainWindow<'a> {
 
                 self.should_close = true
             },
-            KeyEvent::Home => self.text_storage.cursor_at_beginning(),
-            KeyEvent::End => self.text_storage.cursor_at_end(),
-            KeyEvent::F(num) => {
+            KeyEvent { code: KeyCode::Home, modifiers: _ } => self.text_storage.cursor_at_beginning(),
+            KeyEvent { code: KeyCode::End, modifiers: _ } => self.text_storage.cursor_at_end(),
+            KeyEvent { code: KeyCode::F(num), modifiers: _ } => {
                 match num {
                     1 => result.child = Some(HelpWindow::new()),
                     2 => self.text_storage.input_format = utils::get_next_format(&self.text_storage.input_format),
