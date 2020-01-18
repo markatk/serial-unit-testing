@@ -28,6 +28,7 @@
 
 use std::io;
 use std::sync::mpsc::Sender;
+use std::error::Error;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
@@ -296,8 +297,15 @@ impl<'a> Window for MainWindow<'a> {
                 // TODO: Replace with lf if no line feed afterwards
                 data.retain(|f| *f != 13);
 
-                // TODO: Handle error
-                let text = utils::radix_string(&data, &self.text_storage.output_format).unwrap();
+                // TODO: Handle error properly
+                let text = match utils::radix_string(&data, &self.text_storage.output_format) {
+                    Ok(text) => text,
+                    Err(err) => {
+                        self.set_error(err.description().to_string(), false);
+
+                        return EventResult::new();
+                    }
+                };
 
                 self.text_storage.output_add_str(&text);
             },
