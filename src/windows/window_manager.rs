@@ -28,15 +28,16 @@
 
 use std::thread;
 use std::sync::mpsc::{self, Sender, Receiver};
+use std::io::{stdout, Stdout};
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
-use crossterm::{KeyEvent, InputEvent, input, AlternateScreen};
+use crossterm::event::{self, KeyEvent, KeyCode, KeyModifiers, read};
 use super::{Event, Window};
 use crate::windows::EventResult;
 
 pub struct WindowManager {
     windows: Vec<Box<dyn Window>>,
-    terminal: Terminal<CrosstermBackend>,
+    terminal: Terminal<CrosstermBackend<Stdout>>,
     tx: Sender<Event<KeyEvent>>,
     rx: Receiver<Event<KeyEvent>>,
 
@@ -46,8 +47,10 @@ pub struct WindowManager {
 impl WindowManager {
     pub fn new() -> Result<WindowManager, std::io::Error> {
         let (tx, rx) = mpsc::channel();
-        let screen = AlternateScreen::to_alternate(true)?;
-        let backend = CrosstermBackend::with_alternate_screen(screen)?;
+
+        let stdout = stdout();
+        //execute!(stdout, EnterAlternateScreen)?;
+        let backend = CrosstermBackend::new(stdout);
 
         let mut terminal = Terminal::new(backend)?;
         terminal.hide_cursor()?;
@@ -76,12 +79,18 @@ impl WindowManager {
         {
             let tx = self.tx.clone();
             thread::spawn(move || {
-                let input = input();
-                let reader = input.read_sync();
+                loop {
+                    let event = match read() {
+                        Ok(event) => event,
+                        Err(err) => {
+                            println!("Error in input thread: {}", err);
 
-                for event in reader {
+                            return;
+                        }
+                    };
+
                     match event {
-                        InputEvent::Keyboard(key) => {
+                        event::Event::Key(key) => {
                             if let Err(_) = tx.send(Event::Input(key.clone())) {
                                 return;
                             }
@@ -120,8 +129,8 @@ impl WindowManager {
                 let result = match self.rx.recv() {
                     Ok(Event::Input(event)) => {
                         match event {
-                            KeyEvent::Ctrl(c) => {
-                                if c == 'c' {
+                            KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::CONTROL } => {
+                                if c == 'c'  {
                                     // Exit application
                                     return Ok(());
                                 }

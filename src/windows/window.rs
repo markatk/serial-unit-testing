@@ -29,9 +29,9 @@
 use super::{Event, EventResult};
 
 pub trait Window {
-    fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend>) -> Result<(), std::io::Error>;
+    fn render(&mut self, terminal: &mut tui::Terminal<tui::backend::CrosstermBackend<std::io::Stdout>>) -> Result<(), std::io::Error>;
 
-    fn handle_key_event<'a>(&mut self, _event: crossterm::KeyEvent) -> EventResult {
+    fn handle_key_event<'a>(&mut self, _event: crossterm::event::KeyEvent) -> EventResult {
         EventResult::new()
     }
 
@@ -39,7 +39,7 @@ pub trait Window {
         EventResult::new()
     }
 
-    fn handle_event(&mut self, _event: Event<crossterm::KeyEvent>) -> EventResult {
+    fn handle_event(&mut self, _event: Event<crossterm::event::KeyEvent>) -> EventResult {
         EventResult::new()
     }
 

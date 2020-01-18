@@ -31,7 +31,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 use std::error::Error;
 use clap::{ArgMatches, App, SubCommand};
-use crossterm::KeyEvent;
+use crossterm::event::KeyEvent;
 use crate::commands;
 use crate::windows::{WindowManager, Event, WindowError};
 use serial_unit_testing::serial::Serial;
