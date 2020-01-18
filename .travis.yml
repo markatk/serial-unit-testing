@@ -27,12 +27,12 @@ addons:
       - libudev-dev
 
 before_script:
-  - cargo install --force cargo-audit
+  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$TRAVIS_RUST_VERSION" = "stable" ]]; then cargo install --force cargo-audit; fi
 
 script:
   - cargo build --verbose --release --all
   - cargo test --verbose --lib
-  - cargo audit
+  - if [[ "$TRAVIS_OS_NAME" = "linux" && "$TRAVIS_RUST_VERSION" = "stable" ]]; then cargo audit; fi
 
 before_deploy:
   - if [[ -f target/release/sut ]]; then mv target/release/sut "target/release/watchdog-$TRAVIS_TAG-$TRAVIS_OS_NAME"; fi
