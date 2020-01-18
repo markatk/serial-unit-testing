@@ -5,6 +5,8 @@
 ### Added
 - Add loopback serial port device. Can be used in every place a serial port is required (by opening device named "loopback")
 - Add manual output scrolling in monitor command with shift + up/down keys. Current position and total lines will be displayed in bottom right corner
+- Add crate features to be able to use the library without the binary dependencies and tests without colored dependency
+- Add prelude module to simplify usage of the library
 
 ### Changes
 - Fix newest output line not visible when scrolling
