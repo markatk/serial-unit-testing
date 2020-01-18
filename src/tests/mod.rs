@@ -26,8 +26,8 @@
  * SOFTWARE.
  */
 
-pub mod test_case;
-pub mod test_suite;
+mod test_case;
+mod test_suite;
 
 pub use self::test_case::{TestCase, TestCaseSettings};
 pub use self::test_suite::{TestSuite, TestSuiteSettings};
