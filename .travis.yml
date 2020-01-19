@@ -35,7 +35,7 @@ script:
   - if [[ "$TRAVIS_OS_NAME" = "linux" && "$TRAVIS_RUST_VERSION" = "stable" ]]; then cargo audit; fi
 
 before_deploy:
-  - if [[ -f target/release/sut ]]; then mv target/release/sut "target/release/watchdog-$TRAVIS_TAG-$TRAVIS_OS_NAME"; fi
+  - if [[ -f target/release/sut ]]; then mv target/release/sut "target/release/sut-$TRAVIS_TAG-$TRAVIS_OS_NAME"; fi
 
 deploy:
   - provider: cargo
