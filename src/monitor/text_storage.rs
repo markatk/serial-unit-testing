@@ -42,7 +42,8 @@ pub struct TextStorage {
 
     output: String,
     pub output_format: TextFormat,
-    pub output_line: usize
+    pub output_line: usize,
+    scroll_output: bool
 }
 
 impl TextStorage {
@@ -65,12 +66,11 @@ impl TextStorage {
     }
 
     pub fn output_add_str(&mut self, str: &str) {
-        let newline_count = str.chars().filter(|c| *c == '\n').count();
-        if self.output_line == self.output.lines().count() {
-            self.output_line += newline_count;
-        }
-
         self.output.push_str(str);
+
+        if self.scroll_output {
+            self.output_line = self.output.lines().count();
+        }
     }
 
     pub fn get_cursor_position(&self) -> usize {
@@ -112,8 +112,14 @@ impl TextStorage {
     }
 
     pub fn advance_output(&mut self) {
-        if self.output_line < self.output.lines().into_iter().count() {
+        let lines = self.output.lines().count();
+
+        if self.output_line < lines {
             self.output_line += 1;
+        }
+
+        if self.output_line == lines {
+            self.scroll_output = true;
         }
     }
 
@@ -121,6 +127,8 @@ impl TextStorage {
         if self.output_line > 1 {
             self.output_line -= 1;
         }
+
+        self.scroll_output = false;
     }
 
     pub fn remove_character(&mut self, advance_cursor: bool) {
@@ -246,7 +254,8 @@ impl Default for TextStorage {
             newline_format: NewlineFormat::LineFeed,
             output: String::new(),
             output_format: TextFormat::Text,
-            output_line: 1
+            output_line: 1,
+            scroll_output: true
         }
     }
 }
