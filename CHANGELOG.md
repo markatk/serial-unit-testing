@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.2] - 19.01.2020
 
 ### Added
 - Add loopback serial port device. Can be used in every place a serial port is required (by opening device named "loopback")
@@ -9,7 +9,7 @@
 - Add prelude module to simplify usage of the library
 
 ### Changes
-- Fix newest output line not visible when scrolling
+- Fix newest output line not visible when scrolling in monitor
 - Fix hexadecimal lower case response comparison in tests and check command
 
 ## [0.2.1] - 19.11.2019
