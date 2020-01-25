@@ -22,7 +22,7 @@ You can download the compiled binaries from the [releases](https://github.com/ma
 
 # Application
 
-The application is structured in the following sub commands:
+The application, called `sut` (which is short for **s**erial **u**nit **t**esting), is structured in the following sub commands:
 
 - `list`: List all available serial ports
 - `send`: Send data to a serial port
