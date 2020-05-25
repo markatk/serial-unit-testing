@@ -2,21 +2,21 @@
  * File: src/serial/mod.rs
  * Date: 30.09.2018
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2018 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -117,6 +117,108 @@ impl Serial {
             },
             Err(e) => Err(Error::from(e))
         }
+    }
+
+    /// Get the port name if any exists.
+    ///
+    /// Virtual ports may not have a name and the name may be shortened.
+    pub fn name(&self) -> Option<String> {
+        return self.port.name();
+    }
+
+    /// Set the baud rate.
+    pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<()> {
+        match self.port.set_baud_rate(baud_rate) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Get the baud rate.
+    ///
+    /// This will return the actual device baud rate, which may differ from the last specified value.
+    pub fn baud_rate(&self) -> Result<u32> {
+        match self.port.baud_rate() {
+            Ok(value) => Ok(value),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Set the number of data bits.
+    pub fn set_data_bits(&mut self, data_bits: settings::DataBits) -> Result<()> {
+        match self.port.set_data_bits(data_bits.into()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Get the number of data bits.
+    pub fn data_bits(&self) -> Result<settings::DataBits> {
+        match self.port.data_bits() {
+            Ok(value) => Ok(settings::DataBits::from(value)),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Set the parity checking mode
+    pub fn set_parity(&mut self, parity: settings::Parity) -> Result<()> {
+        match self.port.set_parity(parity.into()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Get the parity checking mode
+    pub fn parity(&self) -> Result<settings::Parity> {
+        match self.port.parity() {
+            Ok(value) => Ok(settings::Parity::from(value)),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Set the number of stop bits.
+    pub fn set_stop_bits(&mut self, stop_bits: settings::StopBits) -> Result<()> {
+        match self.port.set_stop_bits(stop_bits.into()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Get the number of stop bits.
+    pub fn stop_bits(&self) -> Result<settings::StopBits> {
+        match self.port.stop_bits() {
+            Ok(value) => Ok(settings::StopBits::from(value)),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Set the flow control.
+    pub fn set_flow_control(&mut self, flow_control: settings::FlowControl) -> Result<()> {
+        match self.port.set_flow_control(flow_control.into()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Get the flow control.
+    pub fn flow_control(&self) -> Result<settings::FlowControl> {
+        match self.port.flow_control() {
+            Ok(value) => Ok(settings::FlowControl::from(value)),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Set the I/O timeout.
+    pub fn set_timeout(&mut self, timeout: u64) -> Result<()> {
+        match self.port.set_timeout(Duration::from_millis(timeout)) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::from(e))
+        }
+    }
+
+    /// Get the I/O timeout.
+    pub fn timeout(&self) -> u64 {
+        return self.port.timeout().as_millis() as u64;
     }
 
     /// Write text to the serial port.
