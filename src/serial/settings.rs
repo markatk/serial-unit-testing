@@ -2,21 +2,21 @@
  * File: src/serial/settings.rs
  * Date: 01.10.2018
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2018 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,6 +27,7 @@
  */
 
 use std::time::Duration;
+use std::convert::From;
 
 use serialport;
 
@@ -43,6 +44,28 @@ pub enum DataBits {
     Eight
 }
 
+impl From<serialport::DataBits> for DataBits {
+    fn from(data_bits: serialport::DataBits) -> Self {
+        match data_bits {
+            serialport::DataBits::Five => DataBits::Five,
+            serialport::DataBits::Six => DataBits::Six,
+            serialport::DataBits::Seven => DataBits::Seven,
+            serialport::DataBits::Eight => DataBits::Eight
+        }
+    }
+}
+
+impl From<DataBits> for serialport::DataBits {
+    fn from(data_bits: DataBits) -> Self {
+        match data_bits {
+            DataBits::Five => serialport::DataBits::Five,
+            DataBits::Six => serialport::DataBits::Six,
+            DataBits::Seven => serialport::DataBits::Seven,
+            DataBits::Eight => serialport::DataBits::Eight
+        }
+    }
+}
+
 /// Data parity check modes.
 #[derive(PartialEq, Clone, Eq, Copy, Debug)]
 pub enum Parity {
@@ -54,6 +77,26 @@ pub enum Parity {
     Odd
 }
 
+impl From<serialport::Parity> for Parity {
+    fn from(parity: serialport::Parity) -> Self {
+        match parity {
+            serialport::Parity::None => Parity::None,
+            serialport::Parity::Even => Parity::Even,
+            serialport::Parity::Odd => Parity::Odd
+        }
+    }
+}
+
+impl From<Parity> for serialport::Parity {
+    fn from(parity: Parity) -> Self {
+        match parity {
+            Parity::None => serialport::Parity::None,
+            Parity::Even => serialport::Parity::Even,
+            Parity::Odd => serialport::Parity::Odd
+        }
+    }
+}
+
 /// Number of stop bits.
 #[derive(PartialEq, Clone, Eq, Copy, Debug)]
 pub enum StopBits {
@@ -61,6 +104,24 @@ pub enum StopBits {
     One,
     /// Two stop bits.
     Two
+}
+
+impl From<serialport::StopBits> for StopBits {
+    fn from(stop_bits: serialport::StopBits) -> Self {
+        match stop_bits {
+            serialport::StopBits::One => StopBits::One,
+            serialport::StopBits::Two => StopBits::Two
+        }
+    }
+}
+
+impl From<StopBits> for serialport::StopBits {
+    fn from(stop_bits: StopBits) -> Self {
+        match stop_bits {
+            StopBits::One => serialport::StopBits::One,
+            StopBits::Two => serialport::StopBits::Two
+        }
+    }
 }
 
 /// Flow control modes.
@@ -72,6 +133,26 @@ pub enum FlowControl {
     Software,
     /// Flow control using RTS/CTS or DTR/DSR signals.
     Hardware
+}
+
+impl From<serialport::FlowControl> for FlowControl {
+    fn from(parity: serialport::FlowControl) -> Self {
+        match parity {
+            serialport::FlowControl::None => FlowControl::None,
+            serialport::FlowControl::Software => FlowControl::Software,
+            serialport::FlowControl::Hardware => FlowControl::Hardware
+        }
+    }
+}
+
+impl From<FlowControl> for serialport::FlowControl {
+    fn from(parity: FlowControl) -> Self {
+        match parity {
+            FlowControl::None => serialport::FlowControl::None,
+            FlowControl::Software => serialport::FlowControl::Software,
+            FlowControl::Hardware => serialport::FlowControl::Hardware
+        }
+    }
 }
 
 /// Settings of a serial port connection.
@@ -93,29 +174,10 @@ pub struct Settings {
 
 impl Settings {
     pub (super) fn to_serial_port_settings(&self) -> serialport::SerialPortSettings {
-        let data_bits = match self.data_bits {
-            DataBits::Five => serialport::DataBits::Five,
-            DataBits::Six => serialport::DataBits::Six,
-            DataBits::Seven => serialport::DataBits::Seven,
-            DataBits::Eight => serialport::DataBits::Eight
-        };
-
-        let parity = match self.parity {
-            Parity::None => serialport::Parity::None,
-            Parity::Even => serialport::Parity::Even,
-            Parity::Odd => serialport::Parity::Odd
-        };
-
-        let stop_bits = match self.stop_bits {
-            StopBits::One => serialport::StopBits::One,
-            StopBits::Two => serialport::StopBits::Two
-        };
-
-        let flow_control = match self.flow_control {
-            FlowControl::None => serialport::FlowControl::None,
-            FlowControl::Software => serialport::FlowControl::Software,
-            FlowControl::Hardware => serialport::FlowControl::Hardware
-        };
+        let data_bits = self.data_bits.into();
+        let parity = self.parity.into();
+        let stop_bits = self.stop_bits.into();
+        let flow_control = self.flow_control.into();
 
         serialport::SerialPortSettings {
             baud_rate: self.baud_rate,
