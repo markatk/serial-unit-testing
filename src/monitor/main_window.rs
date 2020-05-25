@@ -245,6 +245,8 @@ impl<'a> Window for MainWindow<'a> {
             KeyEvent { code: KeyCode::Right, modifiers: _ } => self.text_storage.advance_cursor(),
             KeyEvent { code: KeyCode::Up, modifiers: KeyModifiers::SHIFT } => self.text_storage.retreat_output(),
             KeyEvent { code: KeyCode::Down, modifiers: KeyModifiers::SHIFT } => self.text_storage.advance_output(),
+            KeyEvent { code: KeyCode::PageDown, modifiers: _ } => self.text_storage.advance_output_page(),
+            KeyEvent { code: KeyCode::PageUp, modifiers: _ } => self.text_storage.retreat_output_page(),
             KeyEvent { code: KeyCode::Up, modifiers: _ } => self.text_storage.advance_history(),
             KeyEvent { code: KeyCode::Down, modifiers: _ } => self.text_storage.retreat_history(),
             KeyEvent { code: KeyCode::Esc, modifiers: _ } => {

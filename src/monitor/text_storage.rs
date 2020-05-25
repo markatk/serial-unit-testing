@@ -43,7 +43,8 @@ pub struct TextStorage {
     output: String,
     pub output_format: TextFormat,
     pub output_line: usize,
-    scroll_output: bool
+    scroll_output: bool,
+    last_output_size: usize
 }
 
 impl TextStorage {
@@ -126,6 +127,34 @@ impl TextStorage {
     pub fn retreat_output(&mut self) {
         if self.output_line > 1 {
             self.output_line -= 1;
+        }
+
+        self.scroll_output = false;
+    }
+
+    pub fn advance_output_page(&mut self) {
+        let lines = self.output.lines().count();
+
+        if self.output_line < lines {
+            self.output_line += self.last_output_size;
+
+            if self.output_line > lines {
+                self.output_line = lines;
+            }
+        }
+
+        if self.output_line == lines {
+            self.scroll_output = true;
+        }
+    }
+
+    pub fn retreat_output_page(&mut self) {
+        if self.output_line > 1 {
+            self.output_line -= self.last_output_size;
+
+            if self.output_line < 1 {
+                self.output_line = 1;
+            }
         }
 
         self.scroll_output = false;
@@ -237,6 +266,9 @@ impl TextStorage {
             "(0-0/0)".to_string()
         };
 
+        // safe number of visible lines for page scrolling
+        self.last_output_size = visible_lines;
+
         (text, counter)
     }
 }
@@ -255,7 +287,8 @@ impl Default for TextStorage {
             output: String::new(),
             output_format: TextFormat::Text,
             output_line: 1,
-            scroll_output: true
+            scroll_output: true,
+            last_output_size: 0
         }
     }
 }
