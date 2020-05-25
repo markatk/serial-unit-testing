@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Add getter and setter for serial port settings
+- Add from conversion traits for settings and settings enums
+
+### Changes
+- Change serial settings to be moved in open functions
+
 ## [0.2.2] - 19.01.2020
 
 ### Added
