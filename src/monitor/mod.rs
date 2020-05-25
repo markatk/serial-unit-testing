@@ -65,7 +65,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     main_window.title = format!("{}, {} ", port_name, settings.to_short_string());
 
     // open serial port
-    let mut serial = match Serial::open_with_settings(port_name, &settings) {
+    let mut serial = match Serial::open_with_settings(port_name, settings) {
         Ok(serial) => serial,
         Err(e) => return Err(format!("Unable to connect to port: {:?}", e.description()))
     };

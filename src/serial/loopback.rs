@@ -37,9 +37,9 @@ pub struct Loopback {
 }
 
 impl Loopback {
-    pub fn open(settings: &SerialPortSettings) -> Box<Loopback> {
+    pub fn open(settings: SerialPortSettings) -> Box<Loopback> {
         Box::new(Loopback {
-            settings: settings.clone(),
+            settings: settings,
             buffer: vec!()
         })
     }

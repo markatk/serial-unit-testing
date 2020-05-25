@@ -173,22 +173,6 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub (super) fn to_serial_port_settings(&self) -> serialport::SerialPortSettings {
-        let data_bits = self.data_bits.into();
-        let parity = self.parity.into();
-        let stop_bits = self.stop_bits.into();
-        let flow_control = self.flow_control.into();
-
-        serialport::SerialPortSettings {
-            baud_rate: self.baud_rate,
-            timeout: Duration::from_millis(self.timeout),
-            data_bits,
-            parity,
-            stop_bits,
-            flow_control
-        }
-    }
-
     pub fn to_short_string(&self) -> String {
         let data_bits = match self.data_bits {
             DataBits::Five => 5,
@@ -221,6 +205,32 @@ impl Default for Settings {
             parity: Parity::None,
             stop_bits: StopBits::One,
             flow_control: FlowControl::None
+        }
+    }
+}
+
+impl From<serialport::SerialPortSettings> for Settings {
+    fn from(settings: serialport::SerialPortSettings) -> Self {
+        Settings {
+            baud_rate: settings.baud_rate,
+            timeout: settings.timeout.as_millis() as u64,
+            data_bits: settings.data_bits.into(),
+            parity: settings.parity.into(),
+            stop_bits: settings.stop_bits.into(),
+            flow_control: settings.flow_control.into()
+        }
+    }
+}
+
+impl From<Settings> for serialport::SerialPortSettings {
+    fn from(settings: Settings) -> Self {
+        serialport::SerialPortSettings {
+            baud_rate: settings.baud_rate,
+            timeout: Duration::from_millis(settings.timeout),
+            data_bits: settings.data_bits.into(),
+            parity: settings.parity.into(),
+            stop_bits: settings.stop_bits.into(),
+            flow_control: settings.flow_control.into()
         }
     }
 }

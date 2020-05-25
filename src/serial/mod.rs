@@ -76,7 +76,7 @@ impl Serial {
     pub fn open(port_name: &str) -> Result<Serial> {
         let settings: settings::Settings = Default::default();
 
-        Serial::open_with_settings(port_name, &settings)
+        Serial::open_with_settings(port_name, settings)
     }
 
     /// Open a new connection with given settings.
@@ -101,9 +101,11 @@ impl Serial {
     /// }
     ///
     /// ```
-    pub fn open_with_settings(port_name: &str, settings: &settings::Settings) -> Result<Serial> {
+    pub fn open_with_settings(port_name: &str, settings: settings::Settings) -> Result<Serial> {
+        let serial_port_settings = settings.into();
+
         if port_name == "loopback" {
-            let port = Loopback::open(&settings.to_serial_port_settings());
+            let port = Loopback::open(serial_port_settings);
 
             return Ok(Serial {
                 port,
@@ -111,12 +113,17 @@ impl Serial {
             });
         }
 
-        match serialport::open_with_settings(&port_name, &settings.to_serial_port_settings()) {
+        match serialport::open_with_settings(&port_name, &serial_port_settings) {
             Ok(port) => {
                 Ok(Serial { port, read_buffer: vec![0; 1000] })
             },
             Err(e) => Err(Error::from(e))
         }
+    }
+
+    /// Get the current serial settings.
+    pub fn settings(&self) -> settings::Settings {
+        return self.port.settings().into();
     }
 
     /// Get the port name if any exists.
