@@ -310,11 +310,61 @@ impl Serial {
         self.read_str_with_format(utils::TextFormat::Text)
     }
 
-    /// Read a string with minimum length.
+    /// Read a string until desired substring is found.
     ///
-    /// At least the amount of characters given by `min_length` must be read to return successfully. The method fails when no characters could be read in the timeout duration.
+    /// At least one character and desired substring must be read to return successfully. The method fails when no characters could be read in the timeout
+    /// duration.
+    pub fn read_str_until(&mut self, desired: &str) -> Result<String> {
+        let mut result = String::new();
+
+        loop {
+            match self.read_str() {
+                Ok(chunk) => result += &chunk,
+                Err(e) => return Err(Error::from(e))
+            }
+
+            if result.contains(desired) {
+                break;
+            }
+        }
+
+        Ok(result)
+    }
+
+    /// Read a string with minimum length until desired substring is found.
+    ///
+    /// At least the amount of characters given by `min_length` must be read to return successfully. The method fails when no characters could be read in the
+    /// timeout duration.
     pub fn read_min_str(&mut self, min_length: usize) -> Result<String> {
         self.read_min_str_with_format(min_length, utils::TextFormat::Text)
+    }
+
+    /// Read a string with minimum length.
+    ///
+    /// At least the amount of characters given by `min_length` and desired substring  must be read to return successfully. The method fails when no characters
+    /// could be read in the timeout duration.
+    pub fn read_min_str_until(&mut self, min_length: usize, desired: &str) -> Result<String> {
+        let mut result = String::new();
+
+        loop {
+            match self.read_str() {
+                Ok(chunk) => result += &chunk,
+                Err(e) if e.is_timeout() => {
+                    if result.len() >= min_length && result.contains(desired) {
+                        break;
+                    }
+
+                    return Err(Error::from(e));
+                },
+                Err(e) => return Err(Error::from(e))
+            }
+
+            if result.len() >= min_length && result.contains(desired) {
+                break;
+            }
+        }
+
+        Ok(result)
     }
 
     /// Read a string as given format.
@@ -349,7 +399,7 @@ impl Serial {
                     }
                 },
                 Err(e) if e.is_timeout() => {
-                    if response.len() == 0 {
+                    if response.len() < min_length {
                         return Err(e);
                     }
 
@@ -407,6 +457,39 @@ impl Serial {
         }
     }
 
+    /// Read a string with minimum length in given timeout duration.
+    ///
+    /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
+    ///
+    /// At least the amount of characters given by `min_length` must be read to return successfully. The method fails when no characters could be read in the
+    /// given timeout duration.
+    pub fn read_min_str_with_timeout(&mut self, min_length: usize, timeout: Duration) -> Result<String> {
+        self.read_min_str_with_format_and_timeout(min_length, utils::TextFormat::Text, timeout)
+    }
+
+    /// Read a string until desired substring is found in given timeout duration.
+    ///
+    /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
+    ///
+    /// At least one character and desired substring must be read to return successfully. The method fails when no characters could be read in the timeout
+    /// duration.
+    pub fn read_str_until_with_timeout(&mut self, desired: &str, timeout: Duration) -> Result<String> {
+        let mut result = String::new();
+
+        loop {
+            match self.read_str_with_timeout(timeout) {
+                Ok(chunk) => result += &chunk,
+                Err(e) => return Err(Error::from(e))
+            }
+
+            if result.contains(desired) {
+                break;
+            }
+        }
+
+        Ok(result)
+    }
+
     /// Read a string as given format in given timeout duration.
     ///
     /// The bytes received will be formatted into the given string format.
@@ -428,6 +511,61 @@ impl Serial {
         }
 
         utils::radix_string(data, &format)
+    }
+
+    /// Read a string with minimum length as given format in given timeout duration.
+    ///
+    /// The bytes received will be formatted into the given string format.
+    /// This function can be used to use a different timeout for a single read. Otherwise see the timeout property of serial.
+    ///
+    /// At least the amount of characters given by `min_length` must be read to return successfully. The method fails when no characters could be read in the
+    /// given timeout duration.
+    pub fn read_min_str_with_format_and_timeout(&mut self, min_length: usize, format: utils::TextFormat, timeout: Duration) -> Result<String> {
+        // remember old timeout
+        let old_timeout = self.port.timeout();
+        if let Err(e) = self.port.set_timeout(timeout) {
+            return Err(Error::from(e));
+        }
+
+        let mut response = String::new();
+
+        loop {
+            match self.read() {
+                Ok(bytes) => {
+                    let new_text = utils::radix_string(bytes, &format)?;
+
+                    response.push_str(new_text.as_str());
+
+                    if response.len() >= min_length {
+                        break;
+                    }
+                },
+                Err(e) if e.is_timeout() => {
+                    if response.len() < min_length {
+                        if let Err(e) = self.port.set_timeout(old_timeout) {
+                            return Err(Error::from(e));
+                        }
+
+                        return Err(e);
+                    }
+
+                    break;
+                },
+                Err(e) => {
+                    if let Err(e) = self.port.set_timeout(old_timeout) {
+                        return Err(Error::from(e));
+                    }
+
+                    return Err(e);
+                }
+            }
+        }
+
+        if let Err(e) = self.port.set_timeout(old_timeout) {
+            return Err(Error::from(e));
+        }
+
+        Ok(response)
     }
 
     /// Send text to the serial and check if the response matches the desired response.
