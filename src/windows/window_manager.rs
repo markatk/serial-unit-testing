@@ -138,14 +138,7 @@ impl WindowManager {
                 let result = match self.rx.recv() {
                     Ok(Event::Input(event)) => {
                         match event {
-                            KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::CONTROL } => {
-                                if c == 'c'  {
-                                    // Exit application
-                                    return Ok(());
-                                }
-
-                                Some(window.handle_key_event(event))
-                            },
+                            KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::CONTROL } if c == 'c' => return Ok(()),
                             _ => Some(window.handle_key_event(event))
                         }
                     },
