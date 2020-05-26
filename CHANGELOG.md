@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.3] - 26.05.2020
 
 ### Added
 - Add getter and setter for serial port settings
