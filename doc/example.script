@@ -1,0 +1,9 @@
+# Example script
+
+(Test One)              "h\n"  :  "Help"
+(Test Two, repeat = 2) h"00FF" : h"00"
+                       h"00af" : h"03"
+
+[Group One]
+(Group Test One) "gp\n" : "yes"
+(Group Test Two) "gq\n" : "no"
