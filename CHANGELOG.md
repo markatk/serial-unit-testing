@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.4] - 23.06.2020
+
+### Added
+- Add example script to doc folder
+
+### Changes
+- Fix CRLF line endings in script parser
+- Update tui and crossterm dependencies
+
 ## [0.2.3] - 26.05.2020
 
 ### Added
