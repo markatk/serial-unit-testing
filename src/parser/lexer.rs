@@ -2,21 +2,21 @@
  * File: src/parser/lexer.rs
  * Date: 29.01.2019
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2019 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -100,7 +100,7 @@ impl Lexer {
         }
 
         if char_util::is_newline(ch) {
-            return self.recognize_newline();
+            return self.recognize_newline(ch);
         }
 
         return Token::new_with_value(TokenType::Illegal, ch.to_string(), self.line, self.column);
@@ -128,7 +128,7 @@ impl Lexer {
             let ch = self.input.chars().nth(self.position).unwrap();
 
             if char_util::is_newline(ch) {
-                return self.recognize_newline();
+                return self.recognize_newline(ch);
             }
 
             self.position += 1;
@@ -142,7 +142,7 @@ impl Lexer {
         let mut identifier = String::new();
 
         let column = self.column;
-        
+
         while self.position <= self.input.len() {
             let ch = self.input.chars().nth(self.position).unwrap();
 
@@ -176,7 +176,7 @@ impl Lexer {
                 escape_next_char = true;
 
                 content.push(ch);
-                
+
                 self.position += 1;
                 self.column += 1;
 
@@ -198,7 +198,7 @@ impl Lexer {
 
             self.position += 1;
             self.column += 1;
-            
+
             escape_next_char = false;
         }
 
@@ -241,8 +241,8 @@ impl Lexer {
         Token::new_with_value(token_type, ch.to_string(), self.line, self.column)
     }
 
-    fn recognize_newline(&mut self) -> Token {
-        let mut value = "\n".to_string();
+    fn recognize_newline(&mut self, ch: char) -> Token {
+        let mut value = ch.to_string();
         let line = self.line;
         let column = self.column;
 
@@ -252,9 +252,9 @@ impl Lexer {
 
         if self.position < self.input.len() {
             let next_char = self.input.chars().nth(self.position).unwrap();
-            
-            if next_char == '\r' {
-                value.push('\r');
+
+            if next_char == '\n' {
+                value.push('\n');
 
                 self.position += 1;
             }
