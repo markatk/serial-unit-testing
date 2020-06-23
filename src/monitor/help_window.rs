@@ -28,7 +28,7 @@
 
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
-use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
+use tui::widgets::{Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::event::{KeyEvent, KeyCode};
@@ -163,17 +163,19 @@ impl Window for HelpWindow {
             let exit_text = [Text::styled(exit_str, Style::default().modifier(Modifier::ITALIC))];
 
             // draw widgets
-            Paragraph::new(help_text.iter())
-                .block(Block::default()
-                    .title(format!("Help: {}/{}", *page + 1, page_count).as_str())
-                    .title_style(Style::default().modifier(Modifier::BOLD))
-                    .borders(Borders::ALL))
-                .render(&mut f, chunks[0]);
+            let help_title = format!("Help: {}/{}", *page + 1, page_count);
 
-            Paragraph::new(exit_text.iter())
+            let help_widget = Paragraph::new(help_text.iter())
+                .block(Block::default()
+                    .title(&help_title)
+                    .title_style(Style::default().modifier(Modifier::BOLD))
+                    .borders(Borders::ALL));
+            f.render_widget(help_widget, chunks[0]);
+
+            let exit_widget = Paragraph::new(exit_text.iter())
                 .block(Block::default())
-                .wrap(true)
-                .render(&mut f, chunks[1]);
+                .wrap(true);
+            f.render_widget(exit_widget, chunks[1]);
         })
     }
 

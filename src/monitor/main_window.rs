@@ -30,7 +30,7 @@ use std::io;
 use std::sync::mpsc::Sender;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
-use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
+use tui::widgets::{Block, Borders, Paragraph, Text};
 use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Style, Modifier, Color};
 use crossterm::event::{KeyEvent, KeyCode, KeyModifiers};
@@ -197,28 +197,28 @@ impl<'a> Window for MainWindow<'a> {
             ];
 
             // draw widgets into constraints
-            Paragraph::new(output_text.iter())
+            let output_widget = Paragraph::new(output_text.iter())
                 .block(
                     Block::default()
                         .title(title)
                         .title_style(Style::default().modifier(Modifier::BOLD))
                         .borders(Borders::TOP))
-                .wrap(true)
-                .render(&mut f, chunks[0]);
+                .wrap(true);
+            f.render_widget(output_widget, chunks[0]);
 
-            Paragraph::new(line_text.iter())
-                .render(&mut f, chunks[1]);
+            let line_widget = Paragraph::new(line_text.iter());
+            f.render_widget(line_widget, chunks[1]);
 
-            Paragraph::new(input_text.iter())
+            let input_widget = Paragraph::new(input_text.iter())
                 .block(
                     Block::default()
                         .title(input_title.as_str())
                         .borders(Borders::TOP))
-                .wrap(true)
-                .render(&mut f, chunks[2]);
+                .wrap(true);
+            f.render_widget(input_widget, chunks[2]);
 
-            Paragraph::new(control_text.iter())
-                .render(&mut f, chunks[3]);
+            let control_widget = Paragraph::new(control_text.iter());
+            f.render_widget(control_widget, chunks[3]);
         })
     }
 
