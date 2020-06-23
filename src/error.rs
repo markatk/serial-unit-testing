@@ -67,16 +67,6 @@ impl fmt::Display for Error {
 }
 
 impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::Io(ref cause) => cause.description(),
-            Error::Serial(ref cause) => cause.description(),
-            Error::Num(ref cause) => cause.description(),
-            Error::Utf8(ref cause) => cause.description(),
-            Error::Other => "Unknown error"
-        }
-    }
-
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             Error::Io(ref cause) => Some(cause),

@@ -28,7 +28,6 @@
 
 use std::io;
 use std::sync::mpsc::Sender;
-use std::error::Error;
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
 use tui::widgets::{Widget, Block, Borders, Paragraph, Text};
@@ -298,7 +297,7 @@ impl<'a> Window for MainWindow<'a> {
                 let text = match utils::radix_string(&data, &self.text_storage.output_format) {
                     Ok(text) => text,
                     Err(err) => {
-                        self.set_error(err.description().to_string(), false);
+                        self.set_error(err.to_string(), false);
 
                         return EventResult::new();
                     }

@@ -29,7 +29,6 @@
 use std::thread;
 use std::sync::mpsc;
 use std::time::Duration;
-use std::error::Error;
 use clap::{ArgMatches, App, SubCommand};
 use crossterm::event::KeyEvent;
 use crate::commands;
@@ -67,7 +66,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     // open serial port
     let mut serial = match Serial::open_with_settings(port_name, settings) {
         Ok(serial) => serial,
-        Err(e) => return Err(format!("Unable to connect to port: {:?}", e.description()))
+        Err(e) => return Err(format!("Unable to connect to port: {:?}", e.to_string()))
     };
 
     // start thread for receiving from and sending to serial port
