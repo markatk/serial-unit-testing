@@ -50,7 +50,7 @@ impl HelpEntry {
 
     pub fn get_entry(&self, length: usize) -> [Text; 3] {
         [
-            Text::raw(std::iter::repeat(" ").take(length - self.key.len()).collect::<String>()),
+            Text::raw(" ".repeat(length - self.key.len())),
             Text::styled(self.key.clone(), Style::default().bg(Color::Cyan)),
             Text::raw(format!(" - {}\n\n", self.text))
         ]
@@ -93,7 +93,7 @@ impl HelpWindow {
         })
     }
 
-    fn get_help_text_entries(help_entries: &Vec<HelpEntry>, skip: usize, count: usize) -> Vec<Text> {
+    fn get_help_text_entries(help_entries: &[HelpEntry], skip: usize, count: usize) -> Vec<Text> {
         let entries = help_entries
             .iter()
             .skip(skip)
@@ -114,7 +114,7 @@ impl HelpWindow {
         }
 
         // create text entries
-        let title_text = format!("{}Key   Action\n\n", std::iter::repeat(" ").take(length - 3).collect::<String>());
+        let title_text = format!("{}Key   Action\n\n", " ".repeat(length - 3));
         let mut help_text = vec!(Text::styled(title_text, Style::default().modifier(Modifier::BOLD)));
 
         for entry in entries {

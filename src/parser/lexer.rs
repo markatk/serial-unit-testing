@@ -101,14 +101,14 @@ impl Lexer {
             return self.recognize_newline(ch);
         }
 
-        return Token::new_with_value(TokenType::Illegal, ch.to_string(), self.line, self.column);
+        Token::new_with_value(TokenType::Illegal, ch.to_string(), self.line, self.column)
     }
 
     fn skip_whitespaces(&mut self) {
         while self.position < self.input.len() {
             let ch = self.input.chars().nth(self.position).unwrap();
 
-            if char_util::is_whitespace(ch) == false {
+            if !char_util::is_whitespace(ch) {
                 break;
             }
 
@@ -144,7 +144,7 @@ impl Lexer {
         while self.position <= self.input.len() {
             let ch = self.input.chars().nth(self.position).unwrap();
 
-            if char_util::is_identifier(ch) == false {
+            if !char_util::is_identifier(ch) {
                 break;
             }
 
@@ -170,7 +170,7 @@ impl Lexer {
         while self.position <= self.input.len() {
             let ch = self.input.chars().nth(self.position).unwrap();
 
-            if ch == '\\' && escape_next_char == false {
+            if ch == '\\' && !escape_next_char {
                 escape_next_char = true;
 
                 content.push(ch);
@@ -185,7 +185,7 @@ impl Lexer {
                 return Token::new_with_value(TokenType::Illegal, content, self.line, column);
             }
 
-            if ch == '"' && escape_next_char == false {
+            if ch == '"' && !escape_next_char {
                 self.position += 1;
                 self.column += 1;
 

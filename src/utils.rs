@@ -2,21 +2,21 @@
  * File: src/utils.rs
  * Date: 30.09.2018
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2018 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -104,7 +104,7 @@ pub fn get_next_newline_format(format: &NewlineFormat) -> NewlineFormat {
 /// Leading 0x and whitespaces will be ignored.
 pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>> {
     let mut text = original_text.replace("0x", "");
-    text = text.replace(" ", "");
+    text = text.replace(' ', "");
 
     bytes_from_radix_string(&text, 16)
 }
@@ -114,7 +114,7 @@ pub fn bytes_from_hex_string(original_text: &str) -> Result<Vec<u8>> {
 /// Leading 0b and whitespaces will be ignored.
 pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>> {
     let mut text = original_text.replace("0b", "");
-    text = text.replace(" ", "");
+    text = text.replace(' ', "");
 
     bytes_from_radix_string(&text, 2)
 }
@@ -123,7 +123,7 @@ pub fn bytes_from_binary_string(original_text: &str) -> Result<Vec<u8>> {
 ///
 /// Leading 0 and whitespaces will be ignored.
 pub fn bytes_from_octal_string(original_text: &str) -> Result<Vec<u8>> {
-    let mut text = original_text.replace(" ", "");
+    let mut text = original_text.replace(' ', "");
     if text.starts_with('0') {
         text.remove(0);
     }
@@ -135,7 +135,7 @@ pub fn bytes_from_octal_string(original_text: &str) -> Result<Vec<u8>> {
 ///
 /// Whitespaces will be ignored
 pub fn bytes_from_decimal_string(original_text: &str) -> Result<Vec<u8>> {
-    let text = original_text.replace(" ", "");
+    let text = original_text.replace(' ', "");
 
     bytes_from_radix_string(&text, 10)
 }
@@ -233,7 +233,7 @@ pub fn escape_text(text: String) -> String {
 }
 
 /// Get actual character count (instead of byte count).
-pub fn char_count(str: &String) -> usize {
+pub fn char_count(str: &str) -> usize {
     str.char_indices().count()
 }
 
@@ -241,11 +241,8 @@ pub fn char_count(str: &String) -> usize {
 ///
 /// When working with unicode characters a character can span multiple bytes and thus
 /// the offset of characters is not the same as the number of bytes.
-pub fn byte_position_of_char(str: &String, index: usize) -> Option<usize> {
-    match str.char_indices().nth(index) {
-        Some((pos, _)) => Some(pos),
-        None => None
-    }
+pub fn byte_position_of_char(str: &str, index: usize) -> Option<usize> {
+    str.char_indices().nth(index).map(|(pos, _)| pos)
 }
 
 /// Remove a character by given character index (instead of byte position).

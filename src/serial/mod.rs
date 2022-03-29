@@ -123,14 +123,14 @@ impl Serial {
 
     /// Get the current serial settings.
     pub fn settings(&self) -> settings::Settings {
-        return self.port.settings().into();
+        self.port.settings().into()
     }
 
     /// Get the port name if any exists.
     ///
     /// Virtual ports may not have a name and the name may be shortened.
     pub fn name(&self) -> Option<String> {
-        return self.port.name();
+        self.port.name()
     }
 
     /// Set the baud rate.
@@ -225,7 +225,7 @@ impl Serial {
 
     /// Get the I/O timeout.
     pub fn timeout(&self) -> u64 {
-        return self.port.timeout().as_millis() as u64;
+        self.port.timeout().as_millis() as u64
     }
 
     /// Write text to the serial port.
@@ -320,7 +320,7 @@ impl Serial {
         loop {
             match self.read_str() {
                 Ok(chunk) => result += &chunk,
-                Err(e) => return Err(Error::from(e))
+                Err(e) => return Err(e)
             }
 
             if result.contains(desired) {
@@ -354,9 +354,9 @@ impl Serial {
                         break;
                     }
 
-                    return Err(Error::from(e));
+                    return Err(e);
                 },
-                Err(e) => return Err(Error::from(e))
+                Err(e) => return Err(e)
             }
 
             if result.len() >= min_length && result.contains(desired) {
@@ -479,7 +479,7 @@ impl Serial {
         loop {
             match self.read_str_with_timeout(timeout) {
                 Ok(chunk) => result += &chunk,
-                Err(e) => return Err(Error::from(e))
+                Err(e) => return Err(e)
             }
 
             if result.contains(desired) {
@@ -645,12 +645,12 @@ impl Serial {
                         break;
                     }
 
-                    if compare.starts_with(response.as_str()) == false {
+                    if !compare.starts_with(response.as_str()) {
                         break;
                     }
                 },
                 Err(e) if e.is_timeout() => {
-                    if response.len() == 0 {
+                    if response.is_empty() {
                         return Err(e);
                     }
 

@@ -79,7 +79,7 @@ impl SerialPort for Loopback {
     }
 
     fn set_all(&mut self, settings: &SerialPortSettings) -> Result<(), Error> {
-        self.settings = settings.clone();
+        self.settings = *settings;
 
         Ok(())
     }
@@ -166,7 +166,7 @@ impl SerialPort for Loopback {
 
     fn try_clone(&self) -> Result<Box<dyn SerialPort>, Error> {
         Ok(Box::new(Loopback {
-            settings: self.settings.clone(),
+            settings: self.settings,
             buffer: self.buffer.clone()
         }))
     }
@@ -195,11 +195,7 @@ impl io::Read for Loopback {
         }
 
         let len = self.buffer.len();
-
-        for x in 0..len {
-            buf[x] = self.buffer[x];
-        }
-
+        buf[..len].clone_from_slice(&self.buffer[..len]);
         self.buffer.clear();
 
         Ok(len)

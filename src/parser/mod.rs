@@ -2,21 +2,21 @@
  * File: src/parser/mod.rs
  * Date: 02.10.2018
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2018 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -60,8 +60,8 @@ pub fn parse_file_with_default_settings(file: &mut fs::File, default_test_settin
     let mut reader = BufReader::new(file);
     let mut content = String::new();
 
-    if let Err(_) = reader.read_to_string(&mut content) {
-        return Err(Error::ReadFileError);
+    if reader.read_to_string(&mut content).is_err() {
+        return Err(Error::ReadFile);
     }
 
     let mut lexer = Lexer::new(content);
@@ -82,7 +82,7 @@ fn analyse_tokens(tokens: Vec<Token>, default_test_settings: TestCaseSettings) -
 
         if token.token_type == TokenType::Newline {
             // only add line if not empty
-            if line.len() > 0 {
+            if !line.is_empty() {
                 lines.push(line);
 
                 line = Vec::new();
@@ -175,8 +175,8 @@ fn analyse_tokens(tokens: Vec<Token>, default_test_settings: TestCaseSettings) -
     Ok(test_suites)
 }
 
-fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, default_test_settings: TestCaseSettings) -> Result<TestSuite, Error> {
-    let result = state_machine.run(&tokens);
+fn analyse_test_group(tokens: &[Token], state_machine: &FiniteStateMachine, default_test_settings: TestCaseSettings) -> Result<TestSuite, Error> {
+    let result = state_machine.run(tokens);
 
     if let Err((state, token)) = result {
         return match state {
@@ -185,7 +185,7 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
             5 => Err(Error::MissingOptionIdentifier(token.line, token.column)),
             6 => Err(Error::MissingOptionSeparator(token.line, token.column)),
             7 => Err(Error::MissingOptionValue(token.line, token.column)),
-            _ => Err(Error::UnknownError(token.line, token.column))
+            _ => Err(Error::Unknown(token.line, token.column))
         };
     }
 
@@ -209,8 +209,8 @@ fn analyse_test_group(tokens: &Vec<Token>, state_machine: &FiniteStateMachine, d
     Ok(test_suite)
 }
 
-fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Result<TestCase, Error> {
-    let result = state_machine.run(&tokens);
+fn analyse_test(tokens: &[Token], state_machine: &FiniteStateMachine) -> Result<TestCase, Error> {
+    let result = state_machine.run(tokens);
 
     if let Err((state, token)) = result {
         return match state {
@@ -222,14 +222,12 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
             10 => Err(Error::MissingOptionIdentifier(token.line, token.column)),
             11 => Err(Error::MissingOptionSeparator(token.line, token.column)),
             12 => Err(Error::MissingOptionValue(token.line, token.column)),
-            _ => Err(Error::UnknownError(token.line, token.column))
+            _ => Err(Error::Unknown(token.line, token.column))
         };
     }
 
     // create test case
     let mut name = String::new();
-    let input: String;
-    let output: String;
     let mut settings = TestCaseSettings::default();
     let mut input_format: Option<TextFormat> = None;
     let mut output_format: Option<TextFormat> = None;
@@ -252,7 +250,7 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
         index += 1;
     }
 
-    input = tokens[index].value.clone();
+    let input = tokens[index].value.clone();
 
     // skip direction separator
     index += 2;
@@ -262,8 +260,8 @@ fn analyse_test(tokens: &Vec<Token>, state_machine: &FiniteStateMachine) -> Resu
         index += 1;
     }
 
-    output = tokens[index].value.clone();
-    if let Err(_) = Regex::new(&output) {
+    let output = tokens[index].value.clone();
+    if Regex::new(&output).is_err() {
         return Err(Error::InvalidOutputContent(output, tokens[index].line, tokens[index].column));
     }
 
@@ -332,6 +330,6 @@ fn get_text_format(token: &Token) -> Result<TextFormat, Error> {
         "o" => Ok(TextFormat::Octal),
         "d" => Ok(TextFormat::Decimal),
         "h" => Ok(TextFormat::Hex),
-        _ => Err(Error::UnknownError(token.line, token.column))
+        _ => Err(Error::Unknown(token.line, token.column))
     }
 }

@@ -2,21 +2,21 @@
  * File: tests/test_suite.rs
  * Date: 03.10.2018
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2018 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,21 +31,12 @@ use crate::serial::Serial;
 pub use crate::tests::test_case::{TestCase, TestCaseSettings};
 
 /// Settings for running a test suite.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TestSuiteSettings {
     /// If set the test suite will stop on first test failing.
     pub stop_on_failure: bool,
     /// If set the test suites will not be run.
     pub disabled: bool
-}
-
-impl Default for TestSuiteSettings {
-    fn default() -> TestSuiteSettings {
-        TestSuiteSettings {
-            stop_on_failure: false,
-            disabled: false
-        }
-    }
 }
 
 /// Test suite representing a group of tests.
@@ -103,7 +94,7 @@ impl TestSuite {
         for test in self.tests.iter_mut() {
             let result = test.run(serial)?;
 
-            if self.settings.stop_on_failure && result == false {
+            if self.settings.stop_on_failure && !result {
                 return Ok(false);
             }
         }
@@ -115,9 +106,9 @@ impl TestSuite {
     ///
     /// Execution will stop early if stop_on_failure is set and a test fails.
     pub fn run_and_print(&mut self, serial: &mut Serial, quiet: bool) -> bool {
-        let show_title = self.name != "";
+        let show_title = !self.name.is_empty();
 
-        if show_title && quiet == false {
+        if show_title && !quiet {
             println!("{}", self.title());
         }
 
@@ -126,20 +117,16 @@ impl TestSuite {
         }
 
         for test in self.tests.iter_mut() {
-            if show_title && quiet == false {
+            if show_title && !quiet {
                 print!("\t");
             }
 
-            let result = match test.run(serial) {
-                Ok(success) => success,
-                Err(_) => false
-            };
-
-            if quiet == false || result == false {
+            let result = test.run(serial).unwrap_or(false);
+            if !quiet || !result {
                 println!("{}", test.to_string());
             }
 
-            if result != true && self.settings.stop_on_failure {
+            if !result && self.settings.stop_on_failure {
                 return false;
             }
         }
@@ -200,7 +187,7 @@ impl ToString for TestSuite {
     fn to_string(&self) -> String {
         let mut result = String::new();
 
-        let show_group = self.name != "";
+        let show_group = !self.name.is_empty();
 
         if show_group {
             result.push_str(format!("{}\n", self.title()).as_str());
