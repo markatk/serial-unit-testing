@@ -75,7 +75,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
             loop {
                 match serial.read_with_timeout(Duration::from_millis(10)) {
                     Ok(bytes) => {
-                        if let Err(_) = ui_tx.send(Event::Output(bytes.to_vec())) {
+                        if ui_tx.send(Event::Output(bytes.to_vec())).is_err() {
                             eprintln!("Unable to send to ui thread");
 
                             return;

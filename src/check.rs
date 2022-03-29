@@ -62,7 +62,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         output_format
     };
 
-    let (result, actual_response) = match serial.check_with_settings(&text, &response, &check_settings) {
+    let (result, actual_response) = match serial.check_with_settings(&text, response, &check_settings) {
         Ok((result, actual_response)) => (result, actual_response),
         Err(e) if e.is_timeout() => return Err("Serial connection timed out".to_string()),
         Err(e) => return Err(format!("Error running check {:?}", e))

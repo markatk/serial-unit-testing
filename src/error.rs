@@ -47,10 +47,7 @@ pub enum Error {
 
 impl Error {
     pub fn is_timeout(&self) -> bool {
-        match *self {
-            Error::Io(ref e) if e.kind() == io::ErrorKind::TimedOut => true,
-            _ => false
-        }
+        matches!(*self, Error::Io(ref e) if e.kind() == io::ErrorKind::TimedOut)
     }
 }
 

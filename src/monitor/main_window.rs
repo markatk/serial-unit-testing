@@ -97,7 +97,7 @@ impl<'a> MainWindow<'a> {
             return format!("Error: {}. {}", error.description, close_message);
         }
 
-        if self.cursor_state == false {
+        if !self.cursor_state {
             return self.text_storage.get_input();
         }
 
@@ -105,7 +105,7 @@ impl<'a> MainWindow<'a> {
         let cursor_position = self.text_storage.get_cursor_position();
 
         // place cursor in input text
-        if input.is_empty() == false && cursor_position < utils::char_count(&input) {
+        if !input.is_empty() && cursor_position < utils::char_count(&input) {
             utils::remove_char(&mut input, cursor_position);
         }
 
@@ -135,7 +135,7 @@ impl<'a> MainWindow<'a> {
         }
 
         // add history entry if input has changed
-        if self.text_storage.is_input_empty() == false {
+        if !self.text_storage.is_input_empty() {
             self.text_storage.add_history_entry();
         }
         self.text_storage.reset_input();
@@ -193,7 +193,7 @@ impl<'a> Window for MainWindow<'a> {
             ];
 
             let line_text = vec![
-                Text::raw(format!("{}{}", std::iter::repeat(" ").take(line_spaces).collect::<String>(), line_counter))
+                Text::raw(format!("{}{}", " ".repeat(line_spaces), line_counter))
             ];
 
             // draw widgets into constraints

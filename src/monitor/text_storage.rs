@@ -163,7 +163,7 @@ impl TextStorage {
     pub fn remove_character(&mut self, advance_cursor: bool) {
         let char_count = utils::char_count(&self.input);
 
-        if self.input.is_empty() || (advance_cursor && self.cursor_position == 0) || (advance_cursor == false && self.cursor_position >= char_count) {
+        if self.input.is_empty() || (advance_cursor && self.cursor_position == 0) || (!advance_cursor && self.cursor_position >= char_count) {
             return;
         }
 

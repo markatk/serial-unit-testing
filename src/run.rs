@@ -53,8 +53,10 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
     };
 
     // parse and run tests
-    let mut default_test_settings = TestCaseSettings::default();
-    default_test_settings.verbose = Some(matches.is_present("verbose"));
+    let default_test_settings = TestCaseSettings {
+        verbose: Some(matches.is_present("verbose")),
+        ..Default::default()
+    };
 
     let test_suites = match parser::parse_file_with_default_settings(&mut file, default_test_settings) {
         Ok(test_suites) => test_suites,
@@ -83,11 +85,11 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         successful_tests += successful;
         failed_tests += failed;
 
-        if quiet == false {
+        if !quiet {
             println!();
         }
 
-        if result == false && test_suite.settings.stop_on_failure {
+        if !result && test_suite.settings.stop_on_failure {
             // global stop on failure?
             if stop_on_failure {
                 println!("Stopping because 'stop-on-failure' is set");
@@ -101,7 +103,7 @@ pub fn run(matches: &ArgMatches) -> Result<(), String> {
         }
     }
 
-    if quiet == false {
+    if !quiet {
         println!("\nRan {} tests, {} successful, {} failed", total_tests.to_string().yellow(), successful_tests.to_string().green(), failed_tests.to_string().red());
     }
 

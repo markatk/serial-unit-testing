@@ -2,21 +2,21 @@
  * File: tests/test_case.rs
  * Date: 03.10.2018
  * Author: MarkAtk
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2018 MarkAtk
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
  * the Software without restriction, including without limitation the rights to
  * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is furnished to do
  * so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -38,7 +38,7 @@ use crate::utils;
 /// Settings for running a test.
 ///
 /// All not set properties will be overwritten by the test suite.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TestCaseSettings {
     /// Ignore case for string comparison.
     pub ignore_case: Option<bool>,
@@ -86,19 +86,6 @@ impl TestCaseSettings {
     }
 }
 
-impl Default for TestCaseSettings {
-    fn default() -> TestCaseSettings {
-        TestCaseSettings {
-            ignore_case: None,
-            repeat: None,
-            delay: None,
-            timeout: None,
-            allow_failure: None,
-            verbose: None
-        }
-    }
-}
-
 /// Test representing a check on the serial.
 #[derive(Debug)]
 pub struct TestCase {
@@ -138,20 +125,17 @@ impl TestCase {
     /// After running the test response and successful are set if no error occurred.
     pub fn run(&mut self, serial: &mut Serial) -> Result<bool, String> {
         // get input and desired output in correct format
-        let input: String;
-        let mut output: String;
-
-        if self.input_format == utils::TextFormat::Text {
-            input = self.descape_string(&self.input);
+        let input = if self.input_format == utils::TextFormat::Text {
+            self.descape_string(&self.input)
         } else {
-            input = self.input.clone();
-        }
+            self.input.clone()
+        };
 
-        if self.output_format == utils::TextFormat::Text {
-            output = self.descape_string(&self.output);
+        let mut output = if self.output_format == utils::TextFormat::Text {
+            self.descape_string(&self.output)
         } else {
-            output = self.output.clone();
-        }
+            self.output.clone()
+        };
 
         if self.settings.ignore_case.unwrap_or(false) {
             output = output.to_lowercase();
@@ -161,7 +145,7 @@ impl TestCase {
 
         let regex = match Regex::new(&output) {
             Ok(regex) => regex,
-            Err(_) => return self.exit_run_with_error(format!("Error in regex"))
+            Err(_) => return self.exit_run_with_error("Error in regex".to_string())
         };
 
         // run test repeat + 1 times
@@ -197,7 +181,7 @@ impl TestCase {
 
             self.response = Some(response);
 
-            if success == false {
+            if !success {
                 break;
             }
         }
@@ -225,13 +209,11 @@ impl TestCase {
         let mut response = String::new();
 
         loop {
-            let response_chunk;
-
-            if let Some(timeout) = self.settings.timeout {
-                response_chunk = serial.read_with_timeout(timeout);
+            let response_chunk = if let Some(timeout) = self.settings.timeout {
+                serial.read_with_timeout(timeout)
             } else {
-                response_chunk = serial.read();
-            }
+                serial.read()
+            };
 
             match response_chunk {
                 Ok(bytes) => {
@@ -254,7 +236,7 @@ impl TestCase {
                     }
                 },
                 Err(e) if e.is_timeout() => {
-                    if response.len() == 0 {
+                    if response.is_empty() {
                         return Err("Connection timed out".to_string());
                     }
 
@@ -268,7 +250,7 @@ impl TestCase {
     }
 
     fn title(&self) -> String {
-        if self.name.is_empty() == false {
+        if !self.name.is_empty() {
             format!("{} \"{}\"", self.name, self.input)
         } else {
             self.input.clone()
@@ -285,7 +267,7 @@ impl TestCase {
                 Some('t') if descape_next_char => response.push('\t'),
                 Some('r') if descape_next_char => response.push('\r'),
                 Some('n') if descape_next_char => response.push('\n'),
-                Some('\\') if descape_next_char == false => {
+                Some('\\') if !descape_next_char => {
                     descape_next_char = true;
 
                     continue;
@@ -344,7 +326,7 @@ impl ToString for TestCase {
         }
 
         if let Some(successful) = self.successful {
-            if successful == false && self.settings.allow_failure.unwrap_or(false) == false {
+            if !successful && !self.settings.allow_failure.unwrap_or(false) {
                 return if let Some(ref response) = self.response {
                     format!("{}...{}, expected '{}' but received '{}'", self.title(), TestCase::red_text("Failed"), self.output, response)
                 } else {
@@ -363,7 +345,7 @@ impl ToString for TestCase {
                 if let Some(ref response) = self.response {
                     format!(", response: '{}'", response)
                 } else {
-                    format!(", no response")
+                    ", no response".to_string()
                 }
             } else {
                 String::new()
@@ -377,7 +359,7 @@ impl ToString for TestCase {
 
             format!("{}...{}{}{}", self.title(), result, repeat, verbose)
         } else {
-            format!("{}", self.title())
+            self.title()
         }
     }
 }

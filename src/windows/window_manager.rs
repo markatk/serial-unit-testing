@@ -98,13 +98,10 @@ impl WindowManager {
                         }
                     };
 
-                    match event {
-                        event::Event::Key(key) => {
-                            if let Err(_) = tx.send(Event::Input(key.clone())) {
-                                return;
-                            }
-                        },
-                        _ => {}
+                    if let event::Event::Key(key) = event {
+                        if tx.send(Event::Input(key)).is_err() {
+                            return;
+                        }
                     }
                 }
             });
@@ -125,7 +122,7 @@ impl WindowManager {
         }
 
         // main loop
-        while self.windows.is_empty() == false {
+        while !self.windows.is_empty() {
             if let Some(window) = self.windows.last_mut() {
                 if window.should_close() {
                     self.windows.pop();
