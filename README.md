@@ -2,7 +2,9 @@
 
 [![Crates.io](https://img.shields.io/crates/v/serial-unit-testing.svg)](https://crates.io/crates/serial-unit-testing)
 [![Documentation](https://docs.rs/serial-unit-testing/badge.svg)](https://docs.rs/crate/serial-unit-testing)
-[![Build Status](https://travis-ci.org/markatk/serial-unit-testing.svg?branch=master)](https://travis-ci.org/markatk/serial-unit-testing)
+[![Linux](https://github.com/markatk/serial-unit-testing/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/markatk/serial-unit-testing/actions/workflows/ubuntu.yml)
+[![macOS](https://github.com/markatk/serial-unit-testing/actions/workflows/macos.yml/badge.svg)](https://github.com/markatk/serial-unit-testing/actions/workflows/macos.yml)
+[![Windows](https://github.com/markatk/serial-unit-testing/actions/workflows/windows.yml/badge.svg)](https://github.com/markatk/serial-unit-testing/actions/workflows/windows.yml)
 
 # Description
 
